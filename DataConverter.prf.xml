@@ -19,148 +19,197 @@ program.  If not, see http://www.gnu.org/licenses/.
 <!DOCTYPE properties PUBLIC "-//JTRS//DTD SCA V2.2.2 PRF//EN" "properties.dtd">
 <properties>
   <struct id="Octet" mode="readwrite">
+    <description>Expected extrema for input dataOctet port</description>
     <simple id="Octet::MaxValue" type="octet">
+      <description>Expected max for input dataOctet port</description>
       <value>255</value>
     </simple>
     <simple id="Octet::MinValue" type="octet">
+      <description>Expected min for input dataOctet port</description>
       <value>0</value>
     </simple>
     <configurationkind kindtype="configure"/>
   </struct>
   <struct id="Ushort" mode="readwrite">
+    <description>Expected extrema for input dataUshort port</description>
     <simple id="Ushort::MaxValue" type="ushort">
+      <description>Expected max for input dataUshort port</description>
       <value>65535</value>
     </simple>
     <simple id="Ushort::MinValue" type="ushort">
+      <description>Expected min for input dataUshort port</description>
       <value>0</value>
     </simple>
     <configurationkind kindtype="configure"/>
   </struct>
   <struct id="Short" mode="readwrite">
+    <description>Expected extrema for input dataShort port</description>
     <simple id="Short::MaxValue" type="short">
+      <description>Expected max for input dataShort port</description>
       <value>32767</value>
     </simple>
     <simple id="Short::MinValue" type="short">
+      <description>Expected min for input dataShort port</description>
       <value>-32768</value>
     </simple>
     <configurationkind kindtype="configure"/>
   </struct>
   <struct id="ULong" mode="readwrite">
+    <description>Expected extrema for input dataUlong port</description>
     <simple id="ULong::MaxValue" type="ulong">
+      <description>Expected max for input dataUlong port</description>
       <value>4294967295</value>
     </simple>
     <simple id="ULong::MinValue" type="ulong">
+      <description>Expected min for input dataUlong port</description>
       <value>0</value>
     </simple>
     <configurationkind kindtype="configure"/>
   </struct>
   <struct id="Long" mode="readwrite">
+    <description>Expected extrema for input dataLong port</description>
     <simple id="Long::MaxValue" type="long">
+      <description>Expected max for input dataLong port</description>
       <value>2147483647</value>
     </simple>
     <simple id="Long::MinValue" type="long">
+      <description>Expected min for input dataLong port</description>
       <value>-2147483648</value>
     </simple>
     <configurationkind kindtype="configure"/>
   </struct>
   <struct id="Float" mode="readwrite">
+    <description>Expected extrema for input dataFloat port</description>
     <simple id="Float::MaxValue" type="float">
+      <description>Expected max for input dataFloat port</description>
       <value>1e10</value>
     </simple>
     <simple id="Float::MinValue" type="float">
+      <description>Expected min for input dataFloat port</description>
       <value>-1e10</value>
     </simple>
     <configurationkind kindtype="configure"/>
   </struct>
   <struct id="Double" mode="readwrite">
+    <description>Expected extrema for input dataDouble port</description>
     <simple id="Double::MaxValue" type="double">
+      <description>Expected max for input dataDouble port</description>
       <value>1e10</value>
     </simple>
     <simple id="Double::MinValue" type="double">
+      <description>Expected min for input dataDouble port</description>
       <value>-1e10</value>
     </simple>
     <configurationkind kindtype="configure"/>
   </struct>
   <struct id="Octet_out" mode="readwrite">
+    <description>extrema for output dataOctet_out port (assuming input properties are bounded appropriately)</description>
     <simple id="Octet_out::MaxValue" type="octet">
+      <description>max value for output dataOctet_out port if scale_enabled (assuming input properties are bounded appropriately)</description>
       <value>255</value>
     </simple>
     <simple id="Octet_out::MinValue" type="octet">
+      <description>min value for output dataOctet_out port if scale_enabled (assuming input properties are bounded appropriately)</description>
       <value>0</value>
     </simple>
     <simple id="Octet_out::scale_enabled" type="boolean">
+      <description>enable data scaling for output dataOctet_out port.  This maps the MaxValue and MinValue from the property associated with the correct input port to the values provided by Octet_out</description>
       <value>False</value>
     </simple>
     <configurationkind kindtype="configure"/>
   </struct>
   <struct id="Ushort_out" mode="readwrite">
+    <description>extrema for output dataUshort_out port (assuming input properties are bounded appropriately)</description>
     <simple id="Ushort_out::MaxValue" type="ushort">
+      <description>max value for output dataUshort_out port if scale_enabled (assuming input properties are bounded appropriately)</description>
       <value>65535</value>
     </simple>
     <simple id="Ushort_out::MinValue" type="ushort">
+      <description>min value for output dataUshort_out port if scale_enabled (assuming input properties are bounded appropriately)</description>
       <value>0</value>
     </simple>
     <simple id="Ushort_out::scale_enabled" type="boolean">
+      <description>enable data scaling for output dataUshort_out port.  This maps the MaxValue and MinValue from the property associated with the correct input port to the values provided by Ushort_out</description>
       <value>False</value>
     </simple>
     <configurationkind kindtype="configure"/>
   </struct>
   <struct id="Short_out" mode="readwrite">
+    <description>extrema for output dataShort_out port (assuming input properties are bounded appropriately)</description>
     <simple id="Short_out::MaxValue" type="short">
+      <description>max value for output dataShort_out port if scale_enabled (assuming input properties are bounded appropriately)</description>
       <value>32767</value>
     </simple>
     <simple id="Short_out::MinValue" type="short">
+      <description>min value for output dataShort_out port if scale_enabled (assuming input properties are bounded appropriately)</description>
       <value>-32768</value>
     </simple>
     <simple id="Short_out::scale_enabled" type="boolean">
+      <description>enable data scaling for output dataShort_out port.  This maps the MaxValue and MinValue from the property associated with the correct input port to the values provided by Short_out</description>
       <value>False</value>
     </simple>
     <configurationkind kindtype="configure"/>
   </struct>
   <struct id="Ulong_out" mode="readwrite">
+    <description>extrema for output dataUlong_out port (assuming input properties are bounded appropriately)</description>
     <simple id="Ulong_out::MaxValue" type="ulong">
+      <description>max value for output dataUlong_out port if scale_enabled (assuming input properties are bounded appropriately)</description>
       <value>4294967295</value>
     </simple>
     <simple id="Ulong_out::MinValue" type="ulong">
+      <description>min value for output dataUlong_out port if scale_enabled (assuming input properties are bounded appropriately)</description>
       <value>0</value>
     </simple>
     <simple id="Ulong_out::scale_enabled" type="boolean">
+      <description>enable data scaling for output Ulong_out port.  This maps the MaxValue and MinValue from the property associated with the correct input port to the values provided by Ulong_out</description>
       <value>False</value>
     </simple>
     <configurationkind kindtype="configure"/>
   </struct>
   <struct id="Long_out" mode="readwrite">
+    <description>extrema for output dataLong_out port (assuming input properties are bounded appropriately)</description>
     <simple id="Long_out::MaxValue" type="long">
+      <description>max value for output dataLong_out port if scale_enabled (assuming input properties are bounded appropriately)</description>
       <value>2147483647</value>
     </simple>
     <simple id="Long_out::MinValue" type="long">
+      <description>max value for output dataLong_out port if scale_enabled (assuming input properties are bounded appropriately)</description>
       <value>-2147483648</value>
     </simple>
     <simple id="Long_out::scale_enabled" type="boolean">
+      <description>enable data scaling for output dataLong_out port.  This maps the MaxValue and MinValue from the property associated with the correct input port to the values provided by Long_out</description>
       <value>False</value>
     </simple>
     <configurationkind kindtype="configure"/>
   </struct>
   <struct id="Float_out" mode="readwrite">
+    <description>extrema for output dataFloat_out port (assuming input properties are bounded appropriately)</description>
     <simple id="Float_out::MaxValue" type="float">
+      <description>max value for output dataFloat_out port if scale_enabled (assuming input properties are bounded appropriately)</description>
       <value>1e10</value>
     </simple>
     <simple id="Float_out::MinValue" type="float">
+      <description>min value for output dataFloat_out port if scale_enabled (assuming input properties are bounded appropriately)</description>
       <value>-1e10</value>
     </simple>
     <simple id="Float_out::scale_enabled" type="boolean">
+      <description>enable data scaling for output dataFloat_out port.  This maps the MaxValue and MinValue from the property associated with the correct input port to the values provided by Float_out</description>
       <value>False</value>
     </simple>
     <configurationkind kindtype="configure"/>
   </struct>
   <struct id="Double_out" mode="readwrite">
+    <description>extrema for output dataDouble_out port (assuming input properties are bounded appropriately)</description>
     <simple id="Double_out::MaxValue" type="double">
+      <description>max value for output dataDouble_out port if scale_enabled (assuming input properties are bounded appropriately)</description>
       <value>1e10</value>
     </simple>
     <simple id="Double_out::MinValue" type="double">
+      <description>min value for output dataDouble_out port if scale_enabled (assuming input properties are bounded appropriately)</description>
       <value>-1e10</value>
     </simple>
     <simple id="Double_out::scale_enabled" type="boolean">
+      <description>enable data scaling for output dataDouble_out port.  This maps the MaxValue and MinValue from the property associated with the correct input port to the values provided by Double_out</description>
       <value>False</value>
     </simple>
     <configurationkind kindtype="configure"/>
