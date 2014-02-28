@@ -349,9 +349,12 @@ int DataConverter_i::serviceFunction()
 template <class IN_PORT_TYPE> bool DataConverter_i::singleService(IN_PORT_TYPE *dataPortIn)
 {
 	    typename IN_PORT_TYPE::dataTransfer *packet = dataPortIn->getPacket(0);
-        if (packet == NULL)
+	    if (packet == NULL)
                 return false;
-
+		if (packet->inputQueueFlushed)
+		{
+			LOG_WARN(DataConverter_i, "input Q flushed - data has been thrown on the floor.");
+		}
         //std::cout<<"doing data for input "<<dataPortIn->getName()<<std::endl;
 
         //call for each of the outputs
