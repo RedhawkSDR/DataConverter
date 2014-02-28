@@ -71,7 +71,7 @@ void convert(std::vector<TIn, IN_TYPE_ALLOC>* in, std::vector<TOut, OUT_TYPE_ALL
 	//compute the gain and the offset necessary to scale one type to another
 	calcType gain = (static_cast<calcType>(maxOut)-minOut)/(static_cast<calcType>(maxIn)-minIn);
 	calcType offset = (static_cast<calcType>(minOut)*maxIn-static_cast<calcType>(maxOut)*minIn)/ (static_cast<calcType>(maxIn) -minIn);
-	//go threw the vector and convert the input to the output
+	//go through the vector and convert the input to the output
 
 	typename std::vector<TOut, OUT_TYPE_ALLOC>::iterator o = out->begin();
 	{
@@ -353,7 +353,7 @@ template <class IN_PORT_TYPE> bool DataConverter_i::singleService(IN_PORT_TYPE *
                 return false;
 		if (packet->inputQueueFlushed)
 		{
-			LOG_WARN(DataConverter_i, "input Q flushed - data has been thrown on the floor.");
+			LOG_WARN(DataConverter_i, "input queue flushed - data has been thrown on the floor.");
 		}
         //std::cout<<"doing data for input "<<dataPortIn->getName()<<std::endl;
 

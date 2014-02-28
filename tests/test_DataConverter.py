@@ -290,7 +290,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         output = self.main('float',inData)
 
     def testClipNoGain(self):
-        """Do a test where there is clipping in the pass threw mode and ensure data is OK
+        """Do a test where there is clipping in the pass-through mode and ensure data is OK
         """
         self.mySetUp(short=True,long=False,float=False,double=False,octet=True,ushort=True,ulong=False)
 

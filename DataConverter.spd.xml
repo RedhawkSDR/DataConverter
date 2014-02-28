@@ -22,7 +22,7 @@ program.  If not, see http://www.gnu.org/licenses/.
   <author>
     <name></name>
   </author>
-  <description>Change data format type.  This component provides optional data scaling to help mitigate quntization and clipping issues which arise from fixed point arthmatic.  No complex baseband conversions are available.  All input and output properties have default MaxValue and MinValue settings.  
+  <description>Change data format type.  This component provides optional data scaling to help mitigate quantization and clipping issues which arise from fixed point arithmetic.  No complex baseband conversions are available.  All input and output properties have default MaxValue and MinValue settings.  
 
 Scaling is controlled via the properties.  All scaling is disabled by default.  Configure the MaxValue and MinValue members on the struct property associated with each input port to tell the component the bounds on the input data if they are known a priori.  If the struct property scale_enabled member is set to true, the data on each output port is scaled to the values provided by member MaxValue and MinValue.</description>
   <propertyfile type="PRF">
