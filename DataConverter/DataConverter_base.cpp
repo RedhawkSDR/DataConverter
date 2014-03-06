@@ -98,6 +98,13 @@ void DataConverter_base::start() throw (CORBA::SystemException, CF::Resource::St
 {
     boost::mutex::scoped_lock lock(serviceThreadLock);
     if (serviceThread == 0) {
+        dataOctet->unblock();
+        dataUshort->unblock();
+        dataShort->unblock();
+        dataUlong->unblock();
+        dataLong->unblock();
+        dataFloat->unblock();
+        dataDouble->unblock();
         serviceThread = new ProcessThread<DataConverter_base>(this, 0.1);
         serviceThread->start();
     }
@@ -112,13 +119,13 @@ void DataConverter_base::stop() throw (CORBA::SystemException, CF::Resource::Sto
     boost::mutex::scoped_lock lock(serviceThreadLock);
     // release the child thread (if it exists)
     if (serviceThread != 0) {
-		dataOctet->block();
-		dataUshort->block();
-		dataShort->block();
-		dataUlong->block();
-		dataLong->block();
-		dataFloat->block();
-		dataDouble->block();
+        dataOctet->block();
+        dataUshort->block();
+        dataShort->block();
+        dataUlong->block();
+        dataLong->block();
+        dataFloat->block();
+        dataDouble->block();
         if (!serviceThread->release(2)) {
             throw CF::Resource::StopError(CF::CF_NOTSET, "Processing thread did not die");
         }
@@ -217,6 +224,7 @@ void DataConverter_base::releaseObject() throw (CORBA::SystemException, CF::Life
 
     Resource_impl::releaseObject();
 }
+
 
 void DataConverter_base::loadProperties()
 {
@@ -347,3 +355,5 @@ void DataConverter_base::loadProperties()
                 "configure");
 
 }
+
+

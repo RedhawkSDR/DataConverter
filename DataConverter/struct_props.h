@@ -23,9 +23,7 @@
     AUTO-GENERATED CODE. DO NOT MODIFY
 
 *******************************************************************************************/
-
 #include <ossie/CorbaUtils.h>
-#include <ossie/PropertyInterface.h>
 
 struct Octet_struct {
     Octet_struct ()
@@ -34,7 +32,7 @@ struct Octet_struct {
         Octet__MinValue = 0;
     };
 
-    std::string getId() {
+    static std::string getId() {
         return std::string("Octet");
     };
 
@@ -50,7 +48,7 @@ inline bool operator>>= (const CORBA::Any& a, Octet_struct& s) {
         if (!strcmp("Octet::MaxValue", props[idx].id)) {
             if (!(props[idx].value >>= CORBA::Any::to_octet(s.Octet__MaxValue))) return false;
         }
-        if (!strcmp("Octet::MinValue", props[idx].id)) {
+        else if (!strcmp("Octet::MinValue", props[idx].id)) {
             if (!(props[idx].value >>= CORBA::Any::to_octet(s.Octet__MinValue))) return false;
         }
     }
@@ -79,26 +77,6 @@ inline bool operator!= (const Octet_struct& s1, const Octet_struct& s2) {
     return !(s1==s2);
 };
 
-template<> inline short StructProperty<Octet_struct>::compare (const CORBA::Any& a) {
-    if (super::isNil_) {
-        if (a.type()->kind() == (CORBA::tk_null)) {
-            return 0;
-        }
-        return 1;
-    }
-
-    Octet_struct tmp;
-    if (fromAny(a, tmp)) {
-        if (tmp != this->value_) {
-            return 1;
-        }
-
-        return 0;
-    } else {
-        return 1;
-    }
-}
-
 struct Ushort_struct {
     Ushort_struct ()
     {
@@ -106,7 +84,7 @@ struct Ushort_struct {
         Ushort__MinValue = 0;
     };
 
-    std::string getId() {
+    static std::string getId() {
         return std::string("Ushort");
     };
 
@@ -122,7 +100,7 @@ inline bool operator>>= (const CORBA::Any& a, Ushort_struct& s) {
         if (!strcmp("Ushort::MaxValue", props[idx].id)) {
             if (!(props[idx].value >>= s.Ushort__MaxValue)) return false;
         }
-        if (!strcmp("Ushort::MinValue", props[idx].id)) {
+        else if (!strcmp("Ushort::MinValue", props[idx].id)) {
             if (!(props[idx].value >>= s.Ushort__MinValue)) return false;
         }
     }
@@ -151,26 +129,6 @@ inline bool operator!= (const Ushort_struct& s1, const Ushort_struct& s2) {
     return !(s1==s2);
 };
 
-template<> inline short StructProperty<Ushort_struct>::compare (const CORBA::Any& a) {
-    if (super::isNil_) {
-        if (a.type()->kind() == (CORBA::tk_null)) {
-            return 0;
-        }
-        return 1;
-    }
-
-    Ushort_struct tmp;
-    if (fromAny(a, tmp)) {
-        if (tmp != this->value_) {
-            return 1;
-        }
-
-        return 0;
-    } else {
-        return 1;
-    }
-}
-
 struct Short_struct {
     Short_struct ()
     {
@@ -178,7 +136,7 @@ struct Short_struct {
         Short__MinValue = -32768;
     };
 
-    std::string getId() {
+    static std::string getId() {
         return std::string("Short");
     };
 
@@ -194,7 +152,7 @@ inline bool operator>>= (const CORBA::Any& a, Short_struct& s) {
         if (!strcmp("Short::MaxValue", props[idx].id)) {
             if (!(props[idx].value >>= s.Short__MaxValue)) return false;
         }
-        if (!strcmp("Short::MinValue", props[idx].id)) {
+        else if (!strcmp("Short::MinValue", props[idx].id)) {
             if (!(props[idx].value >>= s.Short__MinValue)) return false;
         }
     }
@@ -223,26 +181,6 @@ inline bool operator!= (const Short_struct& s1, const Short_struct& s2) {
     return !(s1==s2);
 };
 
-template<> inline short StructProperty<Short_struct>::compare (const CORBA::Any& a) {
-    if (super::isNil_) {
-        if (a.type()->kind() == (CORBA::tk_null)) {
-            return 0;
-        }
-        return 1;
-    }
-
-    Short_struct tmp;
-    if (fromAny(a, tmp)) {
-        if (tmp != this->value_) {
-            return 1;
-        }
-
-        return 0;
-    } else {
-        return 1;
-    }
-}
-
 struct ULong_struct {
     ULong_struct ()
     {
@@ -250,7 +188,7 @@ struct ULong_struct {
         ULong__MinValue = 0;
     };
 
-    std::string getId() {
+    static std::string getId() {
         return std::string("ULong");
     };
 
@@ -266,7 +204,7 @@ inline bool operator>>= (const CORBA::Any& a, ULong_struct& s) {
         if (!strcmp("ULong::MaxValue", props[idx].id)) {
             if (!(props[idx].value >>= s.ULong__MaxValue)) return false;
         }
-        if (!strcmp("ULong::MinValue", props[idx].id)) {
+        else if (!strcmp("ULong::MinValue", props[idx].id)) {
             if (!(props[idx].value >>= s.ULong__MinValue)) return false;
         }
     }
@@ -295,26 +233,6 @@ inline bool operator!= (const ULong_struct& s1, const ULong_struct& s2) {
     return !(s1==s2);
 };
 
-template<> inline short StructProperty<ULong_struct>::compare (const CORBA::Any& a) {
-    if (super::isNil_) {
-        if (a.type()->kind() == (CORBA::tk_null)) {
-            return 0;
-        }
-        return 1;
-    }
-
-    ULong_struct tmp;
-    if (fromAny(a, tmp)) {
-        if (tmp != this->value_) {
-            return 1;
-        }
-
-        return 0;
-    } else {
-        return 1;
-    }
-}
-
 struct Long_struct {
     Long_struct ()
     {
@@ -322,7 +240,7 @@ struct Long_struct {
         Long__MinValue = -2147483648;
     };
 
-    std::string getId() {
+    static std::string getId() {
         return std::string("Long");
     };
 
@@ -338,7 +256,7 @@ inline bool operator>>= (const CORBA::Any& a, Long_struct& s) {
         if (!strcmp("Long::MaxValue", props[idx].id)) {
             if (!(props[idx].value >>= s.Long__MaxValue)) return false;
         }
-        if (!strcmp("Long::MinValue", props[idx].id)) {
+        else if (!strcmp("Long::MinValue", props[idx].id)) {
             if (!(props[idx].value >>= s.Long__MinValue)) return false;
         }
     }
@@ -367,26 +285,6 @@ inline bool operator!= (const Long_struct& s1, const Long_struct& s2) {
     return !(s1==s2);
 };
 
-template<> inline short StructProperty<Long_struct>::compare (const CORBA::Any& a) {
-    if (super::isNil_) {
-        if (a.type()->kind() == (CORBA::tk_null)) {
-            return 0;
-        }
-        return 1;
-    }
-
-    Long_struct tmp;
-    if (fromAny(a, tmp)) {
-        if (tmp != this->value_) {
-            return 1;
-        }
-
-        return 0;
-    } else {
-        return 1;
-    }
-}
-
 struct Float_struct {
     Float_struct ()
     {
@@ -394,7 +292,7 @@ struct Float_struct {
         Float__MinValue = -1e10;
     };
 
-    std::string getId() {
+    static std::string getId() {
         return std::string("Float");
     };
 
@@ -410,7 +308,7 @@ inline bool operator>>= (const CORBA::Any& a, Float_struct& s) {
         if (!strcmp("Float::MaxValue", props[idx].id)) {
             if (!(props[idx].value >>= s.Float__MaxValue)) return false;
         }
-        if (!strcmp("Float::MinValue", props[idx].id)) {
+        else if (!strcmp("Float::MinValue", props[idx].id)) {
             if (!(props[idx].value >>= s.Float__MinValue)) return false;
         }
     }
@@ -439,26 +337,6 @@ inline bool operator!= (const Float_struct& s1, const Float_struct& s2) {
     return !(s1==s2);
 };
 
-template<> inline short StructProperty<Float_struct>::compare (const CORBA::Any& a) {
-    if (super::isNil_) {
-        if (a.type()->kind() == (CORBA::tk_null)) {
-            return 0;
-        }
-        return 1;
-    }
-
-    Float_struct tmp;
-    if (fromAny(a, tmp)) {
-        if (tmp != this->value_) {
-            return 1;
-        }
-
-        return 0;
-    } else {
-        return 1;
-    }
-}
-
 struct Double_struct {
     Double_struct ()
     {
@@ -466,7 +344,7 @@ struct Double_struct {
         Double__MinValue = -1e10;
     };
 
-    std::string getId() {
+    static std::string getId() {
         return std::string("Double");
     };
 
@@ -482,7 +360,7 @@ inline bool operator>>= (const CORBA::Any& a, Double_struct& s) {
         if (!strcmp("Double::MaxValue", props[idx].id)) {
             if (!(props[idx].value >>= s.Double__MaxValue)) return false;
         }
-        if (!strcmp("Double::MinValue", props[idx].id)) {
+        else if (!strcmp("Double::MinValue", props[idx].id)) {
             if (!(props[idx].value >>= s.Double__MinValue)) return false;
         }
     }
@@ -511,26 +389,6 @@ inline bool operator!= (const Double_struct& s1, const Double_struct& s2) {
     return !(s1==s2);
 };
 
-template<> inline short StructProperty<Double_struct>::compare (const CORBA::Any& a) {
-    if (super::isNil_) {
-        if (a.type()->kind() == (CORBA::tk_null)) {
-            return 0;
-        }
-        return 1;
-    }
-
-    Double_struct tmp;
-    if (fromAny(a, tmp)) {
-        if (tmp != this->value_) {
-            return 1;
-        }
-
-        return 0;
-    } else {
-        return 1;
-    }
-}
-
 struct Octet_out_struct {
     Octet_out_struct ()
     {
@@ -539,7 +397,7 @@ struct Octet_out_struct {
         Octet_out__scale_enabled = false;
     };
 
-    std::string getId() {
+    static std::string getId() {
         return std::string("Octet_out");
     };
 
@@ -556,10 +414,10 @@ inline bool operator>>= (const CORBA::Any& a, Octet_out_struct& s) {
         if (!strcmp("Octet_out::MaxValue", props[idx].id)) {
             if (!(props[idx].value >>= CORBA::Any::to_octet(s.Octet_out__MaxValue))) return false;
         }
-        if (!strcmp("Octet_out::MinValue", props[idx].id)) {
+        else if (!strcmp("Octet_out::MinValue", props[idx].id)) {
             if (!(props[idx].value >>= CORBA::Any::to_octet(s.Octet_out__MinValue))) return false;
         }
-        if (!strcmp("Octet_out::scale_enabled", props[idx].id)) {
+        else if (!strcmp("Octet_out::scale_enabled", props[idx].id)) {
             if (!(props[idx].value >>= s.Octet_out__scale_enabled)) return false;
         }
     }
@@ -592,26 +450,6 @@ inline bool operator!= (const Octet_out_struct& s1, const Octet_out_struct& s2) 
     return !(s1==s2);
 };
 
-template<> inline short StructProperty<Octet_out_struct>::compare (const CORBA::Any& a) {
-    if (super::isNil_) {
-        if (a.type()->kind() == (CORBA::tk_null)) {
-            return 0;
-        }
-        return 1;
-    }
-
-    Octet_out_struct tmp;
-    if (fromAny(a, tmp)) {
-        if (tmp != this->value_) {
-            return 1;
-        }
-
-        return 0;
-    } else {
-        return 1;
-    }
-}
-
 struct Ushort_out_struct {
     Ushort_out_struct ()
     {
@@ -620,7 +458,7 @@ struct Ushort_out_struct {
         Ushort_out__scale_enabled = false;
     };
 
-    std::string getId() {
+    static std::string getId() {
         return std::string("Ushort_out");
     };
 
@@ -637,10 +475,10 @@ inline bool operator>>= (const CORBA::Any& a, Ushort_out_struct& s) {
         if (!strcmp("Ushort_out::MaxValue", props[idx].id)) {
             if (!(props[idx].value >>= s.Ushort_out__MaxValue)) return false;
         }
-        if (!strcmp("Ushort_out::MinValue", props[idx].id)) {
+        else if (!strcmp("Ushort_out::MinValue", props[idx].id)) {
             if (!(props[idx].value >>= s.Ushort_out__MinValue)) return false;
         }
-        if (!strcmp("Ushort_out::scale_enabled", props[idx].id)) {
+        else if (!strcmp("Ushort_out::scale_enabled", props[idx].id)) {
             if (!(props[idx].value >>= s.Ushort_out__scale_enabled)) return false;
         }
     }
@@ -673,26 +511,6 @@ inline bool operator!= (const Ushort_out_struct& s1, const Ushort_out_struct& s2
     return !(s1==s2);
 };
 
-template<> inline short StructProperty<Ushort_out_struct>::compare (const CORBA::Any& a) {
-    if (super::isNil_) {
-        if (a.type()->kind() == (CORBA::tk_null)) {
-            return 0;
-        }
-        return 1;
-    }
-
-    Ushort_out_struct tmp;
-    if (fromAny(a, tmp)) {
-        if (tmp != this->value_) {
-            return 1;
-        }
-
-        return 0;
-    } else {
-        return 1;
-    }
-}
-
 struct Short_out_struct {
     Short_out_struct ()
     {
@@ -701,7 +519,7 @@ struct Short_out_struct {
         Short_out__scale_enabled = false;
     };
 
-    std::string getId() {
+    static std::string getId() {
         return std::string("Short_out");
     };
 
@@ -718,10 +536,10 @@ inline bool operator>>= (const CORBA::Any& a, Short_out_struct& s) {
         if (!strcmp("Short_out::MaxValue", props[idx].id)) {
             if (!(props[idx].value >>= s.Short_out__MaxValue)) return false;
         }
-        if (!strcmp("Short_out::MinValue", props[idx].id)) {
+        else if (!strcmp("Short_out::MinValue", props[idx].id)) {
             if (!(props[idx].value >>= s.Short_out__MinValue)) return false;
         }
-        if (!strcmp("Short_out::scale_enabled", props[idx].id)) {
+        else if (!strcmp("Short_out::scale_enabled", props[idx].id)) {
             if (!(props[idx].value >>= s.Short_out__scale_enabled)) return false;
         }
     }
@@ -754,26 +572,6 @@ inline bool operator!= (const Short_out_struct& s1, const Short_out_struct& s2) 
     return !(s1==s2);
 };
 
-template<> inline short StructProperty<Short_out_struct>::compare (const CORBA::Any& a) {
-    if (super::isNil_) {
-        if (a.type()->kind() == (CORBA::tk_null)) {
-            return 0;
-        }
-        return 1;
-    }
-
-    Short_out_struct tmp;
-    if (fromAny(a, tmp)) {
-        if (tmp != this->value_) {
-            return 1;
-        }
-
-        return 0;
-    } else {
-        return 1;
-    }
-}
-
 struct Ulong_out_struct {
     Ulong_out_struct ()
     {
@@ -782,7 +580,7 @@ struct Ulong_out_struct {
         Ulong_out__scale_enabled = false;
     };
 
-    std::string getId() {
+    static std::string getId() {
         return std::string("Ulong_out");
     };
 
@@ -799,10 +597,10 @@ inline bool operator>>= (const CORBA::Any& a, Ulong_out_struct& s) {
         if (!strcmp("Ulong_out::MaxValue", props[idx].id)) {
             if (!(props[idx].value >>= s.Ulong_out__MaxValue)) return false;
         }
-        if (!strcmp("Ulong_out::MinValue", props[idx].id)) {
+        else if (!strcmp("Ulong_out::MinValue", props[idx].id)) {
             if (!(props[idx].value >>= s.Ulong_out__MinValue)) return false;
         }
-        if (!strcmp("Ulong_out::scale_enabled", props[idx].id)) {
+        else if (!strcmp("Ulong_out::scale_enabled", props[idx].id)) {
             if (!(props[idx].value >>= s.Ulong_out__scale_enabled)) return false;
         }
     }
@@ -835,26 +633,6 @@ inline bool operator!= (const Ulong_out_struct& s1, const Ulong_out_struct& s2) 
     return !(s1==s2);
 };
 
-template<> inline short StructProperty<Ulong_out_struct>::compare (const CORBA::Any& a) {
-    if (super::isNil_) {
-        if (a.type()->kind() == (CORBA::tk_null)) {
-            return 0;
-        }
-        return 1;
-    }
-
-    Ulong_out_struct tmp;
-    if (fromAny(a, tmp)) {
-        if (tmp != this->value_) {
-            return 1;
-        }
-
-        return 0;
-    } else {
-        return 1;
-    }
-}
-
 struct Long_out_struct {
     Long_out_struct ()
     {
@@ -863,7 +641,7 @@ struct Long_out_struct {
         Long_out__scale_enabled = false;
     };
 
-    std::string getId() {
+    static std::string getId() {
         return std::string("Long_out");
     };
 
@@ -880,10 +658,10 @@ inline bool operator>>= (const CORBA::Any& a, Long_out_struct& s) {
         if (!strcmp("Long_out::MaxValue", props[idx].id)) {
             if (!(props[idx].value >>= s.Long_out__MaxValue)) return false;
         }
-        if (!strcmp("Long_out::MinValue", props[idx].id)) {
+        else if (!strcmp("Long_out::MinValue", props[idx].id)) {
             if (!(props[idx].value >>= s.Long_out__MinValue)) return false;
         }
-        if (!strcmp("Long_out::scale_enabled", props[idx].id)) {
+        else if (!strcmp("Long_out::scale_enabled", props[idx].id)) {
             if (!(props[idx].value >>= s.Long_out__scale_enabled)) return false;
         }
     }
@@ -916,26 +694,6 @@ inline bool operator!= (const Long_out_struct& s1, const Long_out_struct& s2) {
     return !(s1==s2);
 };
 
-template<> inline short StructProperty<Long_out_struct>::compare (const CORBA::Any& a) {
-    if (super::isNil_) {
-        if (a.type()->kind() == (CORBA::tk_null)) {
-            return 0;
-        }
-        return 1;
-    }
-
-    Long_out_struct tmp;
-    if (fromAny(a, tmp)) {
-        if (tmp != this->value_) {
-            return 1;
-        }
-
-        return 0;
-    } else {
-        return 1;
-    }
-}
-
 struct Float_out_struct {
     Float_out_struct ()
     {
@@ -944,7 +702,7 @@ struct Float_out_struct {
         Float_out__scale_enabled = false;
     };
 
-    std::string getId() {
+    static std::string getId() {
         return std::string("Float_out");
     };
 
@@ -961,10 +719,10 @@ inline bool operator>>= (const CORBA::Any& a, Float_out_struct& s) {
         if (!strcmp("Float_out::MaxValue", props[idx].id)) {
             if (!(props[idx].value >>= s.Float_out__MaxValue)) return false;
         }
-        if (!strcmp("Float_out::MinValue", props[idx].id)) {
+        else if (!strcmp("Float_out::MinValue", props[idx].id)) {
             if (!(props[idx].value >>= s.Float_out__MinValue)) return false;
         }
-        if (!strcmp("Float_out::scale_enabled", props[idx].id)) {
+        else if (!strcmp("Float_out::scale_enabled", props[idx].id)) {
             if (!(props[idx].value >>= s.Float_out__scale_enabled)) return false;
         }
     }
@@ -997,26 +755,6 @@ inline bool operator!= (const Float_out_struct& s1, const Float_out_struct& s2) 
     return !(s1==s2);
 };
 
-template<> inline short StructProperty<Float_out_struct>::compare (const CORBA::Any& a) {
-    if (super::isNil_) {
-        if (a.type()->kind() == (CORBA::tk_null)) {
-            return 0;
-        }
-        return 1;
-    }
-
-    Float_out_struct tmp;
-    if (fromAny(a, tmp)) {
-        if (tmp != this->value_) {
-            return 1;
-        }
-
-        return 0;
-    } else {
-        return 1;
-    }
-}
-
 struct Double_out_struct {
     Double_out_struct ()
     {
@@ -1025,7 +763,7 @@ struct Double_out_struct {
         Double_out__scale_enabled = false;
     };
 
-    std::string getId() {
+    static std::string getId() {
         return std::string("Double_out");
     };
 
@@ -1042,10 +780,10 @@ inline bool operator>>= (const CORBA::Any& a, Double_out_struct& s) {
         if (!strcmp("Double_out::MaxValue", props[idx].id)) {
             if (!(props[idx].value >>= s.Double_out__MaxValue)) return false;
         }
-        if (!strcmp("Double_out::MinValue", props[idx].id)) {
+        else if (!strcmp("Double_out::MinValue", props[idx].id)) {
             if (!(props[idx].value >>= s.Double_out__MinValue)) return false;
         }
-        if (!strcmp("Double_out::scale_enabled", props[idx].id)) {
+        else if (!strcmp("Double_out::scale_enabled", props[idx].id)) {
             if (!(props[idx].value >>= s.Double_out__scale_enabled)) return false;
         }
     }
@@ -1077,26 +815,6 @@ inline bool operator== (const Double_out_struct& s1, const Double_out_struct& s2
 inline bool operator!= (const Double_out_struct& s1, const Double_out_struct& s2) {
     return !(s1==s2);
 };
-
-template<> inline short StructProperty<Double_out_struct>::compare (const CORBA::Any& a) {
-    if (super::isNil_) {
-        if (a.type()->kind() == (CORBA::tk_null)) {
-            return 0;
-        }
-        return 1;
-    }
-
-    Double_out_struct tmp;
-    if (fromAny(a, tmp)) {
-        if (tmp != this->value_) {
-            return 1;
-        }
-
-        return 0;
-    } else {
-        return 1;
-    }
-}
 
 
 #endif
