@@ -100,9 +100,11 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.setupComponent()
         
         self.comp.start()
-        for port in self.inputs.values():
+        for name, port in self.inputs.items():
             port.start()
-            port.connect(self.comp)
+            portName = "data%s"%name.capitalize()
+            
+            port.connect(self.comp, providesPortName = portName)
         
         #do the connections
         for name, port in self.outputs.items():
