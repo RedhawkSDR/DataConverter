@@ -325,8 +325,6 @@ template <> void DataConverter_i::getMinMax<double>(double* min, double* max)
 ************************************************************************************************/
 int DataConverter_i::serviceFunction()
 {
-    LOG_DEBUG(DataConverter_i, "serviceFunction()");
-    
     bool retService = false;
 
     //call each of the service functions and if any are legit
