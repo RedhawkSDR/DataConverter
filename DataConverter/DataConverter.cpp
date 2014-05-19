@@ -93,6 +93,8 @@ void convert(std::vector<TIn, IN_TYPE_ALLOC>* in, std::vector<TOut, OUT_TYPE_ALL
 DataConverter_i::DataConverter_i(const char *uuid, const char *label) :
     DataConverter_base(uuid, label)
 {
+	std::string msg("This version of \"DataConverter\" has been depreciated and will cease being distributed and supported in future releases.  The source code for the new version of \"DataConverter\" is available in the git repository.  Please replace instances of this component with the new version in preparation for future releases. Further instructions are included in the release notes.");
+	LOG_WARN(DataConverter_i, msg);
 }
 
 DataConverter_i::~DataConverter_i()
