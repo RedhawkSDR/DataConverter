@@ -19,29 +19,29 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-if [ "$1" = "rpm" ]; then
-    # A very simplistic RPM build scenario
-    if [ -e DataConverter.spec ]; then
-        mydir=`dirname $0`
-        tmpdir=`mktemp -d`
-        cp -r ${mydir} ${tmpdir}/DataConverter-3.0.0dev0
-        tar czf ${tmpdir}/DataConverter-3.0.0dev0.tar.gz --exclude=".svn" -C ${tmpdir} DataConverter-3.0.0dev0
-        rpmbuild -ta ${tmpdir}/DataConverter-3.0.0dev0.tar.gz
-        rm -rf $tmpdir
-    else
-        echo "Missing RPM spec file in" `pwd`
-        exit 1
-    fi
-else
-    for impl in cpp ; do
-        cd $impl
-        if [ -e build.sh ]; then
-            ./build.sh $*
-        elif [ -e reconf ]; then
-            ./reconf && ./configure && make $*
-        else
-            echo "No build.sh found for $impl"
-        fi
-        cd -
-    done
+rm -f config.cache
+
+# Setup the libtool stuff
+if [ -e /usr/local/share/aclocal/libtool.m4 ]; then
+    /bin/cp /usr/local/share/aclocal/libtool.m4 aclocal.d/acinclude.m4
+elif [ -e /usr/share/aclocal/libtool.m4 ]; then
+    /bin/cp /usr/share/aclocal/libtool.m4 acinclude.m4
 fi
+libtoolize --force --automake
+
+# Search in expected locations for the OSSIE acincludes
+if [ -n ${OSSIEHOME} ] && [ -d ${OSSIEHOME}/share/aclocal/ossie ]; then
+        OSSIE_AC_INCLUDE=${OSSIEHOME}/share/aclocal/ossie
+else
+    echo "Error: Cannot find the OSSIE aclocal files. This is not expected!"
+fi
+
+if [ -n ${OSSIE_AC_INCLUDE} ]; then
+        aclocal -I ${OSSIE_AC_INCLUDE}
+else
+        aclocal
+fi
+
+autoconf
+automake --foreign --add-missing
+

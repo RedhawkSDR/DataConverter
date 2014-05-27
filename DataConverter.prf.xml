@@ -1,216 +1,148 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- 
-          This file is protected by Copyright. Please refer to the COPYRIGHT file distributed with this 
-               source distribution.
+<!--                   
+ This file is protected by Copyright. Please refer to the COPYRIGHT file
+ distributed with this source distribution.
+ 
+ This file is part of REDHAWK. 
 
-This file is part of REDHAWK Basic Components DataConverter.
+ REDHAWK is free software: you can redistribute it and/or modify it
+ under the terms of the GNU Lesser General Public License as published by the
+ Free Software Foundation, either version 3 of the License, or (at your
+ option) any later version. 
 
-REDHAWK Basic Components DataConverter is free software: you can redistribute it and/or modify it under the terms of 
-the GNU Lesser General Public License as published by the Free Software Foundation, either 
-version 3 of the License, or (at your option) any later version.
+ REDHAWK is distributed in the hope that it will be useful, but WITHOUT
+ ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ for more details.
 
-REDHAWK Basic Components DataConverter is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR 
-PURPOSE.  See the GNU Lesser General Public License for more details.
-
-You should have received a copy of the GNU Lesser General Public License along with this 
-program.  If not, see http://www.gnu.org/licenses/.
+ You should have received a copy of the GNU Lesser General Public License
+ along with this program.  If not, see http://www.gnu.org/licenses/.
 -->
+
 <!DOCTYPE properties PUBLIC "-//JTRS//DTD SCA V2.2.2 PRF//EN" "properties.dtd">
 <properties>
-  <struct id="Octet" mode="readwrite">
-    <description>Expected extrema for input dataOctet port</description>
-    <simple id="Octet::MaxValue" type="octet">
-      <description>Expected max for input dataOctet port</description>
-      <value>255</value>
+  <simple id="outputType" mode="readwrite" type="short">
+    <description>Defines the mode of the output.  If set to 2 (Complex), the output will be complex.  If real data is pushed into the component, a hilbert transform will take place to convert the data.  The exact behavior of the complex output mode depends on the settings within the transformProperties structure.  If  the outputType property set to 1 (Real), the output will be Real, and a Complex to Real conversion will take place if complex data is pushed into the component.  When a Complex to Real conversion takes place, it is expected that the incoming complex data is centered at zero, and the real output data will be centered at Fs/4, hence doubling the sample rate.  The 0 (PassThrough) value means that the mode of the output will mimic that of the input, and no Complex/Real transforms will occur.</description>
+    <value>0</value>
+    <enumerations>
+      <enumeration label="Complex" value="2"/>
+      <enumeration label="Real" value="1"/>
+      <enumeration label="PassThrough" value="0"/>
+    </enumerations>
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <simple id="maxTransferSize" mode="readwrite" type="long">
+    <description>This property limits the maximum size of the output transfer.  If this value is set to 0 (default) the number samples of the output will mimic the number of samples of the input, unless it happens to exceed the corba transfer limit of 2MB.  </description>
+    <value>0</value>
+    <units>samples</units>
+    <kind kindtype="configure"/>
+    <action type="external"/>
+  </simple>
+  <struct id="scaleOutput" mode="readwrite">
+    <description>These settings are used to scale the output to maximize the range of the data type. </description>
+    <simple id="scaleOutput::charPort" name="charPort" type="boolean">
+      <description>used to scale the output port to maximize the range of this data type. </description>
+      <value>true</value>
     </simple>
-    <simple id="Octet::MinValue" type="octet">
-      <description>Expected min for input dataOctet port</description>
-      <value>0</value>
+    <simple id="scaleOutput::octetPort" mode="readwrite" name="octetPort" type="boolean">
+      <description>used to scale the output port to maximize the range of this data type. </description>
+      <value>true</value>
+      <kind kindtype="configure"/>
+      <action type="external"/>
     </simple>
-    <configurationkind kindtype="configure"/>
-  </struct>
-  <struct id="Ushort" mode="readwrite">
-    <description>Expected extrema for input dataUshort port</description>
-    <simple id="Ushort::MaxValue" type="ushort">
-      <description>Expected max for input dataUshort port</description>
-      <value>65535</value>
+    <simple id="scaleOutput::shortPort" mode="readwrite" name="shortPort" type="boolean">
+      <description>used to scale the output port to maximize the range of this data type. </description>
+      <value>true</value>
+      <kind kindtype="configure"/>
+      <action type="external"/>
     </simple>
-    <simple id="Ushort::MinValue" type="ushort">
-      <description>Expected min for input dataUshort port</description>
-      <value>0</value>
-    </simple>
-    <configurationkind kindtype="configure"/>
-  </struct>
-  <struct id="Short" mode="readwrite">
-    <description>Expected extrema for input dataShort port</description>
-    <simple id="Short::MaxValue" type="short">
-      <description>Expected max for input dataShort port</description>
-      <value>32767</value>
-    </simple>
-    <simple id="Short::MinValue" type="short">
-      <description>Expected min for input dataShort port</description>
-      <value>-32768</value>
-    </simple>
-    <configurationkind kindtype="configure"/>
-  </struct>
-  <struct id="ULong" mode="readwrite">
-    <description>Expected extrema for input dataUlong port</description>
-    <simple id="ULong::MaxValue" type="ulong">
-      <description>Expected max for input dataUlong port</description>
-      <value>4294967295</value>
-    </simple>
-    <simple id="ULong::MinValue" type="ulong">
-      <description>Expected min for input dataUlong port</description>
-      <value>0</value>
+    <simple id="scaleOutput::ushortPort" mode="readwrite" name="ushortPort" type="boolean">
+      <description>used to scale the output port to maximize the range of this data type. </description>
+      <value>true</value>
+      <kind kindtype="configure"/>
+      <action type="external"/>
     </simple>
     <configurationkind kindtype="configure"/>
   </struct>
-  <struct id="Long" mode="readwrite">
-    <description>Expected extrema for input dataLong port</description>
-    <simple id="Long::MaxValue" type="long">
-      <description>Expected max for input dataLong port</description>
-      <value>2147483647</value>
+  <struct id="normalize_floating_point" mode="readwrite">
+    <description>These values set if the input or output float port values shall be between -1 and 1. Applies to both Float and Double types.</description>
+    <simple id="normalize_floating_point::input" name="input" type="boolean">
+      <description>Setting this value to true means that with floating point input will be normalized between -1.0 and 1.0.  A value of false will not convert the input.  </description>
+      <value>true</value>
     </simple>
-    <simple id="Long::MinValue" type="long">
-      <description>Expected min for input dataLong port</description>
-      <value>-2147483648</value>
-    </simple>
-    <configurationkind kindtype="configure"/>
-  </struct>
-  <struct id="Float" mode="readwrite">
-    <description>Expected extrema for input dataFloat port</description>
-    <simple id="Float::MaxValue" type="float">
-      <description>Expected max for input dataFloat port</description>
-      <value>1e10</value>
-    </simple>
-    <simple id="Float::MinValue" type="float">
-      <description>Expected min for input dataFloat port</description>
-      <value>-1e10</value>
+    <simple id="normalize_floating_point::output" mode="readwrite" name="output" type="boolean">
+      <description>Setting this value to true means that with floating point output will be normalized between -1.0 and 1.0.  A value of false will not convert the output. </description>
+      <value>true</value>
+      <kind kindtype="configure"/>
+      <action type="external"/>
     </simple>
     <configurationkind kindtype="configure"/>
   </struct>
-  <struct id="Double" mode="readwrite">
-    <description>Expected extrema for input dataDouble port</description>
-    <simple id="Double::MaxValue" type="double">
-      <description>Expected max for input dataDouble port</description>
-      <value>1e10</value>
+  <struct id="floatingPointRange" mode="readwrite">
+    <description>These values specify the range of the floating point values on the input.</description>
+    <simple id="floatingPointRange::minimum" name="minimum" type="double">
+      <description>The minimum floating point value in the input stream</description>
+      <value>0.0</value>
     </simple>
-    <simple id="Double::MinValue" type="double">
-      <description>Expected min for input dataDouble port</description>
-      <value>-1e10</value>
-    </simple>
-    <configurationkind kindtype="configure"/>
-  </struct>
-  <struct id="Octet_out" mode="readwrite">
-    <description>extrema for output dataOctet_out port (assuming input properties are bounded appropriately)</description>
-    <simple id="Octet_out::MaxValue" type="octet">
-      <description>max value for output dataOctet_out port if scale_enabled (assuming input properties are bounded appropriately)</description>
-      <value>255</value>
-    </simple>
-    <simple id="Octet_out::MinValue" type="octet">
-      <description>min value for output dataOctet_out port if scale_enabled (assuming input properties are bounded appropriately)</description>
-      <value>0</value>
-    </simple>
-    <simple id="Octet_out::scale_enabled" type="boolean">
-      <description>enable data scaling for output dataOctet_out port.  This maps the MaxValue and MinValue from the property associated with the correct input port to the values provided by Octet_out</description>
-      <value>False</value>
+    <simple id="floatingPointRange::maximum" mode="readwrite" name="maximum" type="double">
+      <description>The maximum floating point value in the input stream</description>
+      <value>3.402823466e38</value>
+      <kind kindtype="configure"/>
+      <action type="external"/>
     </simple>
     <configurationkind kindtype="configure"/>
   </struct>
-  <struct id="Ushort_out" mode="readwrite">
-    <description>extrema for output dataUshort_out port (assuming input properties are bounded appropriately)</description>
-    <simple id="Ushort_out::MaxValue" type="ushort">
-      <description>max value for output dataUshort_out port if scale_enabled (assuming input properties are bounded appropriately)</description>
-      <value>65535</value>
+  <struct id="advancedSRI" mode="readwrite">
+    <description>These are used in the R2C and C2R to correct the col_rf and chan_rf keywords due to inherent frequency translation</description>
+    <simple id="advancedSRI::update_col_rf_keyword" name="update_col_rf_keyword" type="boolean">
+      <description>flag to update the col_rf keyword... this is normally used during r2c or c2r transforms</description>
+      <value>true</value>
     </simple>
-    <simple id="Ushort_out::MinValue" type="ushort">
-      <description>min value for output dataUshort_out port if scale_enabled (assuming input properties are bounded appropriately)</description>
-      <value>0</value>
-    </simple>
-    <simple id="Ushort_out::scale_enabled" type="boolean">
-      <description>enable data scaling for output dataUshort_out port.  This maps the MaxValue and MinValue from the property associated with the correct input port to the values provided by Ushort_out</description>
-      <value>False</value>
+    <simple id="advancedSRI::update_chan_rf_keyword" mode="readwrite" name="update_chan_rf_keyword" type="boolean">
+      <description>flag used to update the chan_rf keyword... this is normally used during r2c or c2r transforms</description>
+      <value>true</value>
+      <kind kindtype="configure"/>
+      <action type="external"/>
     </simple>
     <configurationkind kindtype="configure"/>
   </struct>
-  <struct id="Short_out" mode="readwrite">
-    <description>extrema for output dataShort_out port (assuming input properties are bounded appropriately)</description>
-    <simple id="Short_out::MaxValue" type="short">
-      <description>max value for output dataShort_out port if scale_enabled (assuming input properties are bounded appropriately)</description>
-      <value>32767</value>
+  <struct id="transformProperties" mode="readwrite">
+    <description>Used only in R2C and C2R cases to setup transform unique properties.</description>
+    <simple id="transformProperties::tune_fs_over_4" name="tune_fs_over_4" type="boolean">
+      <description>This value is used during the real to complex transform only.  If your real input is centered at fs/4, setting this property to true will allow the complex output to be centered at zero, and the output sample rate will be half of the input sample rate. When this property is set to false (default), the ouput sample rate will be the same as the input sample rate, and no tuning will occur. </description>
+      <value>false</value>
     </simple>
-    <simple id="Short_out::MinValue" type="short">
-      <description>min value for output dataShort_out port if scale_enabled (assuming input properties are bounded appropriately)</description>
-      <value>-32768</value>
+    <simple id="transformProperties::fftSize" mode="readwrite" name="fftSize" type="long">
+      <description>The size of the fft used during real to complex, and complex to real transformations</description>
+      <value>2048</value>
+      <kind kindtype="configure"/>
+      <action type="external"/>
     </simple>
-    <simple id="Short_out::scale_enabled" type="boolean">
-      <description>enable data scaling for output dataShort_out port.  This maps the MaxValue and MinValue from the property associated with the correct input port to the values provided by Short_out</description>
-      <value>False</value>
+    <simple id="transformProperties::overlap_percentage" mode="readwrite" name="overlap_percentage" type="double">
+      <description>This value is used during the real to complex transform only.  It is used to define the percentage of overlap with relation to the fftSize.  This value also determines the size of the filter used during the hilbert transform.  It is not recommended to change this value from the default of 25 percent.</description>
+      <value>25</value>
+      <units>percentage</units>
+      <kind kindtype="configure"/>
+      <action type="external"/>
     </simple>
-    <configurationkind kindtype="configure"/>
-  </struct>
-  <struct id="Ulong_out" mode="readwrite">
-    <description>extrema for output dataUlong_out port (assuming input properties are bounded appropriately)</description>
-    <simple id="Ulong_out::MaxValue" type="ulong">
-      <description>max value for output dataUlong_out port if scale_enabled (assuming input properties are bounded appropriately)</description>
-      <value>4294967295</value>
+    <simple id="transformProperties::lowCutoff" mode="readwrite" name="lowCutoff" type="double">
+      <description>This value is used during the real to complex transform only.  It is used to set the low cutoff frequency on the hilbert filter. It is not recommended to change this value from the default.</description>
+      <value>.001</value>
+      <kind kindtype="configure"/>
+      <action type="external"/>
     </simple>
-    <simple id="Ulong_out::MinValue" type="ulong">
-      <description>min value for output dataUlong_out port if scale_enabled (assuming input properties are bounded appropriately)</description>
-      <value>0</value>
+    <simple id="transformProperties::highCutoff" mode="readwrite" name="highCutoff" type="double">
+      <description>This value is used during the real to complex transform only.  It is used to set the high cutoff frequency on the hilbert filter. It is not recommended to change this value from the default.</description>
+      <value>.499</value>
+      <kind kindtype="configure"/>
+      <action type="external"/>
     </simple>
-    <simple id="Ulong_out::scale_enabled" type="boolean">
-      <description>enable data scaling for output Ulong_out port.  This maps the MaxValue and MinValue from the property associated with the correct input port to the values provided by Ulong_out</description>
-      <value>False</value>
-    </simple>
-    <configurationkind kindtype="configure"/>
-  </struct>
-  <struct id="Long_out" mode="readwrite">
-    <description>extrema for output dataLong_out port (assuming input properties are bounded appropriately)</description>
-    <simple id="Long_out::MaxValue" type="long">
-      <description>max value for output dataLong_out port if scale_enabled (assuming input properties are bounded appropriately)</description>
-      <value>2147483647</value>
-    </simple>
-    <simple id="Long_out::MinValue" type="long">
-      <description>max value for output dataLong_out port if scale_enabled (assuming input properties are bounded appropriately)</description>
-      <value>-2147483648</value>
-    </simple>
-    <simple id="Long_out::scale_enabled" type="boolean">
-      <description>enable data scaling for output dataLong_out port.  This maps the MaxValue and MinValue from the property associated with the correct input port to the values provided by Long_out</description>
-      <value>False</value>
-    </simple>
-    <configurationkind kindtype="configure"/>
-  </struct>
-  <struct id="Float_out" mode="readwrite">
-    <description>extrema for output dataFloat_out port (assuming input properties are bounded appropriately)</description>
-    <simple id="Float_out::MaxValue" type="float">
-      <description>max value for output dataFloat_out port if scale_enabled (assuming input properties are bounded appropriately)</description>
-      <value>1e10</value>
-    </simple>
-    <simple id="Float_out::MinValue" type="float">
-      <description>min value for output dataFloat_out port if scale_enabled (assuming input properties are bounded appropriately)</description>
-      <value>-1e10</value>
-    </simple>
-    <simple id="Float_out::scale_enabled" type="boolean">
-      <description>enable data scaling for output dataFloat_out port.  This maps the MaxValue and MinValue from the property associated with the correct input port to the values provided by Float_out</description>
-      <value>False</value>
-    </simple>
-    <configurationkind kindtype="configure"/>
-  </struct>
-  <struct id="Double_out" mode="readwrite">
-    <description>extrema for output dataDouble_out port (assuming input properties are bounded appropriately)</description>
-    <simple id="Double_out::MaxValue" type="double">
-      <description>max value for output dataDouble_out port if scale_enabled (assuming input properties are bounded appropriately)</description>
-      <value>1e10</value>
-    </simple>
-    <simple id="Double_out::MinValue" type="double">
-      <description>min value for output dataDouble_out port if scale_enabled (assuming input properties are bounded appropriately)</description>
-      <value>-1e10</value>
-    </simple>
-    <simple id="Double_out::scale_enabled" type="boolean">
-      <description>enable data scaling for output dataDouble_out port.  This maps the MaxValue and MinValue from the property associated with the correct input port to the values provided by Double_out</description>
-      <value>False</value>
+    <simple id="transformProperties::transitionWidth" mode="readwrite" name="transitionWidth" type="double">
+      <description>This value is used during the real to complex transform only.  It is used to set the high transition bandwidth on the creation of the hilbert filter. It is not recommended to change this value from the default.</description>
+      <value>.001</value>
+      <kind kindtype="configure"/>
+      <action type="external"/>
     </simple>
     <configurationkind kindtype="configure"/>
   </struct>

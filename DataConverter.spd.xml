@@ -1,41 +1,43 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- 
-          This file is protected by Copyright. Please refer to the COPYRIGHT file distributed with this 
-               source distribution.
+<!--                   
+ This file is protected by Copyright. Please refer to the COPYRIGHT file
+ distributed with this source distribution.
+ 
+ This file is part of REDHAWK. 
 
-This file is part of REDHAWK Basic Components DataConverter.
+ REDHAWK is free software: you can redistribute it and/or modify it
+ under the terms of the GNU Lesser General Public License as published by the
+ Free Software Foundation, either version 3 of the License, or (at your
+ option) any later version. 
 
-REDHAWK Basic Components DataConverter is free software: you can redistribute it and/or modify it under the terms of 
-the GNU Lesser General Public License as published by the Free Software Foundation, either 
-version 3 of the License, or (at your option) any later version.
+ REDHAWK is distributed in the hope that it will be useful, but WITHOUT
+ ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+ for more details.
 
-REDHAWK Basic Components DataConverter is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; 
-without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR 
-PURPOSE.  See the GNU Lesser General Public License for more details.
-
-You should have received a copy of the GNU Lesser General Public License along with this 
-program.  If not, see http://www.gnu.org/licenses/.
+ You should have received a copy of the GNU Lesser General Public License
+ along with this program.  If not, see http://www.gnu.org/licenses/.
 -->
+
 <!DOCTYPE softpkg PUBLIC "-//JTRS//DTD SCA V2.2.2 SPD//EN" "softpkg.dtd">
-<softpkg id="DCE:892a34ce-22c9-4719-b823-9f2e199aa69c" name="DataConverter" type="sca_compliant">
+<softpkg id="DCE:892a34ce-22c9-4719-b823-9f2e199aa69c" name="DataConverter" type="sca_compliant" version="2.3.0dev0">
   <title></title>
   <author>
-    <name></name>
+    <name>null</name>
   </author>
-  <description>Change data format type.  This component provides optional data scaling to help mitigate quantization and clipping issues which arise from fixed point arithmetic.  Data cannot be changed from real to complex.  All input and output properties have default MaxValue and MinValue settings.  
-
-Scaling is controlled via the properties.  All scaling is disabled by default.  Configure the MaxValue and MinValue members on the struct property associated with each input port to tell the component the bounds on the input data if they are known a priori.  If the struct property scale_enabled member is set to true, the data on each output port is scaled to the values provided by member MaxValue and MinValue.</description>
+  <description>The DataConverter component is used to convert between BULKIO data types in REDHAWK.  With proper configuration, the DataConverter component can convert between any of the following data types; Char, Octet, Unsigned Short, Short, Float and Double.  The DataConverter component is also capable of converting real data into complex data, and similarly complex data to real data.
+</description>
   <propertyfile type="PRF">
     <localfile name="DataConverter.prf.xml"/>
   </propertyfile>
   <descriptor>
     <localfile name="DataConverter.scd.xml"/>
   </descriptor>
-  <implementation id="DCE:f744f32f-510a-4e64-9124-3507d5568e39">
+  <implementation id="cpp">
     <description>The implementation contains descriptive information about the template for a software component.</description>
     <code type="Executable">
-      <localfile name="DataConverter/DataConverter"/>
-      <entrypoint>DataConverter/DataConverter</entrypoint>
+      <localfile name="cpp/DataConverter"/>
+      <entrypoint>cpp/DataConverter</entrypoint>
     </code>
     <compiler name="/usr/bin/gcc" version="4.1.2"/>
     <programminglanguage name="C++"/>

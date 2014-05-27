@@ -1,0 +1,100 @@
+SOFTWARE VERSION DESCRIPTION DOCUMENT
+
+Asset Name:    DataConverter
+Version:       2.2.0dev0
+Date:          2013-11-12
+
+
+1  Scope
+
+1.1  Identification
+This software version description document provides release information for the software asset and version listed above.
+
+1.2  System overview
+The DataConverter component is used to convert between BULKIO data types in REDHAWK.  With proper configuration, the DataConverter component can convert between any of the following data types; Char, Octet, Unsigned Short, Short, and Float.  The DataConverter component is also capable of converting real data into complex data, and similarly complex data to real data.
+
+
+1.3  Document overview
+This software version description document is organized into the following sections:
+* 1 − Scope
+* 2 − References
+* 3 − Version Descriptions
+* 4 − Notes
+
+2  Referenced documents
+The following documentation is referenced by this document:
+* N/A
+
+3  Version description
+
+3.1  Inventory of materials released
+Packaged release include binary and source artifacts for the associated asset.
+
+3.2  Inventory of software contents
+Binary and source artifacts for the software asset
+
+3.3  Changes installed 
+VERSION          DESCRIPTION
+----------------------------
+2.2.0dev0        adding something
+                 adding something else
+                 adding something final
+                 Release of Version 2.2.0dev0
+
+2.2.0dev0        adding something
+                 adding something else
+                 adding something final
+                 Release of Version 2.2.0dev0
+
+2.2.0dev0        adding something
+                 adding something else
+                 adding something final
+                 Release of Version 2.2.0dev0
+
+2.2.0dev0        adding something
+                 adding something else
+                 adding something final
+                 Release of Version 2.2.0dev0
+
+
+3.4  Adaptation data
+3.4.1 Dependencies: 
+    *redhawk >= 1.8
+    *bulkioInterfaces
+    *libomniORB4.1
+    *boost >= 1.41
+    *apache-log4cxx >= 0.10
+    *RedhawkDevUtils >= 1.0.0
+    *fftw >= 3.2.0
+    *compat-libstdc++-33
+
+3.4.2 Additional Dependencies: 
+3.4.3 Optional Dependencies:
+3.4.4 Soft Package Dependencies:
+
+3.5  Related documents
+There are no related documents needed for the installation and test of this release.
+
+3.6  Installation instructions
+a. Instructions for installing the software version: 
+* RPM Distribution - "rpm -Uvh DataConverter-[version]-[os/arch].rpm"
+* Source Distribution "./reconf; ./configure; make install"
+b. Identification of other changes that have to be installed for this version to be used, including site-unique adaptation data not included in the software version
+None
+c. Security, privacy, or safety precautions relevant to the installation
+None
+d. Procedures for determining whether the version has been installed properly
+Assets install by default in the SDRROOT location as defined in REDHAWK; $SDRROOT/dom/components/DataConverter 
+e. A point of contact
+REDHAWK team
+
+3.7 Possible problems and known errors
+
+4  Notes
+Glossary:
+REDHAWK - REDHAWK is a software-defined radio (SDR) framework designed to support the development, deployment, and management of real-time software radio applications
+SCA - Software Communications Architecture
+SDR - Software Defined Radio
+
+
+

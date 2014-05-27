@@ -1,0 +1,65 @@
+#
+# This file is protected by Copyright. Please refer to the COPYRIGHT file
+# distributed with this source distribution.
+#
+# This file is part of REDHAWK.
+#
+# REDHAWK is free software: you can redistribute it and/or modify it
+# under the terms of the GNU Lesser General Public License as published by the
+# Free Software Foundation, either version 3 of the License, or (at your
+# option) any later version.
+#
+# REDHAWK is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+# for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with this program.  If not, see http://www.gnu.org/licenses/.
+#
+
+AC_INIT(DataConverter, 2.4.0)
+AM_INIT_AUTOMAKE(nostdinc)
+
+m4_ifdef([AC_USE_INTEL],[AC_USE_INTEL])
+AC_PROG_CC
+AC_PROG_CXX
+AC_PROG_INSTALL
+
+if test "x$GCC" = xyes ; then
+    CFLAGS="-msse3 -O3 $CFLAGS"
+    CXXFLAGS="-msse3 -O3 $CXXFLAGS"
+fi
+
+AC_CORBA_ORB
+OSSIE_CHECK_OSSIE
+OSSIE_SDRROOT_AS_PREFIX
+
+# Dependencies
+export PKG_CONFIG_PATH="$PKG_CONFIG_PATH:/usr/local/lib/pkgconfig"
+PKG_CHECK_MODULES([PROJECTDEPS], [ossie >= 1.10 omniORB4 >= 4.1.0  ])
+PKG_CHECK_MODULES([INTERFACEDEPS], [bulkio >= 1.10])
+OSSIE_ENABLE_LOG4CXX
+AX_BOOST_BASE([1.41])
+AX_BOOST_SYSTEM
+AX_BOOST_THREAD
+AX_BOOST_REGEX
+
+PKG_CHECK_MODULES(IPP, ipp >= 1.0,[HAVE_IPP=1],[HAVE_IPP=0])
+if test "$HAVE_IPP" -eq 1; then
+AC_SUBST(IPP_CFLAGS)
+AC_SUBST(IPP_LIBS)
+CXXFLAGS="$CXXFLAGS $IPP_CFLAGS -DHAVE_IPP"
+LIBS="$LIBS $IPP_LIBS"
+else
+PKG_CHECK_MODULES(FFTW, fftw3f >= 3.0.0,,exit)
+AC_SUBST(FFTW_CFLAGS)
+AC_SUBST(FFTW_LIBS)
+CXXFLAGS="$CXXFLAGS $FFTW_CFLAGS"
+LIBS="$LIBS $FFTW_LIBS -lfftw3f"
+fi
+
+CHECK_VECTOR_IMPL
+
+AC_CONFIG_FILES(Makefile)
+AC_OUTPUT
