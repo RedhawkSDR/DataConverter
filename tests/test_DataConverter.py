@@ -1589,8 +1589,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.comp.normalize_floating_point.Output = True
         self.comp.normalize_floating_point.Input = True
 
-
-        self.comp.outputType=2        
+        self.comp.outputType = 2 
         t = np.array([],dtype='float')
         t = np.arange(0,2*np.pi/400.,2*np.pi/400./32768)
         #get a bunch of random data between 1 and -1 and create a BPSK Signal
@@ -2018,8 +2017,9 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
                         count+=1
                     print "\tPASS"
         standardsFile.close()
+
     def testScaledFunctionality(self):
-        print "----------------------------- testScaledFunctionality-------------------------"
+        print "\n----------------------------- testScaledFunctionality-------------------------"
         execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
         execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
 
@@ -2060,7 +2060,64 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.complexToReal()
         self.complexToRealShort2Short()       
 
-            
+    def testModeChangeR2CUpdatesSRI(self):
+        print "\n----------------------------- testModeChange(R->C)UpdatesSRI-------------------------"
+        comp = sb.launch('../DataConverter.spd.xml')
+        src=sb.DataSource()
+        snk=sb.DataSink()
+        
+        src.connect(comp,'dataDouble')
+        comp.connect(snk,'ushortIn')
+        
+        sb.start()
+        
+        streamID = "someSRI"
+        data = range(1024)
+        src.push(data,complexData=False, sampleRate=1.0, EOS=False, streamID=streamID)
+
+        # Wait for new SRI to take hold
+        count = 0
+        while (count < 100):
+            if (snk.sri().streamID == streamID):
+                break;
+            time.sleep(0.05)
+
+        self.assertTrue(snk.sri().streamID == streamID)
+        self.assertTrue(snk.sri().mode == 0) # 0=Real
+
+        comp.outputType = 2 # 2=Complex
+        self.assertTrue(snk.sri().streamID == streamID)
+        self.assertTrue(snk.sri().mode == 1) # 1=Complex
+    
+    def testModeChangeC2RUpdatesSRI(self):
+        print "\n----------------------------- testModeChange(C->R)UpdatesSRI-------------------------"
+        comp = sb.launch('../DataConverter.spd.xml')
+        src=sb.DataSource()
+        snk=sb.DataSink()
+        
+        src.connect(comp,'dataDouble')
+        comp.connect(snk,'ushortIn')
+        
+        sb.start()
+        
+        streamID = "someSRI"
+        data = range(1024)
+        src.push(data,complexData=True, sampleRate=1.0, EOS=False, streamID=streamID)
+
+        # Wait for new SRI to take hold
+        count = 0
+        while (count < 100):
+            if (snk.sri().streamID == streamID):
+                break;
+            time.sleep(0.05)
+
+        self.assertTrue(snk.sri().streamID == streamID)
+        self.assertTrue(snk.sri().mode == 1)
+
+        comp.outputType = 1 # 1=Real
+        self.assertTrue(snk.sri().streamID == streamID)
+        self.assertTrue(snk.sri().mode == 0)
+
     def testScaBasicBehavior(self):
         #######################################################################
         # Launch the component with the default execparams

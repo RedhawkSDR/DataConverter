@@ -126,11 +126,14 @@ void DataConverter_i::_constructor_(){
 
     addPropertyChangeListener("transformProperties", this, &DataConverter_i::transformPropertiesChanged);
     addPropertyChangeListener("maxTransferSize", this, &DataConverter_i::maxTransferSizeChanged);
+    addPropertyChangeListener("outputType", this, &DataConverter_i::outputTypeChanged);
     
     _outDoublePort = new OutDoublePortUsingFloats("dataDouble_out");
     addPort("dataDouble_out", _outDoublePort);
     //ossie::corba::RootPOA()->activate_object(_outDoublePort);
     //registerOutPort(_outDoublePort, _outDoublePort->_this());
+    
+    currSRIPtr = 0;
 }
 
 void DataConverter_i::createMemory(int bufferSize){
@@ -244,6 +247,14 @@ void DataConverter_i::maxTransferSizeChanged(const CORBA::Long* oldVal,
         }
         createMEM = true;
     }
+}
+    
+void DataConverter_i::outputTypeChanged(const short* oldVal, const short* newVal) {
+    boost::mutex::scoped_lock lock(property_lock);
+
+    // Reconfigure current SRI to push out mode change if we have a current SRI
+    if (currSRIPtr)
+        configureSRI(currSRIPtr, false);
 }
 
 void DataConverter_i::createFilter(){
@@ -454,9 +465,11 @@ void DataConverter_i::setupFFT(){
 
 }
 
-void DataConverter_i::configureSRI(BULKIO::StreamSRI *sri) {
+void DataConverter_i::configureSRI(BULKIO::StreamSRI *sri, bool incomingSRI) {
 	sampleRate = 1 / sri->xdelta;
-	inputMode = sri->mode;
+    // Only set the input mode if the SRI is incoming
+    if (incomingSRI)
+	    inputMode = sri->mode;
 	setupFFT();
 
 	double cf_offset = 0;
@@ -489,18 +502,28 @@ void DataConverter_i::configureSRI(BULKIO::StreamSRI *sri) {
 		}
 	}
 	sri->mode = outputMode;
-	if (dataChar_out->isActive())
-		dataChar_out->pushSRI(*sri);
-	if (dataOctet_out->isActive())
-		dataOctet_out->pushSRI(*sri);
-	if (dataShort_out->isActive())
-		dataShort_out->pushSRI(*sri);
-	if (dataUshort_out->isActive())
-		dataUshort_out->pushSRI(*sri);
-	if (dataFloat_out->isActive())
-		dataFloat_out->pushSRI(*sri);
-	if (_outDoublePort->isActive()) 
-		_outDoublePort->pushSRI(*sri);
+
+    // Shouldn't need to check if port is active... Pushing SRI just updates
+    // Port State
+    //if (dataChar_out->isActive())
+	dataChar_out->pushSRI(*sri);
+	//if (dataOctet_out->isActive())
+	dataOctet_out->pushSRI(*sri);
+	//if (dataShort_out->isActive())
+	dataShort_out->pushSRI(*sri);
+	//if (dataUshort_out->isActive())
+	dataUshort_out->pushSRI(*sri);
+	//if (dataFloat_out->isActive())
+	dataFloat_out->pushSRI(*sri);
+	//if (_outDoublePort->isActive()) 
+	_outDoublePort->pushSRI(*sri);
+
+    // Save off copy of current SRI clean up previous SRI 
+    BULKIO::StreamSRI* lastSRIPtr = currSRIPtr;
+    currSRIPtr = new BULKIO::StreamSRI(*sri);
+    if (lastSRIPtr) {
+        delete lastSRIPtr;
+    }
 }
 
 int DataConverter_i::fft_execute(float* data, int size, bool EOS){

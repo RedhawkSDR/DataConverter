@@ -68,6 +68,7 @@ public:
     //template <typename OUT_TYPE, typename IN_TYPE, typename IN_TYPE_ALLOC, class OUT> void pushDataService(std::vector<IN_TYPE, IN_TYPE_ALLOC> *data, OUT *output, bool EOS, BULKIO::PrecisionUTCTime& tt, std::string streamID, bool scaled);
     void transformPropertiesChanged(const transformProperties_struct* oldVal, const transformProperties_struct* newVal);
     void maxTransferSizeChanged(const CORBA::Long* oldVal, const CORBA::Long* newVal);
+    void outputTypeChanged(const short* oldVal, const short* newVal);
     int serviceFunction();
 
 private:
@@ -76,7 +77,7 @@ private:
     void createFFTroute(int bufferSize);
     int calculate_memorySize(int inputAmount);
     void setupFFT();
-    void configureSRI(BULKIO::StreamSRI *sri);
+    void configureSRI(BULKIO::StreamSRI *sri, bool incomingSRI=true);
     int fft_execute(float* data, int size, bool EOS);
     void updateTimeStamp();
     void moveTimeStamp(int shiftBack);
@@ -111,7 +112,7 @@ private:
     int numFilterTaps;
 
     //SRI and Time
-    BULKIO::StreamSRI currSRI;
+    BULKIO::StreamSRI* currSRIPtr;
     BULKIO::PrecisionUTCTime _timestamp;
     double _FFTtimestampSec;
     double _FFTtimestampFractionalSec;
@@ -320,13 +321,15 @@ private:
     };
 
     template <class IN_PORT_TYPE> bool singleService(IN_PORT_TYPE *dataPortIn) {
+        boost::mutex::scoped_lock lock(property_lock);
+
         typename IN_PORT_TYPE::dataTransfer *packet = dataPortIn->getPacket(0);
         if (packet == NULL)
             return false;    
         if (packet->inputQueueFlushed)
             std::cout << "INPUT QUEUE HAS FLUSHED!!!!!!" << std::endl;
         // Reconfigure if SRI Changed
-        if (packet->sriChanged) {
+        if (packet->sriChanged || !currSRIPtr) {
             configureSRI(&(packet->SRI));
         }
         if (packet->T.tcstatus == BULKIO::TCS_VALID && fftType != 0) {
