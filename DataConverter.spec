@@ -31,15 +31,14 @@ Prefix: %{_prefix}
 Name: DataConverter
 Summary: Component %{name}
 Version: 3.0.0
-Release: 1
-License: None
+Release: 1%{?dist}
+License: GPLv3+
 Group: REDHAWK/Components
 Source: %{name}-%{version}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-root
 
 Requires: redhawk >= 1.10
 BuildRequires: redhawk-devel >= 1.10
-BuildRequires: autoconf automake libtool
 
 # Interface requirements
 Requires: bulkioInterfaces
