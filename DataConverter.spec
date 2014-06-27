@@ -31,7 +31,7 @@ Prefix: %{_prefix}
 Name: DataConverter
 Summary: Component %{name}
 Version: 3.0.0
-Release: 1%{?dist}
+Release: 2%{?dist}
 License: GPLv3+
 Group: REDHAWK/Components
 Source: %{name}-%{version}.tar.gz
