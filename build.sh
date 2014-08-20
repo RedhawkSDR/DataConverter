@@ -22,9 +22,9 @@ if [ "$1" = "rpm" ]; then
     if [ -e DataConverter.spec ]; then
         mydir=`dirname $0`
         tmpdir=`mktemp -d`
-        cp -r ${mydir} ${tmpdir}/DataConverter-3.0.0dev0
-        tar czf ${tmpdir}/DataConverter-3.0.0dev0.tar.gz --exclude=".svn" -C ${tmpdir} DataConverter-3.0.0dev0
-        rpmbuild -ta ${tmpdir}/DataConverter-3.0.0dev0.tar.gz
+        cp -r ${mydir} ${tmpdir}/DataConverter-3.0.1
+        tar czf ${tmpdir}/DataConverter-3.0.1.tar.gz --exclude=".svn" -C ${tmpdir} DataConverter-3.0.1
+        rpmbuild -ta ${tmpdir}/DataConverter-3.0.1.tar.gz
         rm -rf $tmpdir
     else
         echo "Missing RPM spec file in" `pwd`

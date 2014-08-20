@@ -30,8 +30,8 @@ Prefix: %{_prefix}
 %define _infodir       %{_prefix}/info
 Name: DataConverter
 Summary: Component %{name}
-Version: 3.0.0
-Release: 10%{?dist}
+Version:        3.0.1
+Release:        1%{?dist}
 License: GPLv3+
 Group: REDHAWK/Components
 Source: %{name}-%{version}.tar.gz
