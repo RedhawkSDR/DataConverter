@@ -41,23 +41,23 @@
   <struct id="scaleOutput" mode="readwrite">
     <description>These settings are used to scale the output to maximize the range of the data type. </description>
     <simple id="scaleOutput::charPort" name="charPort" type="boolean">
-      <description>used to scale the output port to maximize the range of this data type. </description>
+      <description>Used to scale the output port to maximize the range of signed chars.</description>
       <value>true</value>
     </simple>
     <simple id="scaleOutput::octetPort" mode="readwrite" name="octetPort" type="boolean">
-      <description>used to scale the output port to maximize the range of this data type. </description>
+      <description>Used to scale the output port to maximize the range of unsigned chars.</description>
       <value>true</value>
       <kind kindtype="configure"/>
       <action type="external"/>
     </simple>
     <simple id="scaleOutput::shortPort" mode="readwrite" name="shortPort" type="boolean">
-      <description>used to scale the output port to maximize the range of this data type. </description>
+      <description>Used to scale the output port to maximize the range of shorts. </description>
       <value>true</value>
       <kind kindtype="configure"/>
       <action type="external"/>
     </simple>
     <simple id="scaleOutput::ushortPort" mode="readwrite" name="ushortPort" type="boolean">
-      <description>used to scale the output port to maximize the range of this data type. </description>
+      <description>Used to scale the output port to maximize the range of unsigned shorts. </description>
       <value>true</value>
       <kind kindtype="configure"/>
       <action type="external"/>
@@ -81,11 +81,11 @@
   <struct id="floatingPointRange" mode="readwrite">
     <description>These values specify the range of the floating point values on the input.</description>
     <simple id="floatingPointRange::minimum" name="minimum" type="double">
-      <description>The minimum floating point value in the input stream</description>
+      <description>The minimum floating point value in the input stream.</description>
       <value>0.0</value>
     </simple>
     <simple id="floatingPointRange::maximum" mode="readwrite" name="maximum" type="double">
-      <description>The maximum floating point value in the input stream</description>
+      <description>The maximum floating point value in the input stream.</description>
       <value>3.402823466e38</value>
       <kind kindtype="configure"/>
       <action type="external"/>
@@ -93,13 +93,13 @@
     <configurationkind kindtype="configure"/>
   </struct>
   <struct id="advancedSRI" mode="readwrite">
-    <description>These are used in the R2C and C2R to correct the col_rf and chan_rf keywords due to inherent frequency translation</description>
+    <description>These are used in the real-to-complex and complex-to-real to correct the col_rf and chan_rf keywords due to inherent frequency translation.</description>
     <simple id="advancedSRI::update_col_rf_keyword" name="update_col_rf_keyword" type="boolean">
-      <description>flag to update the col_rf keyword... this is normally used during r2c or c2r transforms</description>
+      <description>Flag to update the col_rf keyword... this is normally used during real-to-complex or complex-to-real transforms.</description>
       <value>true</value>
     </simple>
     <simple id="advancedSRI::update_chan_rf_keyword" mode="readwrite" name="update_chan_rf_keyword" type="boolean">
-      <description>flag used to update the chan_rf keyword... this is normally used during r2c or c2r transforms</description>
+      <description>Flag used to update the chan_rf keyword... this is normally used during real-to-complex or complex-to-real transforms.</description>
       <value>true</value>
       <kind kindtype="configure"/>
       <action type="external"/>
@@ -107,38 +107,38 @@
     <configurationkind kindtype="configure"/>
   </struct>
   <struct id="transformProperties" mode="readwrite">
-    <description>Used only in R2C and C2R cases to setup transform unique properties.</description>
+    <description>Used only in real-to-complex and complex-to-real cases to setup transform unique properties.</description>
     <simple id="transformProperties::tune_fs_over_4" name="tune_fs_over_4" type="boolean">
-      <description>This value is used during the real to complex transform only.  If your real input is centered at fs/4, setting this property to true will allow the complex output to be centered at zero, and the output sample rate will be half of the input sample rate. When this property is set to false (default), the ouput sample rate will be the same as the input sample rate, and no tuning will occur. </description>
+      <description>This value is used during the real-to-complex transform only.  If your real input is centered at fs/4, setting this property to true will allow the complex output to be centered at zero, and the output sample rate will be half of the input sample rate. When this property is set to false (default), the ouput sample rate will be the same as the input sample rate, and no tuning will occur. </description>
       <value>false</value>
     </simple>
     <simple id="transformProperties::fftSize" mode="readwrite" name="fftSize" type="long">
-      <description>The size of the fft used during real to complex, and complex to real transformations</description>
+      <description>The size of the fft used during real-to-complex, and complex-to-real transformations.</description>
       <value>2048</value>
       <kind kindtype="configure"/>
       <action type="external"/>
     </simple>
     <simple id="transformProperties::overlap_percentage" mode="readwrite" name="overlap_percentage" type="double">
-      <description>This value is used during the real to complex transform only.  It is used to define the percentage of overlap with relation to the fftSize.  This value also determines the size of the filter used during the hilbert transform.  It is not recommended to change this value from the default of 25 percent.</description>
+      <description>This value is used during the real-to-complex transform only.  It is used to define the percentage of overlap with relation to the fftSize.  This value also determines the size of the filter used during the hilbert transform.  It is not recommended to change this value from the default of 25 percent.</description>
       <value>25</value>
       <units>percentage</units>
       <kind kindtype="configure"/>
       <action type="external"/>
     </simple>
     <simple id="transformProperties::lowCutoff" mode="readwrite" name="lowCutoff" type="double">
-      <description>This value is used during the real to complex transform only.  It is used to set the low cutoff frequency on the hilbert filter. It is not recommended to change this value from the default.</description>
+      <description>This value is used during the real-to-complex transform only.  It is used to set the low cutoff frequency on the hilbert filter. It is not recommended to change this value from the default.</description>
       <value>.001</value>
       <kind kindtype="configure"/>
       <action type="external"/>
     </simple>
     <simple id="transformProperties::highCutoff" mode="readwrite" name="highCutoff" type="double">
-      <description>This value is used during the real to complex transform only.  It is used to set the high cutoff frequency on the hilbert filter. It is not recommended to change this value from the default.</description>
+      <description>This value is used during the real-to-complex transform only.  It is used to set the high cutoff frequency on the hilbert filter. It is not recommended to change this value from the default.</description>
       <value>.499</value>
       <kind kindtype="configure"/>
       <action type="external"/>
     </simple>
     <simple id="transformProperties::transitionWidth" mode="readwrite" name="transitionWidth" type="double">
-      <description>This value is used during the real to complex transform only.  It is used to set the high transition bandwidth on the creation of the hilbert filter. It is not recommended to change this value from the default.</description>
+      <description>This value is used during the real-to-complex transform only.  It is used to set the high transition bandwidth on the creation of the hilbert filter. It is not recommended to change this value from the default.</description>
       <value>.001</value>
       <kind kindtype="configure"/>
       <action type="external"/>

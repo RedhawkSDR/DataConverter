@@ -2,9 +2,7 @@
  
 ## Description
 
-Contains the source and build script for the REDHAWK Basic Components DataConverter.
- 
-## REDHAWK Documentation
+DataConverter component is used to convert between BULKIO data types in REDHAWK.  With proper configuration, the DataConverter component can convert between any of the following data types; Char, Octet, Unsigned Short, Short, Float and Double.  The DataConverter component is also capable of converting real data into complex data, and similarly complex data to real data.
 
 REDHAWK Website: [www.redhawksdr.org](http://www.redhawksdr.org)
 
