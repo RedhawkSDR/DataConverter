@@ -1313,7 +1313,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
                     sinwaveArray[i] = 0 
                 cast_in[i] = float(sinwaveArray[i])
                 cast_out[i] = float(sinwaveArray[i]-sMin)*float(Fraction(dRange,sRange))+float(dMin)
-        src=sb.DataSource()
+        src=sb.DataSource(bytesPerPush=10)
         snk=sb.DataSink()
         
         src.connect(providesComponent=self.comp,providesPortName = 'dataFloat', usesPortName='floatOut')
@@ -1323,7 +1323,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         
         src.push(data=sinwaveArray.tolist(),EOS=True,complexData=False)
         time.sleep(1)
-        result = snk.getData()
+        (result,tstamps) = snk.getData(tstamps=True)
         count = 0
         
         #because of rounding errors look +/- 1 of the value
@@ -1331,7 +1331,15 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         data = sinwaveArray.tolist()
         for i in range(0,len(result)):
             self.assertTrue(abs(data[i] - result[i]) < 0.00001)
+            
+        # Default for Data Source is Start time 0 and sample rate 1, therefore each sample offset should be equal to the whole number of seconds.
+        for tstamp in tstamps:
+            self.assertEqual(tstamp[0],tstamp[1].twsec)
+            self.assertEqual(0,tstamp[1].tfsec)
+            
         print "PASS - float to double"
+
+   
     
     def double2char(self,scale=True):
         print "-----------------------------double2char---------------------------"
@@ -1466,7 +1474,8 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         
         src.push(data=sinwaveArray.tolist(),EOS=True,complexData=False)
         time.sleep(1)
-        result = snk.getData()
+        result= snk.getData()
+        
         count = 0
         #because of rounding errors look +/- 1 of the value         
         for i in range(0,len(result)):
@@ -1551,7 +1560,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
                     sinwaveArray[i] = 0 
                 cast_in[i] = float(sinwaveArray[i])
                 cast_out[i] = float(sinwaveArray[i]-sMin)*float(Fraction(dRange,sRange))+float(dMin)
-        src=sb.DataSource()
+        src=sb.DataSource(bytesPerPush=10)
         snk=sb.DataSink()
         
         src.connect(providesComponent=self.comp,providesPortName = 'dataDouble', usesPortName='doubleOut')
@@ -1561,13 +1570,18 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         
         src.push(data=sinwaveArray.tolist(),EOS=True,complexData=False)
         time.sleep(1)
-        result = snk.getData()
+        (result,tstamps) = snk.getData(tstamps=True)
         count = 0
         
         self.assertEqual(len(cast_in), len(result), "Number of pushed elements does not match number of received elements")
         data = sinwaveArray.tolist()
         for i in range(0,len(result)):
             self.assertTrue(abs(data[i] - result[i]) < 0.00001)
+            
+        for tstamp in tstamps:
+            self.assertEqual(tstamp[0],tstamp[1].twsec)
+            self.assertEqual(0,tstamp[1].tfsec)
+
         print "PASS - double to float"
 
     def realToComplex(self, enablePlt=False):
