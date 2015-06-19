@@ -19,7 +19,7 @@
 # You can override this at install time using --prefix /new/sdr/root when invoking rpm (preferred method, if you must)
 
 %bcond_with intel
-%define _sdrroot /var/redhawk/sdr
+%{!?_sdrroot: %define _sdrroot /var/redhawk/sdr}
 %define _prefix %{_sdrroot}
 Prefix: %{_prefix}
 
@@ -28,61 +28,71 @@ Prefix: %{_prefix}
 %define _localstatedir %{_prefix}/var
 %define _mandir        %{_prefix}/man
 %define _infodir       %{_prefix}/info
-Name: DataConverter
-Summary: Component %{name}
+
+Name:           rh.DataConverter
 Version:        3.0.1
 Release:        1%{?dist}
-License: GPLv3+
-Group: REDHAWK/Components
-Source: %{name}-%{version}.tar.gz
-BuildRoot: %{_tmppath}/%{name}-root
+Summary:        Component %{name}
 
-Requires: redhawk >= 1.10
-BuildRequires: redhawk-devel >= 1.10
+Group:          REDHAWK/Components
+License:        GPLv3+
+Source0:        %{name}-%{version}.tar.gz
+BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+
+BuildRequires:  redhawk-devel >= 1.10
+Requires:       redhawk >= 1.10
 
 # Interface requirements
-Requires: bulkioInterfaces
-BuildRequires: bulkioInterfaces
+BuildRequires:  bulkioInterfaces
+Requires:       bulkioInterfaces
 
 # C++ requirements
-Requires: fftw >= 3.2.0
-BuildRequires: fftw-devel >= 3.2.0
+BuildRequires:  fftw-devel >= 3.2.0
+Requires:       fftw >= 3.2.0
 
 %if %{with intel}
-Requires: compat-libstdc++-33
-BuildRequires: compat-libstdc++-33
+BuildRequires:  compat-libstdc++-33
+Requires:       compat-libstdc++-33
 %endif
 
 %description
 Component %{name}
+ * Commit: __REVISION__
+ * Source Date/Time: __DATETIME__
+
 
 %prep
-%setup
+%setup -q
+
 
 %build
 # Implementation cpp
 pushd cpp
 ./reconf
-%define _bindir %{_prefix}/dom/components/DataConverter/cpp
+%define _bindir %{_prefix}/dom/components/rh/DataConverter/cpp
 %configure %{?_with_intel} --with-intelopts
-make
+make %{?_smp_mflags}
 popd
+
 
 %install
 rm -rf $RPM_BUILD_ROOT
 # Implementation cpp
 pushd cpp
-%define _bindir %{_prefix}/dom/components/DataConverter/cpp 
+%define _bindir %{_prefix}/dom/components/rh/DataConverter/cpp
 make install DESTDIR=$RPM_BUILD_ROOT
 popd
+
 
 %clean
 rm -rf $RPM_BUILD_ROOT
 
+
 %files
-%defattr(-,redhawk,redhawk)
-%dir %{_prefix}/dom/components/%{name}
-%{_prefix}/dom/components/%{name}/DataConverter.spd.xml
-%{_prefix}/dom/components/%{name}/DataConverter.prf.xml
-%{_prefix}/dom/components/%{name}/DataConverter.scd.xml
-%{_prefix}/dom/components/%{name}/cpp
+%defattr(-,redhawk,redhawk,-)
+%dir %{_prefix}/dom/components/rh/DataConverter
+%{_prefix}/dom/components/rh/DataConverter/DataConverter.scd.xml
+%{_prefix}/dom/components/rh/DataConverter/DataConverter.prf.xml
+%{_prefix}/dom/components/rh/DataConverter/DataConverter.spd.xml
+%{_prefix}/dom/components/rh/DataConverter/cpp
+

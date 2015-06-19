@@ -16,13 +16,12 @@
 # program.  If not, see http://www.gnu.org/licenses/.
 #
 
-ossieName = DataConverter
-bindir = $(prefix)/dom/components/DataConverter/cpp/
+ossieName = rh.DataConverter
+bindir = $(prefix)/dom/components/rh/DataConverter/cpp/
 bin_PROGRAMS = DataConverter
 
-xmldir = $(prefix)/dom/components/DataConverter/
+xmldir = $(prefix)/dom/components/rh/DataConverter/
 dist_xml_DATA = ../DataConverter.scd.xml ../DataConverter.prf.xml ../DataConverter.spd.xml
-
 
 distclean-local:
 	rm -f config.*

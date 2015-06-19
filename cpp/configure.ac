@@ -16,7 +16,7 @@
 # program.  If not, see http://www.gnu.org/licenses/.
 #
 
-AC_INIT(DataConverter, 3.0.1)
+AC_INIT(rh.DataConverter, 3.0.1)
 AM_INIT_AUTOMAKE(nostdinc)
 
 m4_ifdef([AC_USE_INTEL],[AC_USE_INTEL])
@@ -32,6 +32,8 @@ fi
 AC_CORBA_ORB
 OSSIE_CHECK_OSSIE
 OSSIE_SDRROOT_AS_PREFIX
+
+m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
 # Dependencies
 export PKG_CONFIG_PATH="$PKG_CONFIG_PATH:/usr/local/lib/pkgconfig"
@@ -59,5 +61,6 @@ fi
 
 CHECK_VECTOR_IMPL
 
-AC_CONFIG_FILES(Makefile)
+AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
+
