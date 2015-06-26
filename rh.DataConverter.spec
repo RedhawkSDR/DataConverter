@@ -20,7 +20,7 @@
 
 %bcond_with intel
 #%{!?_sdrroot: %define _sdrroot /var/redhawk/sdr}
-%define _sdrroot /var/redhawk/sdr}
+%define _sdrroot /var/redhawk/sdr
 %define _prefix %{_sdrroot}
 Prefix: %{_prefix}
 
