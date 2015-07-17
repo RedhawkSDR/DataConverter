@@ -16,7 +16,7 @@
 # program.  If not, see http://www.gnu.org/licenses/.
 #
 
-AC_INIT(rh.DataConverter, 3.0.1)
+AC_INIT(rh.DataConverter, 4.0.0)
 AM_INIT_AUTOMAKE(nostdinc)
 
 m4_ifdef([AC_USE_INTEL],[AC_USE_INTEL])
