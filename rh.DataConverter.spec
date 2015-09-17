@@ -19,10 +19,9 @@
 # You can override this at install time using --prefix /new/sdr/root when invoking rpm (preferred method, if you must)
 
 %bcond_with intel
-#%{!?_sdrroot: %define _sdrroot /var/redhawk/sdr}
-%define _sdrroot /var/redhawk/sdr
+%{!?_sdrroot: %define _sdrroot /var/redhawk/sdr}
 %define _prefix %{_sdrroot}
-Prefix: %{_prefix}
+Prefix:         %{_prefix}
 
 # Point install paths to locations within our target SDR root
 %define _sysconfdir    %{_prefix}/etc
@@ -40,12 +39,12 @@ License:        GPLv3+
 Source0:        %{name}-%{version}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
-BuildRequires:  redhawk-devel >= 1.10
-Requires:       redhawk >= 1.10
+BuildRequires:  redhawk-devel >= 2.0
+Requires:       redhawk >= 2.0
 
 # Interface requirements
-BuildRequires:  bulkioInterfaces
-Requires:       bulkioInterfaces
+BuildRequires:  bulkioInterfaces >= 2.0
+Requires:       bulkioInterfaces >= 2.0
 
 # C++ requirements
 BuildRequires:  fftw-devel >= 3.2.0
