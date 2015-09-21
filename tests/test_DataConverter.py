@@ -41,10 +41,24 @@ import numpy as np
 #import matplotlib.pyplot as plt
 from scipy import stats
 import random as rand
-import scipy.signal as dsp
+
 import cmath
 from array import array
 from fractions import Fraction
+
+import scipy
+#Scipy changed the api for correlate in version 0.8
+from distutils.version import LooseVersion
+SCIPY_GREATER_08 = LooseVersion(scipy.__version__) >= LooseVersion('0.8')
+_orig_correlate = scipy.signal.correlate
+def correlatewrap(data,filter,*args, **kwargs):
+    if len(filter) > len(data):
+        return _orig_correlate(filter,np.conj(data),*args, **kwargs)    
+    else:
+        return _orig_correlate(data,np.conj(filter),*args, **kwargs)
+if SCIPY_GREATER_08:
+    scipy.signal.correlate = correlatewrap
+
 
 class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
     """Test for all component implementations in DataConverter"""
