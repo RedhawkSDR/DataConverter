@@ -19,7 +19,7 @@
 # You can override this at install time using --prefix /new/sdr/root when invoking rpm (preferred method, if you must)
 
 %bcond_with intel
-%{!?_sdrroot: %define _sdrroot /var/redhawk/sdr}
+%{!?_sdrroot: %global _sdrroot /var/redhawk/sdr}
 %define _prefix %{_sdrroot}
 Prefix:         %{_prefix}
 
