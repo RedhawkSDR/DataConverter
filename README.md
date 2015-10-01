@@ -1,8 +1,8 @@
-# REDHAWK Basic Components DataConverter
+# REDHAWK Basic Components rh.DataConverter
  
 ## Description
 
-DataConverter component is used to convert between BULKIO data types in REDHAWK.  With proper configuration, the DataConverter component can convert between any of the following data types; Char, Octet, Unsigned Short, Short, Float and Double.  The DataConverter component is also capable of converting real data into complex data, and similarly complex data to real data.
+The rh.DataConverter component is used to convert between BULKIO data types in REDHAWK.  With proper configuration, the rh.DataConverter component can convert between any of the following data types; Char, Octet, Unsigned Short, Short, Float and Double.  The rh.DataConverter component is also capable of converting real data into complex data, and similarly complex data to real data.
 
 ## Installation Instructions
 This asset requires the rh.fftlib shared library. This must be installed in order to build and run this asset.
@@ -14,4 +14,4 @@ This work is protected by Copyright. Please refer to the [Copyright File](COPYRI
 
 ## License
 
-REDHAWK Basic Components DataConverter is licensed under the GNU General Public License (GPL).
+REDHAWK Basic Components rh.DataConverter is licensed under the GNU General Public License (GPL).
