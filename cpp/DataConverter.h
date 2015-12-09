@@ -176,11 +176,9 @@ private:
         }
         float dRange = float(std::numeric_limits<OUT_TYPE>::max()) - float(std::numeric_limits<OUT_TYPE>::min());
         float dMin = (float) (std::numeric_limits<OUT_TYPE>::min());
-        float dMax = (float) (std::numeric_limits<OUT_TYPE>::max());
 
         if (typeid (OUT_TYPE) == typeid (float) && normalize_floating_point.output) {
             dMin = -1.0;
-            dMax = 1.0;
             dRange = 2.0;
         }
         unsigned int sized = data->size();
