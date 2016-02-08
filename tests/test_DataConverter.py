@@ -80,14 +80,15 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.length = 32
 
     def char2char(self,scale=True):
-        print "-----------------------------char2char---------------------------"
                 
         #each test is its own run
         self.comp = sb.launch('../DataConverter.spd.xml')
         self.comp_obj=self.comp.ref
         self.initializeDicts()
-        #set properties we care about        
-        self.comp.scaleOutput.shortPort = scale
+        
+        #set properties we care about
+        self.comp.scaleOutput.charPort = scale
+        
         t = np.array([],dtype='float')
         t = np.arange(0,2*np.pi/400.,2*np.pi/400./(self.length))
         minChar = -2**7-1
@@ -120,18 +121,18 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.comp.releaseObject()
         for i in range(0,len(result)):
             self.assertEqual(np.int8(result[i]),cast_out[i])                   
-        if len(result)!=0:
-            print "PASS - Char to Char"
+        
+        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
 
 
     def char2octet(self,scale=True):
-        print "-----------------------------char2uchar---------------------------"
         
         #each test is its own run
         self.comp = sb.launch('../DataConverter.spd.xml')
         self.comp_obj=self.comp.ref
         self.initializeDicts()
-        #set properties we care about        
+        
+        #set properties we care about
         self.comp.scaleOutput.octetPort = scale
 
         t = np.array([],dtype='float')
@@ -168,18 +169,17 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         
                 
         for i in range(0,len(result)):
-                self.assertEqual(cast_out[i],ord(result[i]))        
-        if len(result)!=0:
-            print "PASS - Char to Octet"
+                self.assertEqual(cast_out[i],ord(result[i]))
+        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
 
     def char2short(self, scale=True):
-        print "-----------------------------char2short---------------------------"
         
         #each test is its own run
         self.comp = sb.launch('../DataConverter.spd.xml')
         self.comp_obj=self.comp.ref
         self.initializeDicts()
-        #set properties we care about        
+        
+        #set properties we care about
         self.comp.scaleOutput.shortPort = scale
         
         t = np.array([],dtype='float')
@@ -217,17 +217,16 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
 
         for i in range(0,len(result)):
             self.assertEqual(cast_out[i],result[i])
-        if len(result)!=0:
-            print "PASS - Char to Short"
+        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
 
     def char2ushort(self, scale=True):
-        print "-----------------------------char2ushort---------------------------"
         
         #each test is its own run
         self.comp = sb.launch('../DataConverter.spd.xml')
         self.comp_obj=self.comp.ref
         self.initializeDicts()
-        #set properties we care about        
+        
+        #set properties we care about
         self.comp.scaleOutput.ushortPort = scale
         
         t = np.array([],dtype='float')
@@ -259,24 +258,22 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         src.push(data=sinwaveArray.tolist(),EOS=True,complexData=False)
         time.sleep(1)
         result = snk.getData()
+        sb.stop()
+        self.comp.releaseObject()
         
         for i in range(0,len(result)):
             self.assertEqual(cast_out[i],result[i])
-        if len(result)!=0:
-            print "PASS - Char to UShort"
+        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
         
-        sb.stop()
-        self.comp.releaseObject()
     
     def char2float(self, scale=True):
-        print "-----------------------------char2float---------------------------"
         
         #each test is its own run
         self.comp = sb.launch('../DataConverter.spd.xml')
         self.comp_obj=self.comp.ref
         self.initializeDicts()
-        #set properties we care about        
-        self.comp.normalize_floating_point.Input = scale
+        
+        #set properties we care about
         self.comp.normalize_floating_point.Output = scale
         
         t = np.array([],dtype='float')
@@ -307,24 +304,22 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         src.push(data=sinwaveArray.tolist(),EOS=True,complexData=False)
         time.sleep(1)
         result = snk.getData()
+        sb.stop()
+        self.comp.releaseObject()
         
         for i in range(0,len(result)):
             self.assertAlmostEqual(cast_out[i],result[i],5)
-        if len(result) !=0:
-            print "PASS - Char to Float"
+        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
 
-        sb.stop()
-        self.comp.releaseObject()
     
     def char2double(self, scale=True):
-        print "-----------------------------char2double---------------------------"
         
         #each test is its own run
         self.comp = sb.launch('../DataConverter.spd.xml')
         self.comp_obj=self.comp.ref
         self.initializeDicts()
-        #set properties we care about        
-        self.comp.normalize_floating_point.Input = scale
+        
+        #set properties we care about
         self.comp.normalize_floating_point.Output = scale
         
         t = np.array([],dtype='double')
@@ -355,24 +350,24 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         src.push(data=sinwaveArray.tolist(),EOS=True,complexData=False)
         time.sleep(1)
         result = snk.getData()
+        sb.stop()
+        self.comp.releaseObject()
         
         for i in range(0,len(result)):
             self.assertAlmostEqual(cast_out[i],result[i],5)
-        if len(result) !=0:
-            print "PASS - Char to Double"
+        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
 
-        sb.stop()
-        self.comp.releaseObject()
     
     def octet2char(self,scale=True):
-        print "-----------------------------octet2char---------------------------"
                 
         #each test is its own run
         self.comp = sb.launch('../DataConverter.spd.xml')
         self.comp_obj=self.comp.ref
         self.initializeDicts()
-        #set properties we care about        
+        
+        #set properties we care about
         self.comp.scaleOutput.charPort = scale
+        
         t = np.array([],dtype='float')
         t = np.arange(0,2*np.pi/400.,2*np.pi/400./(self.length))
         minChar = -2**7-1
@@ -400,25 +395,25 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         
         src.push(data=sinwaveArray.tolist(),EOS=True,complexData=False)
         time.sleep(1)
-                
         result = snk.getData()
+        sb.stop()
         self.comp.releaseObject()
+        
         for i in range(0,len(result)):
             #self.assertEqual(np.int8(ord(result[i])),cast_out[i])
             self.assertEqual(np.int8(result[i]),cast_out[i])
-        if len(result) !=0:
-            print "PASS - Octet to Char"
+        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
 
 
     def octet2octet(self,scale=True):
-        print "-----------------------------octet2uchar---------------------------"
         
         #each test is its own run
         self.comp = sb.launch('../DataConverter.spd.xml')
         self.comp_obj=self.comp.ref
         self.initializeDicts()
-        #set properties we care about        
-        #self.comp.scaleOutput.octetPort = scale
+        
+        #set properties we care about
+        self.comp.scaleOutput.octetPort = scale
 
         t = np.array([],dtype='float')
         t = np.arange(0,2*np.pi/400.,2*np.pi/400./(self.length))
@@ -450,20 +445,19 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         result = snk.getData()
         sb.stop()
         self.comp.releaseObject()
-        print len(result)
+        
         for i in range(0,len(cast_out)):
-                self.assertEqual(cast_out[i],ord(result[i]))        
-        if len(result) !=0:
-            print "PASS - Char to Octet"
+                self.assertEqual(cast_out[i],ord(result[i]))
+        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
 
     def octet2short(self, scale=True):
-        print "-----------------------------octet2short---------------------------"
         
         #each test is its own run
         self.comp = sb.launch('../DataConverter.spd.xml')
         self.comp_obj=self.comp.ref
         self.initializeDicts()
-        #set properties we care about        
+        
+        #set properties we care about
         self.comp.scaleOutput.shortPort = scale
         
         t = np.array([],dtype='float')
@@ -501,18 +495,17 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
 
         for i in range(0,len(result)):
             #print str(cast_out[i]) + " " + str(result[i])
-            self.assertEqual(cast_out[i],result[i])        
-        if len(result) !=0:
-            print "PASS - octet to Short"
+            self.assertEqual(cast_out[i],result[i])
+        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
 
     def octet2ushort(self, scale=True):
-        print "-----------------------------octet2ushort---------------------------"
         
         #each test is its own run
         self.comp = sb.launch('../DataConverter.spd.xml')
         self.comp_obj=self.comp.ref
         self.initializeDicts()
-        #set properties we care about        
+        
+        #set properties we care about
         self.comp.scaleOutput.ushortPort = scale
         
         t = np.array([],dtype='float')
@@ -524,7 +517,6 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         dMin = 0
         dRange = 65536
         sinwaveArray = np.array([0]*len(sint),'uint8')
-        self.comp.scaleOutput.ushortPort = scale
         cast_in = np.array([0]*len(sint),'float')
         cast_out= np.array([0]*len(sint),'uint16')
 
@@ -544,22 +536,21 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         src.push(data=sinwaveArray.tolist(),EOS=True,complexData=False)
         time.sleep(1)
         result = snk.getData()
-        for i in range(0,len(result)):
-            self.assertEqual(cast_out[i],result[i])
-        if len(result) !=0:
-            print "PASS - octet to UShort"
-
         sb.stop()
         self.comp.releaseObject()
+        
+        for i in range(0,len(result)):
+            self.assertEqual(cast_out[i],result[i])
+        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
+
     
     def octet2float(self, scale=True):
-        print "-----------------------------octect2float---------------------------"
         #each test is its own run
         self.comp = sb.launch('../DataConverter.spd.xml')
         self.comp_obj=self.comp.ref
         self.initializeDicts()
-        #set properties we care about        
-        self.comp.normalize_floating_point.Input = scale
+        
+        #set properties we care about
         self.comp.normalize_floating_point.Output = scale
         
         t = np.array([],dtype='float')
@@ -589,21 +580,21 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         src.push(data=sinwaveArray.tolist(),EOS=True,complexData=False)
         time.sleep(1)
         result = snk.getData()
-        for i in range(0,len(result)):
-            self.assertAlmostEqual(cast_out[i],result[i],5)
-        print "PASS - octet to Float"
-
         sb.stop()
         self.comp.releaseObject()
+        
+        for i in range(0,len(result)):
+            self.assertAlmostEqual(cast_out[i],result[i],5)
+        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
+
     
     def octet2double(self, scale=True):
-        print "-----------------------------octect2double---------------------------"
         #each test is its own run
         self.comp = sb.launch('../DataConverter.spd.xml')
         self.comp_obj=self.comp.ref
         self.initializeDicts()
-        #set properties we care about        
-        self.comp.normalize_floating_point.Input = scale
+        
+        #set properties we care about
         self.comp.normalize_floating_point.Output = scale
         
         t = np.array([],dtype='float')
@@ -633,22 +624,24 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         src.push(data=sinwaveArray.tolist(),EOS=True,complexData=False)
         time.sleep(1)
         result = snk.getData()
-        for i in range(0,len(result)):
-            self.assertAlmostEqual(cast_out[i],result[i],5)
-        print "PASS - octet to double"
-
         sb.stop()
         self.comp.releaseObject()
+        
+        for i in range(0,len(result)):
+            self.assertAlmostEqual(cast_out[i],result[i],5)
+        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
+
     
     def short2char(self,scale=True):
-        print "-----------------------------short2char---------------------------"
                 
         #each test is its own run
         self.comp = sb.launch('../DataConverter.spd.xml')
         self.comp_obj=self.comp.ref
         self.initializeDicts()
-        #set properties we care about        
+        
+        #set properties we care about
         self.comp.scaleOutput.charPort = scale
+        
         t = np.array([],dtype='float')
         t = np.arange(0,2*np.pi/400.,2*np.pi/400./(self.length))
         sint = np.sin(50000*t)
@@ -677,24 +670,26 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
                 
         result = snk.getData()
 
+        sb.stop()
         self.comp.releaseObject()
+        
         count = 0;
         # since there is a fraction involved and rounding can be different, we will check for == =+1 or =-1        
         for i in range(0,len(result)):
             #if (cast_out[i]+1 == np.int8(ord(result[i])) or cast_out[i]-1 == np.int8(ord(result[i])) or cast_out[i] == np.int8(ord(result[i]))):
             if (cast_out[i]+1 == np.int8(result[i]) or cast_out[i]-1 == np.int8(result[i]) or cast_out[i] == np.int8(result[i])):
                 count = count + 1
-        if count == len(result) and count !=0:        
-                print "PASS - Short to char"
+        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
+        self.assertEqual(len(result),count)
         
     def short2octet(self,scale=True):
-        print "-----------------------------short2octet---------------------------"
         
         #each test is its own run
         self.comp = sb.launch('../DataConverter.spd.xml')
         self.comp_obj=self.comp.ref
         self.initializeDicts()
-        #set properties we care about        
+        
+        #set properties we care about
         self.comp.scaleOutput.octetPort = scale
 
         t = np.array([],dtype='float')
@@ -725,24 +720,26 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         time.sleep(1)
 
         result = snk.getData()
+        
         sb.stop()
         self.comp.releaseObject()
+        
         count = 0
         # since there is a fraction involved and rounding can be different, we will check for == =+1 or =-1                       
         for i in range(0,len(result)):
                 if (cast_out[i]+1 == ord(result[i]) or cast_out[i]-1 == ord(result[i]) or cast_out[i] == ord(result[i])):
                         count = count + 1
-        if count == len(result) and count !=0:        
-                print "PASS - Short to octet"                
+        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
+        self.assertEqual(len(result),count)               
 
     def short2ushort(self, scale=True):
-        print "-----------------------------short2ushort---------------------------"
                 
         #each test is its own run
         self.comp = sb.launch('../DataConverter.spd.xml')
         self.comp_obj=self.comp.ref
         self.initializeDicts()
-        #set properties we care about        
+        
+        #set properties we care about
         self.comp.scaleOutput.ushortPort = scale
         
         t = np.array([],dtype='float')
@@ -754,7 +751,6 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         dMin = 0
         dRange = 65536
         sinwaveArray = np.array([0]*len(sint),'int16')
-        self.comp.scaleOutput.ushortPort = scale
         cast_in = np.array([0]*len(sint),'float')
         cast_out= np.array([0]*len(sint),'uint16')
 
@@ -774,23 +770,22 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         src.push(data=sinwaveArray.tolist(),EOS=True,complexData=False)
         time.sleep(1)
         result = snk.getData()
-        for i in range(0,len(result)):
-            self.assertEqual(cast_out[i],result[i])
-        if len(result) !=0:
-            print "PASS - Short to UShort"
-
         sb.stop()
         self.comp.releaseObject()
+        
+        for i in range(0,len(result)):
+            self.assertEqual(cast_out[i],result[i])
+        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
+
 
     def short2float(self, scale=True):
-        print "-----------------------------short2float---------------------------"
         
         #each test is its own run
         self.comp = sb.launch('../DataConverter.spd.xml')
         self.comp_obj=self.comp.ref
         self.initializeDicts()
-        #set properties we care about        
-        self.comp.normalize_floating_point.Input = scale
+        
+        #set properties we care about
         self.comp.normalize_floating_point.Output = scale
         
         t = np.array([],dtype='float')
@@ -820,24 +815,22 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         src.push(data=sinwaveArray.tolist(),EOS=True,complexData=False)
         time.sleep(1)
         result = snk.getData()
+        sb.stop()
+        self.comp.releaseObject()
         
         for i in range(0,len(result)):
             self.assertAlmostEqual(cast_out[i],result[i],5)
-        if len(result) !=0:
-            print "PASS - Short to Float"
+        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
 
-        sb.stop()
-        self.comp.releaseObject()        
     
     def short2double(self, scale=True):
-        print "-----------------------------short2double---------------------------"
         
         #each test is its own run
         self.comp = sb.launch('../DataConverter.spd.xml')
         self.comp_obj=self.comp.ref
         self.initializeDicts()
-        #set properties we care about        
-        self.comp.normalize_floating_point.Input = scale
+        
+        #set properties we care about
         self.comp.normalize_floating_point.Output = scale
         
         t = np.array([],dtype='float')
@@ -867,24 +860,24 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         src.push(data=sinwaveArray.tolist(),EOS=True,complexData=False)
         time.sleep(1)
         result = snk.getData()
+        sb.stop()
+        self.comp.releaseObject()  
         
         for i in range(0,len(result)):
             self.assertAlmostEqual(cast_out[i],result[i],5)
-        if len(result) !=0:
-            print "PASS - Short to Double"
-
-        sb.stop()
-        self.comp.releaseObject()        
+        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
+      
     
     def ushort2char(self,scale=True):
-        print "-----------------------------ushort2char---------------------------"
                 
         #each test is its own run
         self.comp = sb.launch('../DataConverter.spd.xml')
         self.comp_obj=self.comp.ref
         self.initializeDicts()
-        #set properties we care about        
+        
+        #set properties we care about
         self.comp.scaleOutput.charPort = scale
+        
         t = np.array([],dtype='float')
         t = np.arange(0,2*np.pi/400.,2*np.pi/400./(self.length))
         sint = np.sin(50000*t)
@@ -911,24 +904,26 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         time.sleep(1)
                 
         result = snk.getData()
+        sb.stop()
         self.comp.releaseObject()
+        
         count = 0;
         # since there is a fraction involved and rounding can be different, we will check for == =+1 or =-1        
         for i in range(0,len(result)):
             #if (cast_out[i]+1 == np.int8(ord(result[i])) or cast_out[i]-1 == np.int8(ord(result[i])) or cast_out[i] == np.int8(ord(result[i]))):
             if (cast_out[i]+1 == np.int8(result[i]) or cast_out[i]-1 == np.int8(result[i]) or cast_out[i] == np.int8(result[i])):
                 count = count + 1
-        if count == len(result) and count !=0:        
-                print "PASS - Ushort to char"
+        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
+        self.assertEqual(len(result),count)  
         
     def ushort2octet(self,scale=True):
-        print "-----------------------------ushort2octet---------------------------"
         
         #each test is its own run
         self.comp = sb.launch('../DataConverter.spd.xml')
         self.comp_obj=self.comp.ref
         self.initializeDicts()
-        #set properties we care about        
+        
+        #set properties we care about
         self.comp.scaleOutput.octetPort = scale
 
         t = np.array([],dtype='float')
@@ -961,21 +956,22 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         result = snk.getData()
         sb.stop()
         self.comp.releaseObject()
+        
         count = 0
         # since there is a fraction involved and rounding can be different, we will check for == =+1 or =-1                       
         for i in range(0,len(result)):
                 if (cast_out[i]+1 == ord(result[i]) or cast_out[i]-1 == ord(result[i]) or cast_out[i] == ord(result[i])):
                         count = count + 1
-        if count == len(result) and count !=0:        
-                print "PASS - UShort to octet"
+        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
+        self.assertEqual(len(result),count)  
 
     def ushort2short(self, scale=True):
-        print "-----------------------------ushort2short---------------------------"
         #each test is its own run
         self.comp = sb.launch('../DataConverter.spd.xml')
         self.comp_obj=self.comp.ref
         self.initializeDicts()
-        #set properties we care about        
+        
+        #set properties we care about
         self.comp.scaleOutput.shortPort = scale
         
         t = np.array([],dtype='float')
@@ -987,7 +983,6 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         dMin = -32768
         dRange = 65536
         sinwaveArray = np.array([0]*len(sint),'uint16')
-        self.comp.scaleOutput.ushortPort = scale
         cast_in = np.array([0]*len(sint),'float')
         cast_out= np.array([0]*len(sint),'int16')
 
@@ -1007,22 +1002,21 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         src.push(data=sinwaveArray.tolist(),EOS=True,complexData=False)
         time.sleep(1)
         result = snk.getData()
-        for i in range(0,len(result)):
-            self.assertEqual(cast_out[i],result[i])
-        if len(result) !=0:
-            print "PASS - UShort to Short"
-
         sb.stop()
         self.comp.releaseObject()
+        
+        for i in range(0,len(result)):
+            self.assertEqual(cast_out[i],result[i])
+        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")  
+
 
     def ushort2float(self, scale=True):
-        print "-----------------------------uShort2float---------------------------"
         #each test is its own run
         self.comp = sb.launch('../DataConverter.spd.xml')
         self.comp_obj=self.comp.ref
         self.initializeDicts()
-        #set properties we care about        
-        self.comp.normalize_floating_point.Input = scale
+        
+        #set properties we care about
         self.comp.normalize_floating_point.Output = scale
         
         t = np.array([],dtype='float')
@@ -1052,23 +1046,21 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         src.push(data=sinwaveArray.tolist(),EOS=True,complexData=False)
         time.sleep(1)
         result = snk.getData()
+        sb.stop()
+        self.comp.releaseObject()
         
         for i in range(0,len(result)):
             self.assertAlmostEqual(cast_out[i],result[i],5)
-        if  len(result) !=0:
-            print "PASS - UShort to Float"
+        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
 
-        sb.stop()
-        self.comp.releaseObject()
     
     def ushort2double(self, scale=True):
-        print "-----------------------------uShort2double---------------------------"
         #each test is its own run
         self.comp = sb.launch('../DataConverter.spd.xml')
         self.comp_obj=self.comp.ref
         self.initializeDicts()
-        #set properties we care about        
-        self.comp.normalize_floating_point.Input = scale
+        
+        #set properties we care about
         self.comp.normalize_floating_point.Output = scale
         
         t = np.array([],dtype='float')
@@ -1098,26 +1090,27 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         src.push(data=sinwaveArray.tolist(),EOS=True,complexData=False)
         time.sleep(1)
         result = snk.getData()
-        print sinwaveArray.tolist()
-        print result
-        
-        for i in range(0,len(result)):
-            self.assertAlmostEqual(cast_out[i],result[i],5)
-        if  len(result) !=0:
-            print "PASS - UShort to double"
-
+        #print sinwaveArray.tolist()
+        #print result
         sb.stop()
         self.comp.releaseObject()
         
+        for i in range(0,len(result)):
+            self.assertAlmostEqual(cast_out[i],result[i],5)
+        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
+
+        
     def float2char(self,scale=True):
-        print "-----------------------------float2char---------------------------"
                 
         #each test is its own run
         self.comp = sb.launch('../DataConverter.spd.xml')
         self.comp_obj=self.comp.ref
         self.initializeDicts()
-        #set properties we care about        
+        
+        #set properties we care about
+        self.comp.normalize_floating_point.Input = scale
         self.comp.scaleOutput.charPort = scale
+        
         t = np.array([],dtype='float')
         t = np.arange(0,2*np.pi/400.,2*np.pi/400./(self.length))
         sint = np.sin(50000*t)
@@ -1151,19 +1144,20 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
             #if (cast_out[i]+1 == np.int8(ord(result[i])) or cast_out[i]-1 == np.int8(ord(result[i])) or cast_out[i] == np.int8(ord(result[i]))):
             if (cast_out[i]+1 == np.int8(result[i]) or cast_out[i]-1 == np.int8(result[i]) or cast_out[i] == np.int8(result[i])):
                 count = count + 1
-        if len(result) == len(result)  and count !=0:        
-            print "PASS - Float to char"
+        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
+        self.assertEqual(len(result),count)
 
     def float2octet(self,scale=True):
-        print "-----------------------------float2octet---------------------------"
         
         #each test is its own run
         self.comp = sb.launch('../DataConverter.spd.xml')
         self.comp_obj=self.comp.ref
         self.initializeDicts()
-        #set properties we care about        
+        
+        #set properties we care about
+        self.comp.normalize_floating_point.Input = scale
         self.comp.scaleOutput.octetPort = scale
-        self.comp.normalize_floating_point.Input = True
+        
         t = np.array([],dtype='float')
         t = np.arange(0,2*np.pi/400.,2*np.pi/400./(self.length))
         
@@ -1202,17 +1196,17 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         # since there is a fraction involved and rounding can be different, we will check for == =+1 or =-1                       
         for i in range(0,len(result)):
             self.assertTrue(abs(cast_out[i] - ord(result[i])) <= 1)
-        print "PASS - Float to Octet"
+        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
 
     def float2short(self,scale=True):
-        print "-----------------------------float2short---------------------------"
         #each test is its own run
         self.comp = sb.launch('../DataConverter.spd.xml')
         self.comp_obj=self.comp.ref
         self.initializeDicts()
-        #set properties we care about        
+        
+        #set properties we care about
         self.comp.normalize_floating_point.Input = scale
-        self.comp.normalize_floating_point.Output = scale
+        self.comp.scaleOutput.shortPort = scale
         
         t = np.array([],dtype='float')
         t = np.arange(0,2*np.pi/400.,2*np.pi/400./(self.length))
@@ -1244,25 +1238,26 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         time.sleep(1)
         result = snk.getData()
         count = 0
+        sb.stop()
+        self.comp.releaseObject()
+        
         #because of rounding errors look +/- 1 of the value         
         for i in range(0,len(result)):
             if (cast_out[i]+1 == result[i] or cast_out[i]-1 == result[i] or cast_out[i] == result[i]):
                 count = count + 1
-        if count == len(result)  and count !=0:        
-                print "PASS - float to short"
-        
-        sb.stop()
-        self.comp.releaseObject()        
+        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
+        self.assertEqual(len(result),count)
+               
     
     def float2ushort(self,scale=True):
-        print "-----------------------------float2ushort---------------------------"
         #each test is its own run
         self.comp = sb.launch('../DataConverter.spd.xml')
         self.comp_obj=self.comp.ref
         self.initializeDicts()
-        #set properties we care about        
+        
+        #set properties we care about
         self.comp.normalize_floating_point.Input = scale
-        self.comp.normalize_floating_point.Output = scale
+        self.comp.scaleOutput.ushortPort = scale
         
         t = np.array([],dtype='float')
         t = np.arange(0,2*np.pi/400.,2*np.pi/400./(self.length))
@@ -1292,21 +1287,24 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         src.push(data=sinwaveArray.tolist(),EOS=True,complexData=False)
         time.sleep(1)
         result = snk.getData()
+        sb.stop()
+        self.comp.releaseObject()
+        
         count = 0
         #because of rounding errors look +/- 1 of the value         
         for i in range(0,len(result)):
             if (cast_out[i]+1 == result[i] or cast_out[i]-1 == result[i] or cast_out[i] == result[i]):
                 count = count + 1
-        if count == len(result) and count !=0:        
-                print "PASS - float to ushort"
+        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
+        self.assertEqual(len(result),count)
     
     def float2double(self,scale=True):
-        print "-----------------------------float2double---------------------------"
         #each test is its own run
         self.comp = sb.launch('../DataConverter.spd.xml')
         self.comp_obj=self.comp.ref
         self.initializeDicts()
-        #set properties we care about        
+        
+        #set properties we care about
         self.comp.normalize_floating_point.Input = scale
         self.comp.normalize_floating_point.Output = scale
         
@@ -1338,32 +1336,34 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         src.push(data=sinwaveArray.tolist(),EOS=True,complexData=False)
         time.sleep(1)
         (result,tstamps) = snk.getData(tstamps=True)
-        count = 0
+        sb.stop()
+        self.comp.releaseObject()
         
         #because of rounding errors look +/- 1 of the value
         self.assertEqual(len(cast_in), len(result), "Number of pushed elements does not match number of received elements")
         data = sinwaveArray.tolist()
         for i in range(0,len(result)):
             self.assertTrue(abs(data[i] - result[i]) < 0.00001)
+        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
             
         # Default for Data Source is Start time 0 and sample rate 1, therefore each sample offset should be equal to the whole number of seconds.
         for tstamp in tstamps:
             self.assertEqual(tstamp[0],tstamp[1].twsec)
             self.assertEqual(0,tstamp[1].tfsec)
-            
-        print "PASS - float to double"
 
    
     
     def double2char(self,scale=True):
-        print "-----------------------------double2char---------------------------"
                 
         #each test is its own run
         self.comp = sb.launch('../DataConverter.spd.xml')
         self.comp_obj=self.comp.ref
         self.initializeDicts()
-        #set properties we care about        
+        
+        #set properties we care about
+        self.comp.normalize_floating_point.Input = scale
         self.comp.scaleOutput.charPort = scale
+        
         t = np.array([],dtype='float')
         t = np.arange(0,2*np.pi/400.,2*np.pi/400./(self.length))
         sint = np.sin(50000*t)
@@ -1390,25 +1390,28 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         time.sleep(1)
                 
         result = snk.getData()
+        sb.stop()
         self.comp.releaseObject()
+        
         count = 0;
         # since there is a fraction involved and rounding can be different, we will check for == =+1 or =-1        
         for i in range(0,len(result)):
             #if (cast_out[i]+1 == np.int8(ord(result[i])) or cast_out[i]-1 == np.int8(ord(result[i])) or cast_out[i] == np.int8(ord(result[i]))):
             if (cast_out[i]+1 == np.int8(result[i]) or cast_out[i]-1 == np.int8(result[i]) or cast_out[i] == np.int8(result[i])):
                 count = count + 1
-        if len(result) == len(result)  and count !=0:        
-            print "PASS - Double to char"
+        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
+        self.assertEqual(len(result),count)
     
     def double2octet(self,scale=True):
-        print "-----------------------------double2octet---------------------------"
         
         #each test is its own run
         self.comp = sb.launch('../DataConverter.spd.xml')
         self.comp_obj=self.comp.ref
         self.initializeDicts()
-        #set properties we care about        
-        self.comp.scaleOutput.charPort = scale
+        
+        #set properties we care about
+        self.comp.normalize_floating_point.Input = scale
+        self.comp.scaleOutput.octetPort = scale
         
         t = np.array([],dtype='float')
         t = np.arange(0,2*np.pi/400.,2*np.pi/400./(self.length))
@@ -1441,24 +1444,23 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         result = snk.getData()
         sb.stop()
         self.comp.releaseObject()
-        count = 0
 
         self.assertEqual(len(cast_in), len(result), "Number of pushed elements does not match number of received elements")
 
         # since there is a fraction involved and rounding can be different, we will check for == =+1 or =-1                       
         for i in range(0,len(result)):
             self.assertTrue(abs(cast_out[i] - ord(result[i])) <= 1)
-        print "PASS - Double to Octet"
+        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
 
     def double2short(self,scale=True):
-        print "-----------------------------double2short---------------------------"
         #each test is its own run
         self.comp = sb.launch('../DataConverter.spd.xml')
         self.comp_obj=self.comp.ref
         self.initializeDicts()
-        #set properties we care about        
+        
+        #set properties we care about
         self.comp.normalize_floating_point.Input = scale
-        self.comp.normalize_floating_point.Output = scale
+        self.comp.scaleOutput.shortPort = scale
         
         t = np.array([],dtype='float')
         t = np.arange(0,2*np.pi/400.,2*np.pi/400./(self.length))
@@ -1489,27 +1491,27 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         src.push(data=sinwaveArray.tolist(),EOS=True,complexData=False)
         time.sleep(1)
         result= snk.getData()
+        sb.stop()
+        self.comp.releaseObject()
         
         count = 0
         #because of rounding errors look +/- 1 of the value         
         for i in range(0,len(result)):
             if (cast_out[i]+1 == result[i] or cast_out[i]-1 == result[i] or cast_out[i] == result[i]):
                 count = count + 1
-        if count == len(result)  and count !=0:        
-                print "PASS - double to short"
+        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
+        self.assertEqual(len(result),count)
         
-        sb.stop()
-        self.comp.releaseObject()        
     
     def double2ushort(self,scale=True):
-        print "-----------------------------double2ushort---------------------------"
         #each test is its own run
         self.comp = sb.launch('../DataConverter.spd.xml')
         self.comp_obj=self.comp.ref
         self.initializeDicts()
-        #set properties we care about        
+        
+        #set properties we care about
         self.comp.normalize_floating_point.Input = scale
-        self.comp.normalize_floating_point.Output = scale
+        self.comp.scaleOutput.ushortPort = scale
         
         t = np.array([],dtype='float')
         t = np.arange(0,2*np.pi/400.,2*np.pi/400./(self.length))
@@ -1539,21 +1541,24 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         src.push(data=sinwaveArray.tolist(),EOS=True,complexData=False)
         time.sleep(1)
         result = snk.getData()
+        sb.stop()
+        self.comp.releaseObject()
+        
         count = 0
         #because of rounding errors look +/- 1 of the value         
         for i in range(0,len(result)):
             if (cast_out[i]+1 == result[i] or cast_out[i]-1 == result[i] or cast_out[i] == result[i]):
                 count = count + 1
-        if count == len(result) and count !=0:        
-                print "PASS - double to ushort"
+        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
+        self.assertEqual(len(result),count)
     
     def double2float(self,scale=True):
-        print "-----------------------------double2float---------------------------"
         #each test is its own run
         self.comp = sb.launch('../DataConverter.spd.xml')
         self.comp_obj=self.comp.ref
         self.initializeDicts()
-        #set properties we care about        
+        
+        #set properties we care about
         self.comp.normalize_floating_point.Input = scale
         self.comp.normalize_floating_point.Output = scale
         
@@ -1585,7 +1590,8 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         src.push(data=sinwaveArray.tolist(),EOS=True,complexData=False)
         time.sleep(1)
         (result,tstamps) = snk.getData(tstamps=True)
-        count = 0
+        sb.stop()
+        self.comp.releaseObject()
         
         self.assertEqual(len(cast_in), len(result), "Number of pushed elements does not match number of received elements")
         data = sinwaveArray.tolist()
@@ -1596,28 +1602,23 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
             self.assertEqual(tstamp[0],tstamp[1].twsec)
             self.assertEqual(0,tstamp[1].tfsec)
 
-        print "PASS - double to float"
-
-    def realToComplex(self, enablePlt=False):
-        print "-----------------------------RealToComplex---------------------------"
+    def realToComplex(self, scale=True, enablePlt=False):
 
         self.comp = sb.launch('../DataConverter.spd.xml')
         self.comp_obj=self.comp.ref
         self.initializeDicts()
         self.comp.start()
-        write = False
-        justPrint = False
-        sb.setDEBUG(False)
         
+        #set properties we care about
         self.comp.transformProperties.fftSize = 2048
         self.comp.transformProperties.lowCutoff = .001
         self.comp.transformProperties.highCutoff = .499
         self.comp.transformProperties.transitionWidth = .001
         self.comp.transformProperties.tune_fs_over_4 = False
-        self.comp.normalize_floating_point.Output = True
-        self.comp.normalize_floating_point.Input = True
-
-        self.comp.outputType = 2 
+        self.comp.normalize_floating_point.Input = scale
+        self.comp.normalize_floating_point.Output = scale
+        self.comp.outputType = 2
+        
         t = np.array([],dtype='float')
         t = np.arange(0,2*np.pi/400.,2*np.pi/400./32768)
         #get a bunch of random data between 1 and -1 and create a BPSK Signal
@@ -1689,25 +1690,22 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.assertEqual((0.01>avgOut-avgKnown),True)
         self.assertEqual((0.1>np.max(np.abs(error_mag))),True)
 
-        print "PASS - RealToComplex"
 
 
-
-    def complexToReal(self, enablePlt=False):
-        print "-----------------------------ComplexToReal---------------------------"
+    def complexToReal(self, scale=True, enablePlt=False):
 
         self.comp = sb.launch('../DataConverter.spd.xml')
         self.comp_obj=self.comp.ref
         self.initializeDicts()
-        #set properties we care about
         
+        #set properties we care about
         self.comp.transformProperties.fftSize = 2048
         self.comp.transformProperties.lowCutoff = .001
         self.comp.transformProperties.highCutoff = .499
         self.comp.transformProperties.transitionWidth = .001
         self.comp.transformProperties.tune_fs_over_4 = False
-        self.comp.normalize_floating_point.Output = True
-        self.comp.normalize_floating_point.Input = True
+        self.comp.normalize_floating_point.Input = scale
+        self.comp.normalize_floating_point.Output = scale
         self.comp.outputType=1
         
         #########################
@@ -1806,37 +1804,30 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
             
         self.assertEqual((0.01>avgOut-avgKnown),True)        
         self.assertEqual((5>np.max(np.abs(error_mag))),True)
-
-        print "PASS - ComplexToReal"
         
         
         
-    def realToComplexShort2Short(self, enablePlt=False):
-        print "-----------------------------RealToComplexShort2Short---------------------------"
+    def realToComplexShort2Short(self, scale=True, enablePlt=False):
 
         self.comp = sb.launch('../DataConverter.spd.xml')
         self.comp_obj=self.comp.ref
         self.initializeDicts()
         self.comp.start()
-        write = False
-        justPrint = False
-        sb.setDEBUG(False)
         
+        #set properties we care about
         self.comp.transformProperties.fftSize = 2048
         self.comp.transformProperties.lowCutoff = .001
         self.comp.transformProperties.highCutoff = .499
         self.comp.transformProperties.transitionWidth = .001
         self.comp.transformProperties.tune_fs_over_4 = False
-        self.comp.normalize_floating_point.Output = True
-        self.comp.normalize_floating_point.Input = True
-
-
-        self.comp.outputType=2        
+        self.comp.normalize_floating_point.Input = scale
+        self.comp.normalize_floating_point.Output = scale
+        self.comp.outputType=2
+            
         t = np.array([],dtype='float')
         t = np.arange(0,2*np.pi/400.,2*np.pi/400./32768)
         #get a bunch of random data between 1 and -1 and create a BPSK Signal
         
-
         sint = np.sin(50000*t) * np.sin(1000*t)
         sintS = sint * 32767
         sintS = sintS.astype(np.short)
@@ -1902,11 +1893,8 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.assertEqual((0.01>avgOut-avgKnown),True)
         self.assertEqual((0.2>np.max(np.abs(error_mag))),True)
 
-        print "PASS - RealToComplexShort2Short"
 
-
-    def complexToRealShort2Short(self, enablePlt=False):
-        print "-----------------------------ComplexToRealShort2Short---------------------------"
+    def complexToRealShort2Short(self, scale=True, enablePlt=False):
 
         self.comp = sb.launch('../DataConverter.spd.xml')#, debugger='gdb')
         self.comp_obj=self.comp.ref
@@ -2010,8 +1998,6 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.assertEqual((0.01>avgOut-avgKnown),True)        
         self.assertEqual((5>np.max(np.abs(error_mag))),True) #ToDo needs to change
 
-        print "PASS - ComplexToRealShort2Short"
-
 
 
     def loopDataTypes(self,write=False,justPrint=False):
@@ -2063,50 +2049,211 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
                     print "\tPASS"
         standardsFile.close()
 
-    def testScaledFunctionality(self):
-        print "\n----------------------------- testScaledFunctionality-------------------------"
+    def testScaledChar2octet(self):
         execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
         execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
-
-
-        self.char2octet()        
-        self.char2short()        
-        self.char2ushort()
-        self.char2float()
-        self.char2double()
-        self.char2char()
-        self.octet2char()
-        self.octet2short()
-        self.octet2ushort()
-        self.octet2float()
-        self.octet2double()
-        self.short2char()
-        self.short2octet()
-        self.short2ushort()
-        self.short2float()
-        self.short2double()
-        self.ushort2char()
-        self.ushort2octet()
-        self.ushort2short()
-        self.ushort2float()
-        self.float2char()
-        self.float2octet()        
-        self.float2short()
-        self.float2ushort()
-        self.float2double()
-        self.double2char()
-        self.double2octet()        
-        self.double2short()
-        self.double2ushort()
-        self.double2float()
-# The following tests are commented out due to a bug in the sandbox regarding the DataSource object, and EOS flags  
-        self.realToComplex()
-        self.realToComplexShort2Short()
-        self.complexToReal()
-        self.complexToRealShort2Short()       
+        
+        self.char2octet(scale=True)
+        
+    def testScaledChar2short(self):
+        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
+        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
+        
+        self.char2short(scale=True)
+        
+    def testScaledChar2ushort(self):
+        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
+        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
+        
+        self.char2ushort(scale=True)
+        
+    def testScaledChar2float(self):
+        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
+        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
+        
+        self.char2float(scale=True)
+        
+    def testScaledChar2double(self):
+        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
+        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
+        
+        self.char2double(scale=True)
+        
+    def testScaledChar2char(self):
+        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
+        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
+        
+        self.char2char(scale=True)
+        
+    def testScaledOctet2char(self):
+        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
+        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
+        
+        self.octet2char(scale=True)
+        
+    def testScaledOctet2short(self):
+        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
+        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
+        
+        self.octet2short(scale=True)
+        
+    def testScaledOctet2ushort(self):
+        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
+        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
+        
+        self.octet2ushort(scale=True)
+        
+    def testScaledOctet2float(self):
+        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
+        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
+        
+        self.octet2float(scale=True)
+        
+    def testScaledOctet2double(self):
+        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
+        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
+        
+        self.octet2double(scale=True)
+        
+    def testScaledShort2char(self):
+        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
+        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
+        
+        self.short2char(scale=True)
+        
+    def testScaledShort2octet(self):
+        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
+        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
+        
+        self.short2octet(scale=True)
+        
+    def testScaledShort2ushort(self):
+        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
+        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
+        
+        self.short2ushort(scale=True)
+        
+    def testScaledShort2float(self):
+        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
+        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
+        
+        self.short2float(scale=True)
+        
+    def testScaledShort2double(self):
+        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
+        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
+        
+        self.short2double(scale=True)
+        
+    def testScaledUshort2char(self):
+        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
+        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
+        
+        self.ushort2char(scale=True)
+        
+    def testScaledUshort2octet(self):
+        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
+        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
+        
+        self.ushort2octet(scale=True)
+        
+    def testScaledUshort2short(self):
+        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
+        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
+        
+        self.ushort2short(scale=True)
+        
+    def testScaledUshort2float(self):
+        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
+        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
+        
+        self.ushort2float(scale=True)
+        
+    def testScaledFloat2char(self):
+        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
+        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
+        
+        self.float2char(scale=True)
+        
+    def testScaledFloat2octet(self):
+        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
+        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
+        
+        self.float2octet(scale=True)
+        
+    def testScaledFloat2short(self):
+        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
+        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
+        
+        self.float2short(scale=True)
+        
+    def testScaledFloat2ushort(self):
+        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
+        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
+        
+        self.float2ushort(scale=True)
+        
+    def testScaledFloat2double(self):
+        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
+        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
+        
+        self.float2double(scale=True)
+        
+    def testScaledDouble2char(self):
+        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
+        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
+        
+        self.double2char(scale=True)
+        
+    def testScaledDouble2octet(self):
+        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
+        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
+        
+        self.double2octet(scale=True)
+        
+    def testScaledDouble2short(self):
+        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
+        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
+        
+        self.double2short(scale=True)
+        
+    def testScaledDouble2ushort(self):
+        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
+        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
+        
+        self.double2ushort(scale=True)
+        
+    def testScaledDouble2float(self):
+        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
+        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
+        
+        self.double2float(scale=True)
+        
+    def testScaledRealToComplex(self):
+        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
+        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
+        
+        self.realToComplex(scale=True)
+        
+    def testScaledRealToComplexShort2Short(self):
+        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
+        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
+        
+        self.realToComplexShort2Short(scale=True)
+        
+    def testScaledComplexToReal(self):
+        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
+        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
+        
+        self.complexToReal(scale=True)
+        
+    def testScaledComplexToRealShort2Short(self):
+        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
+        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
+        
+        self.complexToRealShort2Short(scale=True)
 
     def testModeChangeR2CUpdatesSRI(self):
-        print "\n----------------------------- testModeChange(R->C)UpdatesSRI-------------------------"
         comp = sb.launch('../DataConverter.spd.xml')
         src=sb.DataSource()
         snk=sb.DataSink()
@@ -2135,7 +2282,6 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.assertTrue(snk.sri().mode == 1) # 1=Complex
     
     def testModeChangeC2RUpdatesSRI(self):
-        print "\n----------------------------- testModeChange(C->R)UpdatesSRI-------------------------"
         comp = sb.launch('../DataConverter.spd.xml')
         src=sb.DataSource()
         snk=sb.DataSink()
