@@ -1700,47 +1700,64 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.comp_obj=self.comp.ref
         self.initializeDicts()
         #set properties we care about
-        self.comp.outputType=1 
         
+        self.comp.transformProperties.fftSize = 2048
+        self.comp.transformProperties.lowCutoff = .001
+        self.comp.transformProperties.highCutoff = .499
+        self.comp.transformProperties.transitionWidth = .001
+        self.comp.transformProperties.tune_fs_over_4 = False
+        self.comp.normalize_floating_point.Output = True
+        self.comp.normalize_floating_point.Input = True
+        self.comp.outputType=1
+        
+        #########################
+        # Build input signal x
+        #########################
         Fs = 1024
         secs = 16
         num = 50
         Fcs = stats.norm.rvs(loc=0, scale=Fs/4,size=num)
-        Phases = np.array([rand.uniform(-np.pi, np.pi) for ii in np.arange(num)]) 
-#        Fcs = [1]
-#        Phases = [0] 
-        
+        Phases = np.array([rand.uniform(-np.pi, np.pi) for ii in np.arange(num)])
+
         T = np.linspace(0,secs,Fs*secs)
-        To = np.linspace(0,secs,Fs*2*secs)
-        F = np.linspace(-Fs/2,Fs/2-1,Fs*secs)
-        Fo = np.linspace(-Fs,Fs-1,Fs*2*secs)
+        To = np.linspace(0,secs,Fs*2*secs) # Only used for plotting
+        
+        #F = np.linspace(-Fs/2,Fs/2-1,Fs*secs)
+        #Fo = np.linspace(-Fs,Fs-1,Fs*2*secs)
         
         x = np.zeros(len(T), dtype=np.complex)
         
         for ii in np.arange(len(Fcs)):
             x = x+np.exp(2j*np.pi*Fcs[ii]*T + 1j*Phases[ii])
-        
-        X = np.fft.fft(x)
+
+        ############################
+        # Compute output signal xo
+        ############################
+        # Force input to 32-bit floats, but perform calculations in double precision
+        X = np.fft.fft(x.astype(np.complex64))
         X_FFT = np.fft.fftshift(X)
         #for ii in np.arange(len(X)/2,len(X)):
         #    X[ii]= X[ii]#.conjugate()
         X = np.fft.fftshift(X)
         Xo = np.zeros(len(X)*2,dtype=np.complex)
-        #Xo.put(np.arange(1,len(X)), X)
-        #Xo.put(np.arange(len(X),len(X)*2), X[::-1].conjugate())
         Xo.put(np.arange(len(X)), X)
         Xo.put(np.arange(len(X)+1,len(X)*2), X[::-1].conjugate())
         Xo[0] = np.complex(Xo[0].real,0)
-        #Xo[0] = np.complex(0,15)
-        xo = np.fft.ifft(Xo)
+        # Cast result back to 32-bit floats after all calculations
+        xo = np.fft.ifft(Xo).astype(np.complex64)
         
+        ############################################
+        # Push data through component to get result
+        ############################################
 
-        outer = np.zeros(len(x)*2)
-        for ii, val in enumerate(x):
+        # for BulkIO, flatten x into Re{x(0)}, Im{x(0)}, Re{x(1)}, Im{x(1)}, ...
+        # Also, force to 32-bit floats
+        outer = np.zeros(len(x)*2, dtype=np.float32)
+        for ii, val in enumerate(x.astype(np.complex64)):
             outer[2*ii] = val.real
             outer[2*ii+1] = val.imag
 
-        src=sb.DataSource(bytesPerPush=512+32)
+        src=sb.DataSource()#bytesPerPush=512+32)
         snk=sb.DataSink()
         
         src.connect(providesComponent=self.comp,providesPortName = 'dataFloat', usesPortName='floatOut')
@@ -1766,7 +1783,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         error_mag = np.zeros(min(len(xo.real), len(result)))
         jj = 0
         # calculate absolute error relative to the standard deviation
-        for ii in np.arange(should-elementer, len(xo.real) + should-elementer):
+        for ii in np.arange(should-elementer, min(len(xo.real) + should-elementer, len(result))):
             error[jj] = (xo.real[jj] - result[ii])
             error_mag[jj] = np.abs(xo.real[jj] - result[ii]) / stdDeviation
             jj+=1 
@@ -1786,9 +1803,9 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
             plt.title('error')
             plt.plot(To,error_mag, 'b')           
             plt.show()
-                
+            
         self.assertEqual((0.01>avgOut-avgKnown),True)        
-        self.assertEqual((5>np.max(np.abs(error_mag))),True) #ToDo needs to change
+        self.assertEqual((5>np.max(np.abs(error_mag))),True)
 
         print "PASS - ComplexToReal"
         
