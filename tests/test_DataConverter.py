@@ -1111,21 +1111,25 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.comp.normalize_floating_point.Input = scale
         self.comp.scaleOutput.charPort = scale
         
-        t = np.array([],dtype='float')
-        t = np.arange(0,2*np.pi/400.,2*np.pi/400./(self.length))
-        sint = np.sin(50000*t)
-        sinwaveArray = np.array([0]*len(sint),'float')
-        cast_in = np.array([0]*len(sint),'float')
-        cast_out= np.array([0]*len(sint),'int8')
-        
+        #data type info
+        floatMin = -1 # data is generated as float data
+        floatRange = 2
+        sType = np.float32 # input type (from)
         sMin = -1
         sRange = 2
+        dType = np.int8 # output type (to)
         dMin = -128
-        dRange = 255 
+        dRange = 255
         
-        for i in range(0,len(sint)):
-                sinwaveArray[i]=int(sint[i]*sMin) 
-                cast_out[i] = float(sinwaveArray[i]-sMin)*float(Fraction(dRange,sRange))+float(dMin)
+        # generate input signal
+        t = np.arange(0,2*np.pi/400.,2*np.pi/400./(self.length))
+        sint = np.sin(50000*t)
+        
+        # cast to input type
+        cast_in = ((sint-floatMin)*float(Fraction(sRange,floatRange))+sMin).astype(sType)
+        
+        # convert to output type
+        cast_out = (np.float32(cast_in-sMin)*np.float32(Fraction(dRange,sRange))+dMin).astype(dType)
 
         src=sb.DataSource()
         snk=sb.DataSink()
@@ -1133,16 +1137,16 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         src.connect(providesComponent=self.comp,providesPortName = 'dataFloat', usesPortName='floatOut')
         self.comp.connect(providesComponent=snk,providesPortName='charIn',usesPortName='dataChar_out')
         sb.start()
-        src.push(data=sinwaveArray.tolist(),EOS=True,complexData=False)
+        src.push(data=cast_in.tolist(),EOS=True,complexData=False)
         time.sleep(1)
                 
         result = snk.getData()
         self.comp.releaseObject()
         count = 0;
-        # since there is a fraction involved and rounding can be different, we will check for == =+1 or =-1        
+        # since there is a fraction involved and rounding can be different, we will check for == =+1 or =-1
         for i in range(0,len(result)):
-            #if (cast_out[i]+1 == np.int8(ord(result[i])) or cast_out[i]-1 == np.int8(ord(result[i])) or cast_out[i] == np.int8(ord(result[i]))):
-            if (cast_out[i]+1 == np.int8(result[i]) or cast_out[i]-1 == np.int8(result[i]) or cast_out[i] == np.int8(result[i])):
+            #if (sint_cast[i]+1 == np.int8(ord(result[i])) or sint_cast[i]-1 == np.int8(ord(result[i])) or sint_cast[i] == np.int8(ord(result[i]))):
+            if (cast_out[i]+1 == result[i] or cast_out[i]-1 == result[i] or cast_out[i] == result[i]):
                 count = count + 1
         self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
         self.assertEqual(len(result),count)
@@ -1364,29 +1368,34 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.comp.normalize_floating_point.Input = scale
         self.comp.scaleOutput.charPort = scale
         
-        t = np.array([],dtype='float')
-        t = np.arange(0,2*np.pi/400.,2*np.pi/400./(self.length))
-        sint = np.sin(50000*t)
-        sinwaveArray = np.array([0]*len(sint),'float')
-        cast_in = np.array([0]*len(sint),'float')
-        cast_out= np.array([0]*len(sint),'int8')
-        
+        #data type info
+        floatMin = -1 # data is generated as float data
+        floatRange = 2
+        sType = np.float64 # input type (from)
         sMin = -1
         sRange = 2
+        dType = np.int8 # output type (to)
         dMin = -128
-        dRange = 255 
+        dRange = 255
         
-        for i in range(0,len(sint)):
-                sinwaveArray[i]=int(sint[i]*sMin) 
-                cast_out[i] = float(sinwaveArray[i]-sMin)*float(Fraction(dRange,sRange))+float(dMin)
+        # generate input signal
+        t = np.arange(0,2*np.pi/400.,2*np.pi/400./(self.length))
+        sint = np.sin(50000*t)
+        
+        # cast to input type
+        cast_in = ((sint-floatMin)*float(Fraction(sRange,floatRange))+sMin).astype(sType)
+        
+        # convert to output type
+        cast_out = (np.float32(cast_in-sMin)*np.float32(Fraction(dRange,sRange))+dMin).astype(dType)
 
         src=sb.DataSource()
         snk=sb.DataSink()
         
         src.connect(providesComponent=self.comp,providesPortName = 'dataDouble', usesPortName='doubleOut')
         self.comp.connect(providesComponent=snk,providesPortName='charIn',usesPortName='dataChar_out')
+        
         sb.start()
-        src.push(data=sinwaveArray.tolist(),EOS=True,complexData=False)
+        src.push(data=cast_in.tolist(),EOS=True,complexData=False)
         time.sleep(1)
                 
         result = snk.getData()
@@ -1397,7 +1406,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         # since there is a fraction involved and rounding can be different, we will check for == =+1 or =-1        
         for i in range(0,len(result)):
             #if (cast_out[i]+1 == np.int8(ord(result[i])) or cast_out[i]-1 == np.int8(ord(result[i])) or cast_out[i] == np.int8(ord(result[i]))):
-            if (cast_out[i]+1 == np.int8(result[i]) or cast_out[i]-1 == np.int8(result[i]) or cast_out[i] == np.int8(result[i])):
+            if (cast_out[i]+1 == result[i] or cast_out[i]-1 == result[i] or cast_out[i] == result[i]):
                 count = count + 1
         self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
         self.assertEqual(len(result),count)

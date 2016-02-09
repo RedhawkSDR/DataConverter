@@ -1913,8 +1913,8 @@ void float2charScaled(char* dst, const float* src, int n, float sMin, float dRan
 			__m128i b1 = _mm_cvtps_epi32(a1);
 			__m128i b2 = _mm_cvtps_epi32(a2);
 			b1 = _mm_packs_epi32(b1,b2);
-			b1 = _mm_packus_epi16(b1,b1);
-			b1 = _mm_sub_epi8(b1,_mm_set1_epi8(0x80));
+			b1 = _mm_packs_epi16(b1,b1);
+			//b1 = _mm_sub_epi8(b1,_mm_set1_epi8(0x80));
 			_mm_storeu_si128((__m128i*)(dst+k),b1);
 		}
 	
@@ -1943,8 +1943,8 @@ void float2charScaled(char* dst, const float* src, int n, float sMin, float dRan
 			__m128i b1 = _mm_cvtps_epi32(a1);
 			__m128i b2 = _mm_cvtps_epi32(a2);
 			b1 = _mm_packs_epi32(b1,b2);
-			b1 = _mm_packus_epi16(b1,b1);
-			b1 = _mm_sub_epi8(b1,_mm_set1_epi8(0x80));
+			b1 = _mm_packs_epi16(b1,b1);
+			//b1 = _mm_sub_epi8(b1,_mm_set1_epi8(0x80));
 			_mm_storeu_si128((__m128i*)(dst+k),b1);
 		}
 	
