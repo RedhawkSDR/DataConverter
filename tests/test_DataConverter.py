@@ -564,6 +564,20 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         
         self.runtestcase(scale, "float", "ushort",inData,expectedData)
     
+    def float2float(self,scale=True):
+        
+        #data type info
+        sType = np.float32 # input type (from)
+        sMin = -1
+        sRange = 2
+        dType = np.float32 # output type (to)
+        dMin = -1
+        dRange = 2
+        
+        inData, expectedData= self.makeDataFiles(sType,sMin,sRange,dType,dMin,dRange,scale)
+        
+        self.runtestcase(scale, "float", "float",inData,expectedData)
+
     def float2double(self,scale=True):
         
         #data type info
@@ -639,6 +653,19 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         sMin = -1
         sRange = 2
         dType = np.float32 # output type (to)
+        dMin = -1
+        dRange = 2
+        
+        inData, expectedData= self.makeDataFiles(sType,sMin,sRange,dType,dMin,dRange,scale)
+        
+        self.runtestcase(scale, "double", "float",inData,expectedData)
+
+    def double2double(self,scale=True):
+        #data type info
+        sType = np.float64 # input type (from)
+        sMin = -1
+        sRange = 2
+        dType = np.float64 # output type (to)
         dMin = -1
         dRange = 2
         
@@ -1230,6 +1257,14 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         print(sys._getframe().f_code.co_name)
         self.float2ushort(scale=True)
 
+    def testFloat2float(self):
+        print(sys._getframe().f_code.co_name)
+        self.float2float(scale=False)
+
+    def testScaledFloat2float(self):
+        print(sys._getframe().f_code.co_name)
+        self.float2float(scale=True)
+
     def testFloat2double(self):
         print(sys._getframe().f_code.co_name)
         self.float2double(scale=False)
@@ -1261,6 +1296,14 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
     def testScaledDouble2float(self):
         print(sys._getframe().f_code.co_name)
         self.double2float(scale=True)
+    
+    def testDouble2double(self):
+        print(sys._getframe().f_code.co_name)
+        self.double2double(scale=False)
+
+    def testScaledDouble2double(self):
+        print(sys._getframe().f_code.co_name)
+        self.double2double(scale=True) 
         
     def testScaledRealToComplex(self):
         print(sys._getframe().f_code.co_name)
