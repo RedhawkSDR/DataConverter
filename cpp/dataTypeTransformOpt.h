@@ -124,16 +124,16 @@ namespace dataTypeTransformOpt {
 
         if (!scale) {
             //////////////////////////CHAR/////////////////////////////
-            if (typeid (OUT_TYPE) == typeid (unsigned char) && typeid (IN_TYPE) == typeid (char)) {
+            if (typeid (OUT_TYPE) == typeid (unsigned char) && typeid (IN_TYPE) == typeid (signed char)) {
                 char2uchar((unsigned char*) &(dest[0]), (const char*) &(source[0]), size);
-            } else if (typeid (OUT_TYPE) == typeid (short) && typeid (IN_TYPE) == typeid (char)) {
+            } else if (typeid (OUT_TYPE) == typeid (short) && typeid (IN_TYPE) == typeid (signed char)) {
                 char2short((short*) &(dest[0]), (const char*) &(source[0]), size);
-            } else if (typeid (OUT_TYPE) == typeid (unsigned short) && typeid (IN_TYPE) == typeid (char)) {
+            } else if (typeid (OUT_TYPE) == typeid (unsigned short) && typeid (IN_TYPE) == typeid (signed char)) {
                 char2ushort((unsigned short*) &(dest[0]), (const char*) &(source[0]), size);
-            } else if (typeid (OUT_TYPE) == typeid (float) && typeid (IN_TYPE) == typeid (char)) {
+            } else if (typeid (OUT_TYPE) == typeid (float) && typeid (IN_TYPE) == typeid (signed char)) {
                 char2float((float*) &(dest[0]), (const char*) &(source[0]), size);
             }                //unsigned char
-            else if (typeid (OUT_TYPE) == typeid (char) && typeid (IN_TYPE) == typeid (unsigned char)) {
+            else if (typeid (OUT_TYPE) == typeid (signed char) && typeid (IN_TYPE) == typeid (unsigned char)) {
                 uchar2char((char*) &(dest[0]), (const unsigned char*) &(source[0]), size);
             }                //doesnt exist
             else if (typeid (OUT_TYPE) == typeid (short) && typeid (IN_TYPE) == typeid (unsigned char)) {
@@ -145,7 +145,7 @@ namespace dataTypeTransformOpt {
             }                //////////////////////////SHORT////////////////////////////////
             else if (typeid (OUT_TYPE) == typeid (unsigned short) && typeid (IN_TYPE) == typeid (short)) {
                 short2ushort((unsigned short*) &(dest[0]), (const short*) &(source[0]), size);
-            } else if (typeid (OUT_TYPE) == typeid (char) && typeid (IN_TYPE) == typeid (short)) {
+            } else if (typeid (OUT_TYPE) == typeid (signed char) && typeid (IN_TYPE) == typeid (short)) {
                 short2char((char*) &(dest[0]), (const short*) &(source[0]), size);
             } else if (typeid (OUT_TYPE) == typeid (unsigned char) && typeid (IN_TYPE) == typeid ( short)) {
                 short2uchar((unsigned char*) &(dest[0]), (short*) &(source[0]), size);
@@ -155,7 +155,7 @@ namespace dataTypeTransformOpt {
                 //else if (typeid (OUT_TYPE) == typeid( unsigned char) && typeid (IN_TYPE) == typeid(unsigned short)){
                 //	 ushort2uchar((unsigned char*)&(dest[0]), (const unsigned short*)&(source[0]),size);
                 //}
-            else if (typeid (OUT_TYPE) == typeid (char) && typeid (IN_TYPE) == typeid (short)) {
+            else if (typeid (OUT_TYPE) == typeid (signed char) && typeid (IN_TYPE) == typeid (short)) {
                 short2char((char*) &(dest[0]), (const short*) &(source[0]), size);
             } else if (typeid (OUT_TYPE) == typeid (short) && typeid (IN_TYPE) == typeid (unsigned short)) {
                 ushort2short((short*) &(dest[0]), (const unsigned short*) &(source[0]), size);
@@ -186,14 +186,21 @@ namespace dataTypeTransformOpt {
             } else if (typeid (OUT_TYPE) == typeid (unsigned short) && typeid (IN_TYPE) == typeid (float)) {
                 std::cerr << "Ignoring Request - will scale the output to produce a valid range" << std::endl;
                 float2ushortScaled((unsigned short*) &(dest[0]), (const float*) &(source[0]), size, sMin, dRange, sRange, dMin);
-            } else if (typeid (OUT_TYPE) == typeid (char) && typeid (IN_TYPE) == typeid (float)) {
+            } else if (typeid (OUT_TYPE) == typeid (signed char) && typeid (IN_TYPE) == typeid (float)) {
                 std::cerr << "Ignoring Request - will scale the output to produce a valid range" << std::endl;
                 float2charScaled((char*) &(dest[0]), (const float*) &(source[0]), size, sMin, dRange, sRange, dMin);
             } else if (typeid (OUT_TYPE) == typeid (unsigned char) && typeid (IN_TYPE) == typeid (float)) {
                 std::cerr << "Ignoring Request - will scale the output to produce a valid range" << std::endl;
                 float2ucharScaled((unsigned char*) &(dest[0]), (const float*) &(source[0]), size, sMin, dRange, sRange, dMin);
-            } else {
-                std::cerr << "Ignoring Request - will scale the output to produce a valid range" << std::endl;
+            }else if (typeid (OUT_TYPE) == typeid (float) && typeid (IN_TYPE) == typeid (float)) {
+
+                for (size_t i = 0; i < (size_t) size; i++) {
+                    dest[i] = OUT_TYPE(source[i]);
+                }
+            }
+            else {
+                std::cerr << "Ignoring Request - Did not match expected types. Will try to scale the output to produce a valid range" << std::endl;
+                std::cerr << "Types In: "<<typeid (IN_TYPE).name()<< " Out: " <<typeid (OUT_TYPE).name()  << std::endl;
                 double tmpFloat;
                 for (size_t i = 0; i < (size_t) size; i++) {
                     tmpFloat = (source[i] - sMin)* (dRange / sRange) + dMin;
@@ -204,13 +211,13 @@ namespace dataTypeTransformOpt {
         } else {
             //char type
 
-            if (typeid (OUT_TYPE) == typeid (unsigned char) && typeid (IN_TYPE) == typeid (char)) {
+            if (typeid (OUT_TYPE) == typeid (unsigned char) && typeid (IN_TYPE) == typeid (signed char)) {
                 char2ucharScaled((unsigned char*) &(dest[0]), (const char*) &(source[0]), size);
-            } else if ((typeid (OUT_TYPE) == typeid (short) && typeid (IN_TYPE) == typeid (char))) {
+            } else if ((typeid (OUT_TYPE) == typeid (short) && typeid (IN_TYPE) == typeid (signed char))) {
                 char2shortScaled((short*) &(dest[0]), (const char*) &(source[0]), size, (short) sMin, (short) (dRange / sRange), (short) dMin);
-            } else if ((typeid (OUT_TYPE) == typeid (unsigned short) && typeid (IN_TYPE) == typeid (char))) {
+            } else if ((typeid (OUT_TYPE) == typeid (unsigned short) && typeid (IN_TYPE) == typeid (signed char))) {
                 char2ushortScaled((unsigned short*) &(dest[0]), (const char*) &(source[0]), size, (short) sMin, (short) (dRange / sRange), (short) dMin);
-            } else if (typeid (OUT_TYPE) == typeid (float) && typeid (IN_TYPE) == typeid (char)) {
+            } else if (typeid (OUT_TYPE) == typeid (float) && typeid (IN_TYPE) == typeid (signed char)) {
                 char2floatScaled((float*) &(dest[0]), (const char*) &(source[0]), size, sMin, dRange, sRange, dMin);
             } else if (typeid (OUT_TYPE) == typeid (unsigned char) && typeid (IN_TYPE) == typeid (unsigned char)) {
                 uchar2charScaled((char*) &(dest[0]), (const unsigned char*) &(source[0]), size);
@@ -222,7 +229,7 @@ namespace dataTypeTransformOpt {
                 uchar2floatScaled((float*) &(dest[0]), (const unsigned char*) &(source[0]), size, sMin, dRange, sRange, dMin);
             }
                 //////////////////////////////SHORT SCALED////////////////////////////
-            else if (typeid (OUT_TYPE) == typeid (char) && typeid (IN_TYPE) == typeid (short)) {
+            else if (typeid (OUT_TYPE) == typeid (signed char) && typeid (IN_TYPE) == typeid (short)) {
                 short2charScaled((char*) &(dest[0]), (const short*) &(source[0]), size, sMin, dRange, sRange, dMin);
             } else if (typeid (OUT_TYPE) == typeid (unsigned char) && typeid (IN_TYPE) == typeid (short)) {
                 short2ucharScaled((unsigned char*) &(dest[0]), (const short*) &(source[0]), size, sMin, dRange, sRange, dMin);
@@ -231,7 +238,7 @@ namespace dataTypeTransformOpt {
             } else if (typeid (OUT_TYPE) == typeid (short) && typeid (IN_TYPE) == typeid (unsigned short)) {
                 ushort2shortScaled((short*) &(dest[0]), (const unsigned short*) &(source[0]), size);
             }
-            else if (typeid (OUT_TYPE) == typeid (char) && typeid (IN_TYPE) == typeid (unsigned short)) {
+            else if (typeid (OUT_TYPE) == typeid (signed char) && typeid (IN_TYPE) == typeid (unsigned short)) {
                 ushort2charScaled((char*) &(dest[0]), (const unsigned short*) &(source[0]), size, sMin, dRange, sRange, dMin);
             } else if (typeid (OUT_TYPE) == typeid (unsigned char) && typeid (IN_TYPE) == typeid (unsigned short)) {
                 ushort2ucharScaled((unsigned char*) &(dest[0]), (const unsigned short*) &(source[0]), size, sMin, dRange, sRange, dMin);
@@ -244,7 +251,7 @@ namespace dataTypeTransformOpt {
                 float2shortScaled((short*) &(dest[0]), (const float*) &(source[0]), size, sMin, dRange, sRange, dMin);
             } else if (typeid (OUT_TYPE) == typeid (unsigned short) && typeid (IN_TYPE) == typeid (float)) {
                 float2ushortScaled((unsigned short*) &(dest[0]), (const float*) &(source[0]), size, sMin, dRange, sRange, dMin);
-            } else if (typeid (OUT_TYPE) == typeid (char) && typeid (IN_TYPE) == typeid (float)) {
+            } else if (typeid (OUT_TYPE) == typeid (signed char) && typeid (IN_TYPE) == typeid (float)) {
                 float2charScaled((char*) &(dest[0]), (const float*) &(source[0]), size, sMin, dRange, sRange, dMin);
             } else if (typeid (OUT_TYPE) == typeid (unsigned char) && typeid (IN_TYPE) == typeid (float)) {
                 float2ucharScaled((unsigned char*) &(dest[0]), (const float*) &(source[0]), size, sMin, dRange, sRange, dMin);
