@@ -62,6 +62,11 @@ if SCIPY_GREATER_08:
 
 class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
     """Test for all component implementations in DataConverter"""
+    
+    def setUp(self):
+        ossie.utils.testing.ScaComponentTestCase.setUp(self)
+        self.length = 32
+        #self.initializeDicts()
 
     def initializeDicts(self):
         self.types = ['Char', 'Octet', 'Short', 'Ushort', 'Float', 'Double']
@@ -79,1041 +84,435 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.sri.mode = 0
         self.length = 32
 
-    def char2char(self,scale=True):
-                
+    def scaleInputPort(self,scale,type):
+        if type == "float":
+            self.comp.normalize_floating_point.Input = scale
+        elif type == "double":
+            self.comp.normalize_floating_point.Input = scale
+
+    def scaleOutputPort(self,scale,type):
+        if type == "char":
+            self.comp.scaleOutput.charPort = scale
+        elif type == "octet":
+            self.comp.scaleOutput.octetPort = scale
+        elif type == "short":
+            self.comp.scaleOutput.shortPort = scale
+        elif type == "ushort":
+            self.comp.scaleOutput.ushortPort = scale
+        elif type == "float":
+            self.comp.normalize_floating_point.output = scale
+        elif type == "double":
+            self.comp.normalize_floating_point.output = scale
+    
+    def getInputPortNames(self,type):
+        if type == "char":
+            return ('dataChar', 'charOut')
+        elif type == "octet":
+            return ('dataOctet','octetOut')
+        elif type == "short":
+            return ('dataShort', 'shortOut')
+        elif type == "ushort":
+            return ('dataUshort', 'ushortOut')
+        elif type == "float":
+            return ('dataFloat', 'floatOut')
+        elif type == "double":
+            return ('dataDouble', 'doubleOut')
+
+    def getOutputPortNames(self,type):
+        if type == "char":
+            return ('charIn','dataChar_out')
+        elif type == "octet":
+            return ('octetIn','dataOctet_out')
+        elif type == "short":
+            return ('shortIn','dataShort_out')
+        elif type == "ushort":
+            return ('ushortIn','dataUshort_out')
+        elif type == "float":
+            return ('floatIn','dataFloat_out')
+        elif type == "double":
+            return ('doubleIn','dataDouble_out')
+
+    def makeDataFiles(self,sType,sMin,sRange,dType,dMin,dRange,scale):        
+        floatMin = -1 # data is generated as float data
+        floatRange = 2
+        
+        t = np.arange(0,2*np.pi/400.,2*np.pi/400./(self.length))
+        sint = np.sin(50000*t)
+        
+        if scale:
+            # cast to input type
+            inData = ((sint-floatMin)*float(Fraction(sRange,floatRange))+sMin).astype(sType)
+            # convert to output type
+            expectedData = (np.float32(inData-sMin)*np.float32(Fraction(dRange,sRange))+dMin).astype(dType)
+        else:
+            # If the data is not scaled the just create some data and then convert it to the output type
+            inData = (100*sint).astype(sType)
+            expectedData = inData.astype(dType)
+        
+        return(inData,expectedData)
+    
+    def runtestcase(self,scale,inType,outType,inData,expectedData):
+
         #each test is its own run
         self.comp = sb.launch('../DataConverter.spd.xml')
         self.comp_obj=self.comp.ref
-        self.initializeDicts()
+     
+        #set scaling properties
+        self.scaleInputPort(scale,inType)
+        self.scaleOutputPort(scale,outType)
         
-        #set properties we care about
-        self.comp.scaleOutput.charPort = scale
-        
-        t = np.array([],dtype='float')
-        t = np.arange(0,2*np.pi/400.,2*np.pi/400./(self.length))
-        minChar = -2**7-1
-        sint = np.sin(50000*t)
-        sinwaveArray = np.array([0]*len(sint),'int8')
-        cast_in = np.array([0]*len(sint),'float')
-        cast_out= np.array([0]*len(sint),'int8')
-        
-        sMin = -128
-        sRange = 255
-        dMin = -128
-        dRange = 255 
-        
-        for i in range(0,len(sint)):
-                sinwaveArray[i]=int(sint[i]*minChar) 
-                cast_in[i] = float(sinwaveArray[i])
-                cast_out[i] = float(sinwaveArray[i]-sMin)*float(dRange/sRange)+float(dMin)
-
-        src=sb.DataSource(dataFormat='char')
+        src=sb.DataSource()
         snk=sb.DataSink()
         
-        src.connect(providesComponent=self.comp,providesPortName = 'dataChar', usesPortName='charOut')
-        self.comp.connect(providesComponent=snk,providesPortName='charIn',usesPortName='dataChar_out')
+        inputPorts = self.getInputPortNames(inType)
+        outputPorts = self.getOutputPortNames(outType)
+        src.connect(providesComponent=self.comp,providesPortName = inputPorts[0], usesPortName=inputPorts[1])
+        self.comp.connect(providesComponent=snk,providesPortName=outputPorts[0],usesPortName=outputPorts[1])
         sb.start()
-        
-        src.push(data=sinwaveArray.tolist(),EOS=True,complexData=False)
+        src.push(data=inData.tolist(),EOS=True,complexData=False)
         time.sleep(1)
                 
-        result = snk.getData()
+        (result,tstamps) = (snk.getData(tstamps=True))
         self.comp.releaseObject()
-        for i in range(0,len(result)):
-            self.assertEqual(np.int8(result[i]),cast_out[i])                   
+        count = 0;
         
+        debug =0
+        if debug:
+            print inData
+            print "&&&&&&&&&&&&&&&&&&&&&&&&&"
+            print expectedData
+            print "&&&&&&&&&&&&&&&&&&&&&&&&&"
+            print result
+        
+        # since there is a fraction involved and rounding can be different, we will check for == =+1 or =-1        
+        for i in range(0,len(result)):
+            if (outType in ("float", "double")):
+                self.assertTrue(abs(expectedData[i] - result[i]) < 0.00001)         
+            elif (outType in ("octet")):
+                result[i] = ord(result[i])
+                self.assertTrue(expectedData[i]+1 == result[i] or expectedData[i]-1 == result[i] or expectedData[i] == result[i])                       
+            else:
+                self.assertTrue(expectedData[i]+1 == result[i] or expectedData[i]-1 == result[i] or expectedData[i] == result[i])    
         self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
+
+        
+        # Default for Data Source is Start time 0 and sample rate 1, therefore each sample offset should be equal to the whole number of seconds.
+        for tstamp in tstamps:
+            self.assertEqual(tstamp[0],tstamp[1].twsec)
+            self.assertEqual(0,tstamp[1].tfsec)
+
+
+
+    def char2char(self,scale=True):
+
+        #data type info
+        sType = np.int8 # input type (from)
+        sMin = -128
+        sRange = 255
+        dType = np.int8 # output type (to)
+        dMin = -128
+        dRange = 255
+        
+        inData, expectedData= self.makeDataFiles(sType,sMin,sRange,dType,dMin,dRange,scale)
+        
+        self.runtestcase(scale, "char", "char",inData,expectedData)
+
 
 
     def char2octet(self,scale=True):
-        
-        #each test is its own run
-        self.comp = sb.launch('../DataConverter.spd.xml')
-        self.comp_obj=self.comp.ref
-        self.initializeDicts()
-        
-        #set properties we care about
-        self.comp.scaleOutput.octetPort = scale
 
-        t = np.array([],dtype='float')
-        t = np.arange(0,2*np.pi/400.,2*np.pi/400./(self.length))
-        
-        sint = np.sin(50000*t)
-        sinwaveArray = np.array([0]*len(sint),'int8')
-        cast_in = np.array([0]*len(sint),'float')
-        cast_out= np.array([0]*len(sint),'uint8')
+        #data type info
+        sType = np.int8 # input type (from)
         sMin = -128
         sRange = 255
+        dType = np.uint8 # output type (to)
         dMin = 0
         dRange = 255
         
-        for i in range(0,len(sint)):
-                sinwaveArray[i]=int(sint[i]*sMin) 
-                cast_in[i] = float(sinwaveArray[i])
-                cast_out[i] = float(sinwaveArray[i]-sMin)*float(dRange/sRange)+float(dMin)
-
-        src=sb.DataSource(dataFormat='char')
-        snk=sb.DataSink()
+        inData, expectedData= self.makeDataFiles(sType,sMin,sRange,dType,dMin,dRange,scale)
         
-        src.connect(providesComponent=self.comp,providesPortName = 'dataChar', usesPortName='charOut')
-        self.comp.connect(providesComponent=snk,providesPortName='octetIn',usesPortName='dataOctet_out')      
-        sb.start()
-        
-        src.push(data=sinwaveArray.tolist(),EOS=True,complexData=False)
-        time.sleep(1)
-
-        result = snk.getData()
-        sb.stop()
-        self.comp.releaseObject()
-        
-        
-                
-        for i in range(0,len(result)):
-                self.assertEqual(cast_out[i],ord(result[i]))
-        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
+        self.runtestcase(scale, "char", "octet",inData,expectedData)        
+     
 
     def char2short(self, scale=True):
-        
-        #each test is its own run
-        self.comp = sb.launch('../DataConverter.spd.xml')
-        self.comp_obj=self.comp.ref
-        self.initializeDicts()
-        
-        #set properties we care about
-        self.comp.scaleOutput.shortPort = scale
-        
-        t = np.array([],dtype='float')
-        t = np.arange(0,2*np.pi/400.,2*np.pi/400./(self.length))
-        minChar = -2**7-1
-        sint = np.sin(50000*t)
-        sinwaveArray = np.array([0]*len(sint),'int8')
-        cast_in = np.array([0]*len(sint),'float')
-        cast_out= np.array([0]*len(sint),'int16')
-        
+
+        #data type info
+        sType = np.int8 # input type (from)
         sMin = -128
         sRange = 255
+        dType = np.int16 # output type (to)
         dMin = -32768
         dRange = 65535 
         
-        for i in range(0,len(sint)):
-                sinwaveArray[i]=int(sint[i]*sMin) 
-                cast_in[i] = float(sinwaveArray[i])
-                cast_out[i] = float(sinwaveArray[i]-sMin)*float(dRange/sRange)+float(dMin)
-
-        src=sb.DataSource()
-        snk=sb.DataSink()
+        inData, expectedData= self.makeDataFiles(sType,sMin,sRange,dType,dMin,dRange,scale)
         
-        src.connect(providesComponent=self.comp,providesPortName = 'dataChar', usesPortName='charOut')
-        self.comp.connect(providesComponent=snk,providesPortName='shortIn',usesPortName='dataShort_out')
-        
-        sb.start()
-        
-        src.push(data=sinwaveArray.tolist(),EOS=True,complexData=False)
-        time.sleep(1)
-        result = snk.getData()
+        self.runtestcase(scale, "char", "short",inData,expectedData)
 
-        sb.stop()
-        self.comp.releaseObject()
-
-        for i in range(0,len(result)):
-            self.assertEqual(cast_out[i],result[i])
-        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
 
     def char2ushort(self, scale=True):
-        
-        #each test is its own run
-        self.comp = sb.launch('../DataConverter.spd.xml')
-        self.comp_obj=self.comp.ref
-        self.initializeDicts()
-        
-        #set properties we care about
-        self.comp.scaleOutput.ushortPort = scale
-        
-        t = np.array([],dtype='float')
-        t = np.arange(0,2*np.pi/400.,2*np.pi/400./(self.length))
-        minChar = -2**7-1
-        sint = np.sin(50000*t)
+    
+        #data type info
+        sType = np.int8 # input type (from)
         sMin = -128
         sRange = 255
+        dType = np.uint16 # output type (to)
         dMin = 0
-        dRange = 65536
-        sinwaveArray = np.array([0]*len(sint),'int8')
-        self.comp.scaleOutput.ushortPort = True
-        cast_in = np.array([0]*len(sint),'float')
-        cast_out= np.array([0]*len(sint),'uint16')
-
-        for i in range(0,len(sint)):
-                sinwaveArray[i]=int(sint[i]*sMin) 
-                cast_in[i] = float(sinwaveArray[i])
-                cast_out[i] = float(sinwaveArray[i]-sMin)*float(dRange/sRange)+float(dMin)
-                
-        src=sb.DataSource()
-        snk=sb.DataSink()
+        dRange = 65535 
         
-        src.connect(providesComponent=self.comp,providesPortName = 'dataChar', usesPortName='charOut')
-        self.comp.connect(providesComponent=snk,providesPortName='ushortIn',usesPortName='dataUshort_out')
+        inData, expectedData= self.makeDataFiles(sType,sMin,sRange,dType,dMin,dRange,scale)
         
-        sb.start()
-        
-        src.push(data=sinwaveArray.tolist(),EOS=True,complexData=False)
-        time.sleep(1)
-        result = snk.getData()
-        sb.stop()
-        self.comp.releaseObject()
-        
-        for i in range(0,len(result)):
-            self.assertEqual(cast_out[i],result[i])
-        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
+        self.runtestcase(scale, "char", "ushort",inData,expectedData)
+     
         
     
     def char2float(self, scale=True):
-        
-        #each test is its own run
-        self.comp = sb.launch('../DataConverter.spd.xml')
-        self.comp_obj=self.comp.ref
-        self.initializeDicts()
-        
-        #set properties we care about
-        self.comp.normalize_floating_point.Output = scale
-        
-        t = np.array([],dtype='float')
-        t = np.arange(0,2*np.pi/400.,2*np.pi/400./(self.length))
-        
-        sint = np.sin(50000*t)
+
+         #data type info
+        sType = np.int8 # input type (from)
         sMin = -128
         sRange = 255
+        dType = np.float32 # output type (to)
         dMin = -1
-        dRange = 2
-        sinwaveArray = np.array([0]*len(sint),'int8')
-        cast_in = np.array([0]*len(sint),'float')
-        cast_out= np.array([0]*len(sint),'float')
-        #print str(float(Fraction(dRange,sRange)))
-        for i in range(0,len(sint)):
-                sinwaveArray[i]=int(sint[i]*sMin) 
-                cast_in[i] = float(sinwaveArray[i])
-                cast_out[i] = float(sinwaveArray[i]-sMin)*float(Fraction(dRange,sRange))+float(dMin)
+        dRange = 2 
         
-        src=sb.DataSource()
-        snk=sb.DataSink()
+        inData, expectedData= self.makeDataFiles(sType,sMin,sRange,dType,dMin,dRange,scale)
         
-        src.connect(providesComponent=self.comp,providesPortName = 'dataChar', usesPortName='charOut')
-        self.comp.connect(providesComponent=snk,providesPortName='floatIn',usesPortName='dataFloat_out')
-        
-        sb.start()
-        
-        src.push(data=sinwaveArray.tolist(),EOS=True,complexData=False)
-        time.sleep(1)
-        result = snk.getData()
-        sb.stop()
-        self.comp.releaseObject()
-        
-        for i in range(0,len(result)):
-            self.assertAlmostEqual(cast_out[i],result[i],5)
-        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
+        self.runtestcase(scale, "char", "float",inData,expectedData)       
 
     
     def char2double(self, scale=True):
-        
-        #each test is its own run
-        self.comp = sb.launch('../DataConverter.spd.xml')
-        self.comp_obj=self.comp.ref
-        self.initializeDicts()
-        
-        #set properties we care about
-        self.comp.normalize_floating_point.Output = scale
-        
-        t = np.array([],dtype='double')
-        t = np.arange(0,2*np.pi/400.,2*np.pi/400./(self.length))
-        
-        sint = np.sin(50000*t)
+
+         #data type info
+        sType = np.int8 # input type (from)
         sMin = -128
         sRange = 255
+        dType = np.float64 # output type (to)
         dMin = -1
-        dRange = 2
-        sinwaveArray = np.array([0]*len(sint),'int8')
-        cast_in = np.array([0]*len(sint),'float')
-        cast_out= np.array([0]*len(sint),'float')
-        #print str(float(Fraction(dRange,sRange)))
-        for i in range(0,len(sint)):
-                sinwaveArray[i]=int(sint[i]*sMin) 
-                cast_in[i] = float(sinwaveArray[i])
-                cast_out[i] = float(sinwaveArray[i]-sMin)*float(Fraction(dRange,sRange))+float(dMin)
+        dRange = 2 
         
-        src=sb.DataSource()
-        snk=sb.DataSink()
+        inData, expectedData= self.makeDataFiles(sType,sMin,sRange,dType,dMin,dRange,scale)
         
-        src.connect(providesComponent=self.comp,providesPortName = 'dataChar', usesPortName='charOut')
-        self.comp.connect(providesComponent=snk,providesPortName='doubleIn',usesPortName='dataDouble_out')
-        
-        sb.start()
-        
-        src.push(data=sinwaveArray.tolist(),EOS=True,complexData=False)
-        time.sleep(1)
-        result = snk.getData()
-        sb.stop()
-        self.comp.releaseObject()
-        
-        for i in range(0,len(result)):
-            self.assertAlmostEqual(cast_out[i],result[i],5)
-        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
+        self.runtestcase(scale, "char", "double",inData,expectedData)    
 
     
     def octet2char(self,scale=True):
                 
-        #each test is its own run
-        self.comp = sb.launch('../DataConverter.spd.xml')
-        self.comp_obj=self.comp.ref
-        self.initializeDicts()
-        
-        #set properties we care about
-        self.comp.scaleOutput.charPort = scale
-        
-        t = np.array([],dtype='float')
-        t = np.arange(0,2*np.pi/400.,2*np.pi/400./(self.length))
-        minChar = -2**7-1
-        sint = np.sin(50000*t)
-        sinwaveArray = np.array([0]*len(sint),'uint8')
-        cast_in = np.array([0]*len(sint),'float')
-        cast_out= np.array([0]*len(sint),'int8')
-        
+         #data type info
+        sType = np.uint8 # input type (from)
         sMin = 0
         sRange = 255
+        dType = np.int8 # output type (to)
         dMin = -128
         dRange = 255 
         
-        for i in range(0,len(sint)):
-                sinwaveArray[i]=int(sint[i]*sRange) 
-                cast_in[i] = float(sinwaveArray[i])
-                cast_out[i] = float(sinwaveArray[i]-sMin)*float(dRange/sRange)+float(dMin)
-
-        src=sb.DataSource()
-        snk=sb.DataSink()
+        inData, expectedData= self.makeDataFiles(sType,sMin,sRange,dType,dMin,dRange,scale)
         
-        src.connect(providesComponent=self.comp,providesPortName = 'dataOctet', usesPortName='octetOut')
-        self.comp.connect(providesComponent=snk,providesPortName='charIn',usesPortName='dataChar_out')
-        sb.start()
-        
-        src.push(data=sinwaveArray.tolist(),EOS=True,complexData=False)
-        time.sleep(1)
-        result = snk.getData()
-        sb.stop()
-        self.comp.releaseObject()
-        
-        for i in range(0,len(result)):
-            #self.assertEqual(np.int8(ord(result[i])),cast_out[i])
-            self.assertEqual(np.int8(result[i]),cast_out[i])
-        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
-
+        self.runtestcase(scale, "octet", "char",inData,expectedData)    
 
     def octet2octet(self,scale=True):
         
-        #each test is its own run
-        self.comp = sb.launch('../DataConverter.spd.xml')
-        self.comp_obj=self.comp.ref
-        self.initializeDicts()
-        
-        #set properties we care about
-        self.comp.scaleOutput.octetPort = scale
-
-        t = np.array([],dtype='float')
-        t = np.arange(0,2*np.pi/400.,2*np.pi/400./(self.length))
-        
-        sint = np.sin(50000*t)
-        sinwaveArray = np.array([0]*len(sint),'uint8')
-        cast_in = np.array([0]*len(sint),'float')
-        cast_out= np.array([0]*len(sint),'uint8')
+         #data type info
+        sType = np.uint8 # input type (from)
         sMin = 0
         sRange = 255
+        dType = np.uint8 # output type (to)
         dMin = 0
-        dRange = 255
+        dRange = 255 
         
-        for i in range(0,len(sint)):
-                sinwaveArray[i]=int(sint[i]*sRange) 
-                cast_in[i] = float(sinwaveArray[i])
-                cast_out[i] = float(sinwaveArray[i]-sMin)*float(dRange/sRange)+float(dMin)
-
-        src=sb.DataSource()
-        snk=sb.DataSink()
+        inData, expectedData= self.makeDataFiles(sType,sMin,sRange,dType,dMin,dRange,scale)
         
-        src.connect(providesComponent=self.comp,providesPortName = 'dataOctet', usesPortName='octetOut')
-        self.comp.connect(providesComponent=snk,providesPortName='octetIn',usesPortName='dataOctet_out')      
-        sb.start()
-        
-        src.push(data=sinwaveArray.tolist(),EOS=True,complexData=False)
-        time.sleep(1)
-
-        result = snk.getData()
-        sb.stop()
-        self.comp.releaseObject()
-        
-        for i in range(0,len(cast_out)):
-                self.assertEqual(cast_out[i],ord(result[i]))
-        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
+        self.runtestcase(scale, "octet", "octet",inData,expectedData)
 
     def octet2short(self, scale=True):
         
-        #each test is its own run
-        self.comp = sb.launch('../DataConverter.spd.xml')
-        self.comp_obj=self.comp.ref
-        self.initializeDicts()
-        
-        #set properties we care about
-        self.comp.scaleOutput.shortPort = scale
-        
-        t = np.array([],dtype='float')
-        t = np.arange(0,2*np.pi/400.,2*np.pi/400./(self.length))
-        
-        sint = np.sin(50000*t)
-        sinwaveArray = np.array([0]*len(sint),'uint8')
-        cast_in = np.array([0]*len(sint),'float')
-        cast_out= np.array([0]*len(sint),'int16')
-        
+         #data type info
+        sType = np.uint8 # input type (from)
         sMin = 0
         sRange = 255
+        dType = np.int16 # output type (to)
         dMin = -32768
         dRange = 65535 
         
-        for i in range(0,len(sint)):
-                sinwaveArray[i]=int(sint[i]*sRange) 
-                cast_in[i] = float(sinwaveArray[i])
-                cast_out[i] = float(sinwaveArray[i]-sMin)*float(dRange/sRange)+float(dMin)
-
-        src=sb.DataSource()
-        snk=sb.DataSink()
+        inData, expectedData= self.makeDataFiles(sType,sMin,sRange,dType,dMin,dRange,scale)
         
-        src.connect(providesComponent=self.comp,providesPortName = 'dataOctet', usesPortName='octetOut')
-        self.comp.connect(providesComponent=snk,providesPortName='shortIn',usesPortName='dataShort_out')
+        self.runtestcase(scale, "octet", "short",inData,expectedData)
         
-        sb.start()
-        
-        src.push(data=sinwaveArray.tolist(),EOS=True,complexData=False)
-        time.sleep(1)
-        result = snk.getData()
-
-        sb.stop()
-        self.comp.releaseObject()
-
-        for i in range(0,len(result)):
-            #print str(cast_out[i]) + " " + str(result[i])
-            self.assertEqual(cast_out[i],result[i])
-        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
 
     def octet2ushort(self, scale=True):
-        
-        #each test is its own run
-        self.comp = sb.launch('../DataConverter.spd.xml')
-        self.comp_obj=self.comp.ref
-        self.initializeDicts()
-        
-        #set properties we care about
-        self.comp.scaleOutput.ushortPort = scale
-        
-        t = np.array([],dtype='float')
-        t = np.arange(0,2*np.pi/400.,2*np.pi/400./(self.length))
-        
-        sint = np.sin(50000*t)
+         #data type info
+        sType = np.uint8 # input type (from)
         sMin = 0
         sRange = 255
+        dType = np.uint16 # output type (to)
         dMin = 0
-        dRange = 65536
-        sinwaveArray = np.array([0]*len(sint),'uint8')
-        cast_in = np.array([0]*len(sint),'float')
-        cast_out= np.array([0]*len(sint),'uint16')
-
-        for i in range(0,len(sint)):
-                sinwaveArray[i]=int(sint[i]*sRange) 
-                cast_in[i] = float(sinwaveArray[i])
-                cast_out[i] = float(sinwaveArray[i]-sMin)*float(dRange/sRange)+float(dMin)
-                
-        src=sb.DataSource()
-        snk=sb.DataSink()
+        dRange = 65535 
         
-        src.connect(providesComponent=self.comp,providesPortName = 'dataOctet', usesPortName='octetOut')
-        self.comp.connect(providesComponent=snk,providesPortName='ushortIn',usesPortName='dataUshort_out')
+        inData, expectedData= self.makeDataFiles(sType,sMin,sRange,dType,dMin,dRange,scale)
         
-        sb.start()
-        
-        src.push(data=sinwaveArray.tolist(),EOS=True,complexData=False)
-        time.sleep(1)
-        result = snk.getData()
-        sb.stop()
-        self.comp.releaseObject()
-        
-        for i in range(0,len(result)):
-            self.assertEqual(cast_out[i],result[i])
-        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
+        self.runtestcase(scale, "octet", "ushort",inData,expectedData)
 
     
     def octet2float(self, scale=True):
-        #each test is its own run
-        self.comp = sb.launch('../DataConverter.spd.xml')
-        self.comp_obj=self.comp.ref
-        self.initializeDicts()
-        
-        #set properties we care about
-        self.comp.normalize_floating_point.Output = scale
-        
-        t = np.array([],dtype='float')
-        t = np.arange(0,2*np.pi/400.,2*np.pi/400./(self.length))
-        
-        sint = np.sin(50000*t)
+         #data type info
+        sType = np.uint8 # input type (from)
         sMin = 0
         sRange = 255
+        dType = np.float32 # output type (to)
         dMin = -1
-        dRange = 2
-        sinwaveArray = np.array([0]*len(sint),'uint8')
-        cast_in = np.array([0]*len(sint),'float')
-        cast_out= np.array([0]*len(sint),'float')
-        for i in range(0,len(sint)):
-                sinwaveArray[i]=int(sint[i]*sRange) 
-                cast_in[i] = float(sinwaveArray[i])
-                cast_out[i] = float(sinwaveArray[i]-sMin)*float(Fraction(dRange,sRange))+float(dMin)
+        dRange = 2 
         
-        src=sb.DataSource()
-        snk=sb.DataSink()
+        inData, expectedData= self.makeDataFiles(sType,sMin,sRange,dType,dMin,dRange,scale)
         
-        src.connect(providesComponent=self.comp,providesPortName = 'dataOctet', usesPortName='octetOut')
-        self.comp.connect(providesComponent=snk,providesPortName='floatIn',usesPortName='dataFloat_out')
-        
-        sb.start()
-        
-        src.push(data=sinwaveArray.tolist(),EOS=True,complexData=False)
-        time.sleep(1)
-        result = snk.getData()
-        sb.stop()
-        self.comp.releaseObject()
-        
-        for i in range(0,len(result)):
-            self.assertAlmostEqual(cast_out[i],result[i],5)
-        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
+        self.runtestcase(scale, "octet", "float",inData,expectedData)
 
     
     def octet2double(self, scale=True):
-        #each test is its own run
-        self.comp = sb.launch('../DataConverter.spd.xml')
-        self.comp_obj=self.comp.ref
-        self.initializeDicts()
-        
-        #set properties we care about
-        self.comp.normalize_floating_point.Output = scale
-        
-        t = np.array([],dtype='float')
-        t = np.arange(0,2*np.pi/400.,2*np.pi/400./(self.length))
-        
-        sint = np.sin(50000*t)
+         #data type info
+        sType = np.uint8 # input type (from)
         sMin = 0
         sRange = 255
+        dType = np.float64 # output type (to)
         dMin = -1
-        dRange = 2
-        sinwaveArray = np.array([0]*len(sint),'uint8')
-        cast_in = np.array([0]*len(sint),'float')
-        cast_out= np.array([0]*len(sint),'float')
-        for i in range(0,len(sint)):
-                sinwaveArray[i]=int(sint[i]*sRange) 
-                cast_in[i] = float(sinwaveArray[i])
-                cast_out[i] = float(sinwaveArray[i]-sMin)*float(Fraction(dRange,sRange))+float(dMin)
+        dRange = 2 
         
-        src=sb.DataSource()
-        snk=sb.DataSink()
+        inData, expectedData= self.makeDataFiles(sType,sMin,sRange,dType,dMin,dRange,scale)
         
-        src.connect(providesComponent=self.comp,providesPortName = 'dataOctet', usesPortName='octetOut')
-        self.comp.connect(providesComponent=snk,providesPortName='doubleIn',usesPortName='dataDouble_out')
-        
-        sb.start()
-        
-        src.push(data=sinwaveArray.tolist(),EOS=True,complexData=False)
-        time.sleep(1)
-        result = snk.getData()
-        sb.stop()
-        self.comp.releaseObject()
-        
-        for i in range(0,len(result)):
-            self.assertAlmostEqual(cast_out[i],result[i],5)
-        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
+        self.runtestcase(scale, "octet", "double",inData,expectedData)
 
     
     def short2char(self,scale=True):
-                
-        #each test is its own run
-        self.comp = sb.launch('../DataConverter.spd.xml')
-        self.comp_obj=self.comp.ref
-        self.initializeDicts()
-        
-        #set properties we care about
-        self.comp.scaleOutput.charPort = scale
-        
-        t = np.array([],dtype='float')
-        t = np.arange(0,2*np.pi/400.,2*np.pi/400./(self.length))
-        sint = np.sin(50000*t)
-        sinwaveArray = np.array([0]*len(sint),'int16')
-        cast_in = np.array([0]*len(sint),'float')
-        cast_out= np.array([0]*len(sint),'int8')
-        
+         #data type info
+        sType = np.int16 # input type (from)
         sMin = -32768
         sRange = 65535
+        dType = np.int8 # output type (to)
         dMin = -128
         dRange = 255 
         
-        for i in range(0,len(sint)):
-                sinwaveArray[i]=int(sint[i]*sMin) 
-                cast_out[i] = float(sinwaveArray[i]-sMin)*float(Fraction(dRange,sRange))+float(dMin)
-
-        src=sb.DataSource()
-        snk=sb.DataSink()
+        inData, expectedData= self.makeDataFiles(sType,sMin,sRange,dType,dMin,dRange,scale)
         
-        src.connect(providesComponent=self.comp,providesPortName = 'dataShort', usesPortName='shortOut')
-        self.comp.connect(providesComponent=snk,providesPortName='charIn',usesPortName='dataChar_out')
-        sb.start()
-        
-        src.push(data=sinwaveArray.tolist(),EOS=True,complexData=False)
-        time.sleep(1)
-                
-        result = snk.getData()
-
-        sb.stop()
-        self.comp.releaseObject()
-        
-        count = 0;
-        # since there is a fraction involved and rounding can be different, we will check for == =+1 or =-1        
-        for i in range(0,len(result)):
-            #if (cast_out[i]+1 == np.int8(ord(result[i])) or cast_out[i]-1 == np.int8(ord(result[i])) or cast_out[i] == np.int8(ord(result[i]))):
-            if (cast_out[i]+1 == np.int8(result[i]) or cast_out[i]-1 == np.int8(result[i]) or cast_out[i] == np.int8(result[i])):
-                count = count + 1
-        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
-        self.assertEqual(len(result),count)
+        self.runtestcase(scale, "short", "char",inData,expectedData)
         
     def short2octet(self,scale=True):
-        
-        #each test is its own run
-        self.comp = sb.launch('../DataConverter.spd.xml')
-        self.comp_obj=self.comp.ref
-        self.initializeDicts()
-        
-        #set properties we care about
-        self.comp.scaleOutput.octetPort = scale
-
-        t = np.array([],dtype='float')
-        t = np.arange(0,2*np.pi/400.,2*np.pi/400./(self.length))
-        
-        sint = np.sin(50000*t)
-        sinwaveArray = np.array([0]*len(sint),'int8')
-        cast_in = np.array([0]*len(sint),'float')
-        cast_out= np.array([0]*len(sint),'uint8')
+        #data type info
+        sType = np.int16 # input type (from)
         sMin = -32768
         sRange = 65535
+        dType = np.uint8 # output type (to)
         dMin = 0
-        dRange = 255
+        dRange = 255 
         
-        for i in range(0,len(sint)):
-                sinwaveArray[i]=int(sint[i]*sMin) 
-                cast_in[i] = float(sinwaveArray[i])
-                cast_out[i] = float(sinwaveArray[i]-sMin)*float(Fraction(dRange,sRange))+float(dMin)
-
-        src=sb.DataSource()
-        snk=sb.DataSink()
+        inData, expectedData= self.makeDataFiles(sType,sMin,sRange,dType,dMin,dRange,scale)
         
-        src.connect(providesComponent=self.comp,providesPortName = 'dataShort', usesPortName='shortOut')
-        self.comp.connect(providesComponent=snk,providesPortName='octetIn',usesPortName='dataOctet_out')      
-        sb.start()
-        
-        src.push(data=sinwaveArray.tolist(),EOS=True,complexData=False)
-        time.sleep(1)
-
-        result = snk.getData()
-        
-        sb.stop()
-        self.comp.releaseObject()
-        
-        count = 0
-        # since there is a fraction involved and rounding can be different, we will check for == =+1 or =-1                       
-        for i in range(0,len(result)):
-                if (cast_out[i]+1 == ord(result[i]) or cast_out[i]-1 == ord(result[i]) or cast_out[i] == ord(result[i])):
-                        count = count + 1
-        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
-        self.assertEqual(len(result),count)               
+        self.runtestcase(scale, "short", "octet",inData,expectedData)
 
     def short2ushort(self, scale=True):
-                
-        #each test is its own run
-        self.comp = sb.launch('../DataConverter.spd.xml')
-        self.comp_obj=self.comp.ref
-        self.initializeDicts()
-        
-        #set properties we care about
-        self.comp.scaleOutput.ushortPort = scale
-        
-        t = np.array([],dtype='float')
-        t = np.arange(0,2*np.pi/400.,2*np.pi/400./(self.length))
-        
-        sint = np.sin(50000*t)
+        #data type info
+        sType = np.int16 # input type (from)
         sMin = -32768
         sRange = 65535
+        dType = np.uint16 # output type (to)
         dMin = 0
-        dRange = 65536
-        sinwaveArray = np.array([0]*len(sint),'int16')
-        cast_in = np.array([0]*len(sint),'float')
-        cast_out= np.array([0]*len(sint),'uint16')
-
-        for i in range(0,len(sint)):
-                sinwaveArray[i]=int(sint[i]*sMin) 
-                cast_in[i] = float(sinwaveArray[i])
-                cast_out[i] = float(sinwaveArray[i]-sMin)*float(dRange/sRange)+float(dMin)
-                
-        src=sb.DataSource()
-        snk=sb.DataSink()
+        dRange = 65535 
         
-        src.connect(providesComponent=self.comp,providesPortName = 'dataShort', usesPortName='shortOut')
-        self.comp.connect(providesComponent=snk,providesPortName='ushortIn',usesPortName='dataUshort_out')
+        inData, expectedData= self.makeDataFiles(sType,sMin,sRange,dType,dMin,dRange,scale)
         
-        sb.start()
-        
-        src.push(data=sinwaveArray.tolist(),EOS=True,complexData=False)
-        time.sleep(1)
-        result = snk.getData()
-        sb.stop()
-        self.comp.releaseObject()
-        
-        for i in range(0,len(result)):
-            self.assertEqual(cast_out[i],result[i])
-        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
+        self.runtestcase(scale, "short", "ushort",inData,expectedData)
 
 
     def short2float(self, scale=True):
-        
-        #each test is its own run
-        self.comp = sb.launch('../DataConverter.spd.xml')
-        self.comp_obj=self.comp.ref
-        self.initializeDicts()
-        
-        #set properties we care about
-        self.comp.normalize_floating_point.Output = scale
-        
-        t = np.array([],dtype='float')
-        t = np.arange(0,2*np.pi/400.,2*np.pi/400./(self.length))
-        
-        sint = np.sin(50000*t)
+         #data type info
+        sType = np.int16 # input type (from)
         sMin = -32768
         sRange = 65535
+        dType = np.float32 # output type (to)
         dMin = -1
-        dRange = 2
-        sinwaveArray = np.array([0]*len(sint),'int16')
-        cast_in = np.array([0]*len(sint),'float')
-        cast_out= np.array([0]*len(sint),'float')
-        for i in range(0,len(sint)):
-                sinwaveArray[i]=int(sint[i]*sRange) 
-                cast_in[i] = float(sinwaveArray[i])
-                cast_out[i] = float(sinwaveArray[i]-sMin)*float(Fraction(dRange,sRange))+float(dMin)
+        dRange = 2 
         
-        src=sb.DataSource()
-        snk=sb.DataSink()
+        inData, expectedData= self.makeDataFiles(sType,sMin,sRange,dType,dMin,dRange,scale)
         
-        src.connect(providesComponent=self.comp,providesPortName = 'dataShort', usesPortName='shortOut')
-        self.comp.connect(providesComponent=snk,providesPortName='floatIn',usesPortName='dataFloat_out')
-        
-        sb.start()
-        
-        src.push(data=sinwaveArray.tolist(),EOS=True,complexData=False)
-        time.sleep(1)
-        result = snk.getData()
-        sb.stop()
-        self.comp.releaseObject()
-        
-        for i in range(0,len(result)):
-            self.assertAlmostEqual(cast_out[i],result[i],5)
-        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
-
-    
+        self.runtestcase(scale, "short", "float",inData,expectedData)       
+   
     def short2double(self, scale=True):
-        
-        #each test is its own run
-        self.comp = sb.launch('../DataConverter.spd.xml')
-        self.comp_obj=self.comp.ref
-        self.initializeDicts()
-        
-        #set properties we care about
-        self.comp.normalize_floating_point.Output = scale
-        
-        t = np.array([],dtype='float')
-        t = np.arange(0,2*np.pi/400.,2*np.pi/400./(self.length))
-        
-        sint = np.sin(50000*t)
+        #data type info
+        sType = np.int16 # input type (from)
         sMin = -32768
         sRange = 65535
+        dType = np.float64 # output type (to)
         dMin = -1
-        dRange = 2
-        sinwaveArray = np.array([0]*len(sint),'int16')
-        cast_in = np.array([0]*len(sint),'float')
-        cast_out= np.array([0]*len(sint),'float')
-        for i in range(0,len(sint)):
-                sinwaveArray[i]=int(sint[i]*sRange) 
-                cast_in[i] = float(sinwaveArray[i])
-                cast_out[i] = float(sinwaveArray[i]-sMin)*float(Fraction(dRange,sRange))+float(dMin)
+        dRange = 2 
         
-        src=sb.DataSource()
-        snk=sb.DataSink()
+        inData, expectedData= self.makeDataFiles(sType,sMin,sRange,dType,dMin,dRange,scale)
         
-        src.connect(providesComponent=self.comp,providesPortName = 'dataShort', usesPortName='shortOut')
-        self.comp.connect(providesComponent=snk,providesPortName='doubleIn',usesPortName='dataDouble_out')
-        
-        sb.start()
-        
-        src.push(data=sinwaveArray.tolist(),EOS=True,complexData=False)
-        time.sleep(1)
-        result = snk.getData()
-        sb.stop()
-        self.comp.releaseObject()  
-        
-        for i in range(0,len(result)):
-            self.assertAlmostEqual(cast_out[i],result[i],5)
-        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
-      
-    
+        self.runtestcase(scale, "short", "double",inData,expectedData) 
+   
     def ushort2char(self,scale=True):
-                
-        #each test is its own run
-        self.comp = sb.launch('../DataConverter.spd.xml')
-        self.comp_obj=self.comp.ref
-        self.initializeDicts()
-        
-        #set properties we care about
-        self.comp.scaleOutput.charPort = scale
-        
-        t = np.array([],dtype='float')
-        t = np.arange(0,2*np.pi/400.,2*np.pi/400./(self.length))
-        sint = np.sin(50000*t)
-        sinwaveArray = np.array([0]*len(sint),'uint16')
-        cast_in = np.array([0]*len(sint),'float')
-        cast_out= np.array([0]*len(sint),'int8')
-        
+         #data type info
+        sType = np.uint16 # input type (from)
         sMin = 0
         sRange = 65535
+        dType = np.int8 # output type (to)
         dMin = -128
         dRange = 255 
         
-        for i in range(0,len(sint)):
-                sinwaveArray[i]=int(sint[i]*sRange) 
-                cast_out[i] = float(sinwaveArray[i]-sMin)*float(Fraction(dRange,sRange))+float(dMin)
-
-        src=sb.DataSource()
-        snk=sb.DataSink()
+        inData, expectedData= self.makeDataFiles(sType,sMin,sRange,dType,dMin,dRange,scale)
         
-        src.connect(providesComponent=self.comp,providesPortName = 'dataUshort', usesPortName='ushortOut')
-        self.comp.connect(providesComponent=snk,providesPortName='charIn',usesPortName='dataChar_out')
-        sb.start()
-        src.push(data=sinwaveArray.tolist(),EOS=True,complexData=False)
-        time.sleep(1)
-                
-        result = snk.getData()
-        sb.stop()
-        self.comp.releaseObject()
-        
-        count = 0;
-        # since there is a fraction involved and rounding can be different, we will check for == =+1 or =-1        
-        for i in range(0,len(result)):
-            #if (cast_out[i]+1 == np.int8(ord(result[i])) or cast_out[i]-1 == np.int8(ord(result[i])) or cast_out[i] == np.int8(ord(result[i]))):
-            if (cast_out[i]+1 == np.int8(result[i]) or cast_out[i]-1 == np.int8(result[i]) or cast_out[i] == np.int8(result[i])):
-                count = count + 1
-        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
-        self.assertEqual(len(result),count)  
+        self.runtestcase(scale, "ushort", "char",inData,expectedData)                
         
     def ushort2octet(self,scale=True):
-        
-        #each test is its own run
-        self.comp = sb.launch('../DataConverter.spd.xml')
-        self.comp_obj=self.comp.ref
-        self.initializeDicts()
-        
-        #set properties we care about
-        self.comp.scaleOutput.octetPort = scale
-
-        t = np.array([],dtype='float')
-        t = np.arange(0,2*np.pi/400.,2*np.pi/400./(self.length))
-        
-        sint = np.sin(50000*t)
-        sinwaveArray = np.array([0]*len(sint),'uint16')
-        cast_in = np.array([0]*len(sint),'float')
-        cast_out= np.array([0]*len(sint),'uint8')
+                #data type info
+        sType = np.uint16 # input type (from)
         sMin = 0
         sRange = 65535
+        dType = np.uint8 # output type (to)
         dMin = 0
-        dRange = 255
+        dRange = 255 
         
-        for i in range(0,len(sint)):
-                sinwaveArray[i]=int(sint[i]*sRange) 
-                cast_in[i] = float(sinwaveArray[i])
-                cast_out[i] = float(sinwaveArray[i]-sMin)*float(Fraction(dRange,sRange))+float(dMin)
-
-        src=sb.DataSource()
-        snk=sb.DataSink()
+        inData, expectedData= self.makeDataFiles(sType,sMin,sRange,dType,dMin,dRange,scale)
         
-        src.connect(providesComponent=self.comp,providesPortName = 'dataUshort', usesPortName='ushortOut')
-        self.comp.connect(providesComponent=snk,providesPortName='octetIn',usesPortName='dataOctet_out')      
-        sb.start()
-        
-        src.push(data=sinwaveArray.tolist(),EOS=True,complexData=False)
-        time.sleep(1)
-
-        result = snk.getData()
-        sb.stop()
-        self.comp.releaseObject()
-        
-        count = 0
-        # since there is a fraction involved and rounding can be different, we will check for == =+1 or =-1                       
-        for i in range(0,len(result)):
-                if (cast_out[i]+1 == ord(result[i]) or cast_out[i]-1 == ord(result[i]) or cast_out[i] == ord(result[i])):
-                        count = count + 1
-        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
-        self.assertEqual(len(result),count)  
-
+        self.runtestcase(scale, "ushort", "octet",inData,expectedData)
+       
     def ushort2short(self, scale=True):
-        #each test is its own run
-        self.comp = sb.launch('../DataConverter.spd.xml')
-        self.comp_obj=self.comp.ref
-        self.initializeDicts()
-        
-        #set properties we care about
-        self.comp.scaleOutput.shortPort = scale
-        
-        t = np.array([],dtype='float')
-        t = np.arange(0,2*np.pi/400.,2*np.pi/400./(self.length))
-        
-        sint = np.sin(50000*t)
+        #data type info
+        sType = np.uint16 # input type (from)
         sMin = 0
         sRange = 65535
+        dType = np.int16 # output type (to)
         dMin = -32768
-        dRange = 65536
-        sinwaveArray = np.array([0]*len(sint),'uint16')
-        cast_in = np.array([0]*len(sint),'float')
-        cast_out= np.array([0]*len(sint),'int16')
-
-        for i in range(0,len(sint)):
-                sinwaveArray[i]=int(sint[i]*sRange) 
-                cast_in[i] = float(sinwaveArray[i])
-                cast_out[i] = float(sinwaveArray[i]-sMin)*float(dRange/sRange)+float(dMin)
-                
-        src=sb.DataSource()
-        snk=sb.DataSink()
+        dRange = 65535 
         
-        src.connect(providesComponent=self.comp,providesPortName = 'dataUshort', usesPortName='ushortOut')
-        self.comp.connect(providesComponent=snk,providesPortName='shortIn',usesPortName='dataShort_out')
+        inData, expectedData= self.makeDataFiles(sType,sMin,sRange,dType,dMin,dRange,scale)
         
-        sb.start()
-        
-        src.push(data=sinwaveArray.tolist(),EOS=True,complexData=False)
-        time.sleep(1)
-        result = snk.getData()
-        sb.stop()
-        self.comp.releaseObject()
-        
-        for i in range(0,len(result)):
-            self.assertEqual(cast_out[i],result[i])
-        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")  
-
+        self.runtestcase(scale, "ushort", "short",inData,expectedData)       
 
     def ushort2float(self, scale=True):
-        #each test is its own run
-        self.comp = sb.launch('../DataConverter.spd.xml')
-        self.comp_obj=self.comp.ref
-        self.initializeDicts()
-        
-        #set properties we care about
-        self.comp.normalize_floating_point.Output = scale
-        
-        t = np.array([],dtype='float')
-        t = np.arange(0,2*np.pi/400.,2*np.pi/400./(self.length))
-        
-        sint = np.sin(50000*t)
+         #data type info
+        sType = np.uint16 # input type (from)
         sMin = 0
         sRange = 65535
+        dType = np.float32 # output type (to)
         dMin = -1
-        dRange = 2
-        sinwaveArray = np.array([0]*len(sint),'uint16')
-        cast_in = np.array([0]*len(sint),'float')
-        cast_out= np.array([0]*len(sint),'float')
-        for i in range(0,len(sint)):
-                sinwaveArray[i]=int(sint[i]*sRange) 
-                cast_in[i] = float(sinwaveArray[i])
-                cast_out[i] = float(sinwaveArray[i]-sMin)*float(Fraction(dRange,sRange))+float(dMin)
+        dRange = 2 
         
-        src=sb.DataSource()
-        snk=sb.DataSink()
+        inData, expectedData= self.makeDataFiles(sType,sMin,sRange,dType,dMin,dRange,scale)
         
-        src.connect(providesComponent=self.comp,providesPortName = 'dataUshort', usesPortName='ushortOut')
-        self.comp.connect(providesComponent=snk,providesPortName='floatIn',usesPortName='dataFloat_out')
-        
-        sb.start()
-        
-        src.push(data=sinwaveArray.tolist(),EOS=True,complexData=False)
-        time.sleep(1)
-        result = snk.getData()
-        sb.stop()
-        self.comp.releaseObject()
-        
-        for i in range(0,len(result)):
-            self.assertAlmostEqual(cast_out[i],result[i],5)
-        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
-
-    
+        self.runtestcase(scale, "ushort", "float",inData,expectedData)
+       
     def ushort2double(self, scale=True):
-        #each test is its own run
-        self.comp = sb.launch('../DataConverter.spd.xml')
-        self.comp_obj=self.comp.ref
-        self.initializeDicts()
-        
-        #set properties we care about
-        self.comp.normalize_floating_point.Output = scale
-        
-        t = np.array([],dtype='float')
-        t = np.arange(0,2*np.pi/400.,2*np.pi/400./(self.length))
-        
-        sint = np.sin(50000*t)
+        #data type info
+        sType = np.uint16 # input type (from)
         sMin = 0
         sRange = 65535
+        dType = np.float64 # output type (to)
         dMin = -1
-        dRange = 2
-        sinwaveArray = np.array([0]*len(sint),'uint16')
-        cast_in = np.array([0]*len(sint),'float')
-        cast_out= np.array([0]*len(sint),'float')
-        for i in range(0,len(sint)):
-                sinwaveArray[i]=int(sint[i]*sRange) 
-                cast_in[i] = float(sinwaveArray[i])
-                cast_out[i] = float(sinwaveArray[i]-sMin)*float(Fraction(dRange,sRange))+float(dMin)
+        dRange = 2 
         
-        src=sb.DataSource()
-        snk=sb.DataSink()
+        inData, expectedData= self.makeDataFiles(sType,sMin,sRange,dType,dMin,dRange,scale)
         
-        src.connect(providesComponent=self.comp,providesPortName = 'dataUshort', usesPortName='ushortOut')
-        self.comp.connect(providesComponent=snk,providesPortName='doubleIn',usesPortName='dataDouble_out')
-        
-        sb.start()
-        
-        src.push(data=sinwaveArray.tolist(),EOS=True,complexData=False)
-        time.sleep(1)
-        result = snk.getData()
-        #print sinwaveArray.tolist()
-        #print result
-        sb.stop()
-        self.comp.releaseObject()
-        
-        for i in range(0,len(result)):
-            self.assertAlmostEqual(cast_out[i],result[i],5)
-        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
-
-        
+        self.runtestcase(scale, "ushort", "double",inData,expectedData)        
     def float2char(self,scale=True):
-                
-        #each test is its own run
-        self.comp = sb.launch('../DataConverter.spd.xml')
-        self.comp_obj=self.comp.ref
-        self.initializeDicts()
-        
-        #set properties we care about
-        self.comp.normalize_floating_point.Input = scale
-        self.comp.scaleOutput.charPort = scale
-        
+                       
         #data type info
-        floatMin = -1 # data is generated as float data
-        floatRange = 2
         sType = np.float32 # input type (from)
         sMin = -1
         sRange = 2
@@ -1121,495 +520,131 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         dMin = -128
         dRange = 255
         
-        # generate input signal
-        t = np.arange(0,2*np.pi/400.,2*np.pi/400./(self.length))
-        sint = np.sin(50000*t)
+        inData, expectedData= self.makeDataFiles(sType,sMin,sRange,dType,dMin,dRange,scale)
         
-        # cast to input type
-        cast_in = ((sint-floatMin)*float(Fraction(sRange,floatRange))+sMin).astype(sType)
-        
-        # convert to output type
-        cast_out = (np.float32(cast_in-sMin)*np.float32(Fraction(dRange,sRange))+dMin).astype(dType)
-
-        src=sb.DataSource()
-        snk=sb.DataSink()
-        
-        src.connect(providesComponent=self.comp,providesPortName = 'dataFloat', usesPortName='floatOut')
-        self.comp.connect(providesComponent=snk,providesPortName='charIn',usesPortName='dataChar_out')
-        sb.start()
-        src.push(data=cast_in.tolist(),EOS=True,complexData=False)
-        time.sleep(1)
-                
-        result = snk.getData()
-        self.comp.releaseObject()
-        count = 0;
-        # since there is a fraction involved and rounding can be different, we will check for == =+1 or =-1
-        for i in range(0,len(result)):
-            #if (sint_cast[i]+1 == np.int8(ord(result[i])) or sint_cast[i]-1 == np.int8(ord(result[i])) or sint_cast[i] == np.int8(ord(result[i]))):
-            if (cast_out[i]+1 == result[i] or cast_out[i]-1 == result[i] or cast_out[i] == result[i]):
-                count = count + 1
-        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
-        self.assertEqual(len(result),count)
+        self.runtestcase(scale, "float", "char",inData,expectedData)
 
     def float2octet(self,scale=True):
         
-        #each test is its own run
-        self.comp = sb.launch('../DataConverter.spd.xml')
-        self.comp_obj=self.comp.ref
-        self.initializeDicts()
-        
-        #set properties we care about
-        self.comp.normalize_floating_point.Input = scale
-        self.comp.scaleOutput.octetPort = scale
-        
-        t = np.array([],dtype='float')
-        t = np.arange(0,2*np.pi/400.,2*np.pi/400./(self.length))
-        
-        sint = np.sin(50000*t)
+        #data type info
+        sType = np.float32 # input type (from)
         sMin = -1
         sRange = 2
+        dType = np.uint8 # output type (to)
         dMin = 0
         dRange = 255
-        sinwaveArray = np.array([0]*len(sint),'float')
-        cast_in = np.array([0]*len(sint),'float')
-        cast_out= np.array([0]*len(sint),'uint16')
-        for i in range(0,len(sint)):
-                sinwaveArray[i]=float(sint[i]*sMin)
-                if (sinwaveArray[i] == -0):
-                    sinwaveArray[i] = 0 
-                cast_in[i] = float(sinwaveArray[i])
-                cast_out[i] = round(float(sinwaveArray[i]-sMin)*float(Fraction(dRange,sRange))+float(dMin))
         
-        src=sb.DataSource()
-        snk=sb.DataSink()
+        inData, expectedData= self.makeDataFiles(sType,sMin,sRange,dType,dMin,dRange,scale)
         
-        src.connect(providesComponent=self.comp,providesPortName = 'dataFloat', usesPortName='floatOut')
-        self.comp.connect(providesComponent=snk,providesPortName='octetIn',usesPortName='dataOctet_out')      
-        sb.start()
-        
-        src.push(data=sinwaveArray.tolist(),EOS=True,complexData=False)
-        time.sleep(1)
-
-        result = snk.getData()
-        sb.stop()
-        self.comp.releaseObject()
-        count = 0
-
-        self.assertEqual(len(cast_in), len(result), "Number of pushed elements does not match number of received elements")
-
-        # since there is a fraction involved and rounding can be different, we will check for == =+1 or =-1                       
-        for i in range(0,len(result)):
-            self.assertTrue(abs(cast_out[i] - ord(result[i])) <= 1)
-        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
+        self.runtestcase(scale, "float", "octet",inData,expectedData)
 
     def float2short(self,scale=True):
-        #each test is its own run
-        self.comp = sb.launch('../DataConverter.spd.xml')
-        self.comp_obj=self.comp.ref
-        self.initializeDicts()
-        
-        #set properties we care about
-        self.comp.normalize_floating_point.Input = scale
-        self.comp.scaleOutput.shortPort = scale
-        
-        t = np.array([],dtype='float')
-        t = np.arange(0,2*np.pi/400.,2*np.pi/400./(self.length))
-        
-        sint = np.sin(50000*t)
+        #data type info
+        sType = np.float32 # input type (from)
         sMin = -1
         sRange = 2
+        dType = np.int16 # output type (to)
         dMin = -32768
-        dRange = 65535
-        sinwaveArray = np.array([0]*len(sint),'float')
-        cast_in = np.array([0]*len(sint),'float')
-        cast_out= np.array([0]*len(sint),'int16')
-        for i in range(0,len(sint)):
-                sinwaveArray[i]=float(sint[i]*sMin)
-                if (sinwaveArray[i] == -0):
-                    sinwaveArray[i] = 0                
-                cast_in[i] = float(sinwaveArray[i])
-                cast_out[i] = float(sinwaveArray[i]-sMin)*float(Fraction(dRange,sRange))+float(dMin)
-                
-        src=sb.DataSource()
-        snk=sb.DataSink()
+        dRange = 65535  
         
-        src.connect(providesComponent=self.comp,providesPortName = 'dataFloat', usesPortName='floatOut')
-        self.comp.connect(providesComponent=snk,providesPortName='shortIn',usesPortName='dataShort_out')
+        inData, expectedData= self.makeDataFiles(sType,sMin,sRange,dType,dMin,dRange,scale)
         
-        sb.start()
-        
-        src.push(data=sinwaveArray.tolist(),EOS=True,complexData=False)
-        time.sleep(1)
-        result = snk.getData()
-        count = 0
-        sb.stop()
-        self.comp.releaseObject()
-        
-        #because of rounding errors look +/- 1 of the value         
-        for i in range(0,len(result)):
-            if (cast_out[i]+1 == result[i] or cast_out[i]-1 == result[i] or cast_out[i] == result[i]):
-                count = count + 1
-        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
-        self.assertEqual(len(result),count)
-               
-    
+        self.runtestcase(scale, "float", "short",inData,expectedData)
+
     def float2ushort(self,scale=True):
-        #each test is its own run
-        self.comp = sb.launch('../DataConverter.spd.xml')
-        self.comp_obj=self.comp.ref
-        self.initializeDicts()
-        
-        #set properties we care about
-        self.comp.normalize_floating_point.Input = scale
-        self.comp.scaleOutput.ushortPort = scale
-        
-        t = np.array([],dtype='float')
-        t = np.arange(0,2*np.pi/400.,2*np.pi/400./(self.length))
-        
-        sint = np.sin(50000*t)
+        #data type info
+        sType = np.float32 # input type (from)
         sMin = -1
         sRange = 2
+        dType = np.uint16 # output type (to)
         dMin = 0
-        dRange = 65535
-        sinwaveArray = np.array([0]*len(sint),'float')
-        cast_in = np.array([0]*len(sint),'float')
-        cast_out= np.array([0]*len(sint),'uint16')
-        for i in range(0,len(sint)):
-                sinwaveArray[i]=float(sint[i]*sMin)
-                if (sinwaveArray[i] == -0):
-                    sinwaveArray[i] = 0 
-                cast_in[i] = float(sinwaveArray[i])
-                cast_out[i] = round(float(sinwaveArray[i]-sMin)*float(Fraction(dRange,sRange))+float(dMin))
-        src=sb.DataSource()
-        snk=sb.DataSink()
+        dRange = 65535  
         
-        src.connect(providesComponent=self.comp,providesPortName = 'dataFloat', usesPortName='floatOut')
-        self.comp.connect(providesComponent=snk,providesPortName='ushortIn',usesPortName='dataUshort_out')
+        inData, expectedData= self.makeDataFiles(sType,sMin,sRange,dType,dMin,dRange,scale)
         
-        sb.start()
-        
-        src.push(data=sinwaveArray.tolist(),EOS=True,complexData=False)
-        time.sleep(1)
-        result = snk.getData()
-        sb.stop()
-        self.comp.releaseObject()
-        
-        count = 0
-        #because of rounding errors look +/- 1 of the value         
-        for i in range(0,len(result)):
-            if (cast_out[i]+1 == result[i] or cast_out[i]-1 == result[i] or cast_out[i] == result[i]):
-                count = count + 1
-        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
-        self.assertEqual(len(result),count)
+        self.runtestcase(scale, "float", "ushort",inData,expectedData)
     
     def float2double(self,scale=True):
-        #each test is its own run
-        self.comp = sb.launch('../DataConverter.spd.xml')
-        self.comp_obj=self.comp.ref
-        self.initializeDicts()
-        
-        #set properties we care about
-        self.comp.normalize_floating_point.Input = scale
-        self.comp.normalize_floating_point.Output = scale
-        
-        t = np.array([],dtype='float')
-        t = np.arange(0,2*np.pi/400.,2*np.pi/400./(self.length))
-        
-        sint = np.sin(50000*t)
-        sMin = -1
-        sRange = 2
-        dMin = 0
-        dRange = 65535
-        sinwaveArray = np.array([0]*len(sint),'float')
-        cast_in = np.array([0]*len(sint),'float')
-        cast_out= np.array([0]*len(sint),'double')
-        for i in range(0,len(sint)):
-                sinwaveArray[i]=float(sint[i]*sMin)
-                if (sinwaveArray[i] == -0):
-                    sinwaveArray[i] = 0 
-                cast_in[i] = float(sinwaveArray[i])
-                cast_out[i] = float(sinwaveArray[i]-sMin)*float(Fraction(dRange,sRange))+float(dMin)
-        src=sb.DataSource(bytesPerPush=10)
-        snk=sb.DataSink()
-        
-        src.connect(providesComponent=self.comp,providesPortName = 'dataFloat', usesPortName='floatOut')
-        self.comp.connect(providesComponent=snk,providesPortName='doubleIn',usesPortName='dataDouble_out')
-        
-        sb.start()
-        
-        src.push(data=sinwaveArray.tolist(),EOS=True,complexData=False)
-        time.sleep(1)
-        (result,tstamps) = snk.getData(tstamps=True)
-        sb.stop()
-        self.comp.releaseObject()
-        
-        #because of rounding errors look +/- 1 of the value
-        self.assertEqual(len(cast_in), len(result), "Number of pushed elements does not match number of received elements")
-        data = sinwaveArray.tolist()
-        for i in range(0,len(result)):
-            self.assertTrue(abs(data[i] - result[i]) < 0.00001)
-        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
-            
-        # Default for Data Source is Start time 0 and sample rate 1, therefore each sample offset should be equal to the whole number of seconds.
-        for tstamp in tstamps:
-            self.assertEqual(tstamp[0],tstamp[1].twsec)
-            self.assertEqual(0,tstamp[1].tfsec)
-
-   
-    
-    def double2char(self,scale=True):
-                
-        #each test is its own run
-        self.comp = sb.launch('../DataConverter.spd.xml')
-        self.comp_obj=self.comp.ref
-        self.initializeDicts()
-        
-        #set properties we care about
-        self.comp.normalize_floating_point.Input = scale
-        self.comp.scaleOutput.charPort = scale
         
         #data type info
-        floatMin = -1 # data is generated as float data
-        floatRange = 2
+        sType = np.float32 # input type (from)
+        sMin = -1
+        sRange = 2
+        dType = np.float64 # output type (to)
+        dMin = -1
+        dRange = 2
+        
+        inData, expectedData= self.makeDataFiles(sType,sMin,sRange,dType,dMin,dRange,scale)
+        
+        self.runtestcase(scale, "float", "double",inData,expectedData)
+    
+    def double2char(self,scale=True):
+
+        #data type info
         sType = np.float64 # input type (from)
         sMin = -1
         sRange = 2
         dType = np.int8 # output type (to)
         dMin = -128
-        dRange = 255
+        dRange = 255 
         
-        # generate input signal
-        t = np.arange(0,2*np.pi/400.,2*np.pi/400./(self.length))
-        sint = np.sin(50000*t)
+        inData, expectedData= self.makeDataFiles(sType,sMin,sRange,dType,dMin,dRange,scale)
         
-        # cast to input type
-        cast_in = ((sint-floatMin)*float(Fraction(sRange,floatRange))+sMin).astype(sType)
-        
-        # convert to output type
-        cast_out = (np.float32(cast_in-sMin)*np.float32(Fraction(dRange,sRange))+dMin).astype(dType)
-
-        src=sb.DataSource()
-        snk=sb.DataSink()
-        
-        src.connect(providesComponent=self.comp,providesPortName = 'dataDouble', usesPortName='doubleOut')
-        self.comp.connect(providesComponent=snk,providesPortName='charIn',usesPortName='dataChar_out')
-        
-        sb.start()
-        src.push(data=cast_in.tolist(),EOS=True,complexData=False)
-        time.sleep(1)
-                
-        result = snk.getData()
-        sb.stop()
-        self.comp.releaseObject()
-        
-        count = 0;
-        # since there is a fraction involved and rounding can be different, we will check for == =+1 or =-1        
-        for i in range(0,len(result)):
-            #if (cast_out[i]+1 == np.int8(ord(result[i])) or cast_out[i]-1 == np.int8(ord(result[i])) or cast_out[i] == np.int8(ord(result[i]))):
-            if (cast_out[i]+1 == result[i] or cast_out[i]-1 == result[i] or cast_out[i] == result[i]):
-                count = count + 1
-        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
-        self.assertEqual(len(result),count)
+        self.runtestcase(scale, "double", "char",inData,expectedData)
     
     def double2octet(self,scale=True):
         
-        #each test is its own run
-        self.comp = sb.launch('../DataConverter.spd.xml')
-        self.comp_obj=self.comp.ref
-        self.initializeDicts()
-        
-        #set properties we care about
-        self.comp.normalize_floating_point.Input = scale
-        self.comp.scaleOutput.octetPort = scale
-        
-        t = np.array([],dtype='float')
-        t = np.arange(0,2*np.pi/400.,2*np.pi/400./(self.length))
-        
-        sint = np.sin(50000*t)
+        #data type info
+        sType = np.float64 # input type (from)
         sMin = -1
         sRange = 2
+        dType = np.uint8 # output type (to)
         dMin = 0
-        dRange = 255
-        sinwaveArray = np.array([0]*len(sint),'float')
-        cast_in = np.array([0]*len(sint),'float')
-        cast_out= np.array([0]*len(sint),'uint16')
-        for i in range(0,len(sint)):
-                sinwaveArray[i]=float(sint[i]*sMin)
-                if (sinwaveArray[i] == -0):
-                    sinwaveArray[i] = 0 
-                cast_in[i] = float(sinwaveArray[i])
-                cast_out[i] = round(float(sinwaveArray[i]-sMin)*float(Fraction(dRange,sRange))+float(dMin))
+        dRange = 255 
         
-        src=sb.DataSource()
-        snk=sb.DataSink()
+        inData, expectedData= self.makeDataFiles(sType,sMin,sRange,dType,dMin,dRange,scale)
         
-        src.connect(providesComponent=self.comp,providesPortName = 'dataDouble', usesPortName='doubleOut')
-        self.comp.connect(providesComponent=snk,providesPortName='octetIn',usesPortName='dataOctet_out')      
-        sb.start()
-        
-        src.push(data=sinwaveArray.tolist(),EOS=True,complexData=False)
-        time.sleep(1)
-
-        result = snk.getData()
-        sb.stop()
-        self.comp.releaseObject()
-
-        self.assertEqual(len(cast_in), len(result), "Number of pushed elements does not match number of received elements")
-
-        # since there is a fraction involved and rounding can be different, we will check for == =+1 or =-1                       
-        for i in range(0,len(result)):
-            self.assertTrue(abs(cast_out[i] - ord(result[i])) <= 1)
-        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
+        self.runtestcase(scale, "double", "octet",inData,expectedData)
 
     def double2short(self,scale=True):
-        #each test is its own run
-        self.comp = sb.launch('../DataConverter.spd.xml')
-        self.comp_obj=self.comp.ref
-        self.initializeDicts()
-        
-        #set properties we care about
-        self.comp.normalize_floating_point.Input = scale
-        self.comp.scaleOutput.shortPort = scale
-        
-        t = np.array([],dtype='float')
-        t = np.arange(0,2*np.pi/400.,2*np.pi/400./(self.length))
-        
-        sint = np.sin(50000*t)
+        #data type info
+        sType = np.float64 # input type (from)
         sMin = -1
         sRange = 2
+        dType = np.int16 # output type (to)
         dMin = -32768
         dRange = 65535
-        sinwaveArray = np.array([0]*len(sint),'float')
-        cast_in = np.array([0]*len(sint),'float')
-        cast_out= np.array([0]*len(sint),'int16')
-        for i in range(0,len(sint)):
-                sinwaveArray[i]=float(sint[i]*sMin)
-                if (sinwaveArray[i] == -0):
-                    sinwaveArray[i] = 0                
-                cast_in[i] = float(sinwaveArray[i])
-                cast_out[i] = float(sinwaveArray[i]-sMin)*float(Fraction(dRange,sRange))+float(dMin)
-                
-        src=sb.DataSource()
-        snk=sb.DataSink()
         
-        src.connect(providesComponent=self.comp,providesPortName = 'dataDouble', usesPortName='doubleOut')
-        self.comp.connect(providesComponent=snk,providesPortName='shortIn',usesPortName='dataShort_out')
+        inData, expectedData= self.makeDataFiles(sType,sMin,sRange,dType,dMin,dRange,scale)
         
-        sb.start()
-        
-        src.push(data=sinwaveArray.tolist(),EOS=True,complexData=False)
-        time.sleep(1)
-        result= snk.getData()
-        sb.stop()
-        self.comp.releaseObject()
-        
-        count = 0
-        #because of rounding errors look +/- 1 of the value         
-        for i in range(0,len(result)):
-            if (cast_out[i]+1 == result[i] or cast_out[i]-1 == result[i] or cast_out[i] == result[i]):
-                count = count + 1
-        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
-        self.assertEqual(len(result),count)
+        self.runtestcase(scale, "double", "short",inData,expectedData)
         
     
     def double2ushort(self,scale=True):
-        #each test is its own run
-        self.comp = sb.launch('../DataConverter.spd.xml')
-        self.comp_obj=self.comp.ref
-        self.initializeDicts()
-        
-        #set properties we care about
-        self.comp.normalize_floating_point.Input = scale
-        self.comp.scaleOutput.ushortPort = scale
-        
-        t = np.array([],dtype='float')
-        t = np.arange(0,2*np.pi/400.,2*np.pi/400./(self.length))
-        
-        sint = np.sin(50000*t)
+        #data type info
+        sType = np.float64 # input type (from)
         sMin = -1
         sRange = 2
+        dType = np.uint16 # output type (to)
         dMin = 0
         dRange = 65535
-        sinwaveArray = np.array([0]*len(sint),'float')
-        cast_in = np.array([0]*len(sint),'float')
-        cast_out= np.array([0]*len(sint),'uint16')
-        for i in range(0,len(sint)):
-                sinwaveArray[i]=float(sint[i]*sMin)
-                if (sinwaveArray[i] == -0):
-                    sinwaveArray[i] = 0 
-                cast_in[i] = float(sinwaveArray[i])
-                cast_out[i] = round(float(sinwaveArray[i]-sMin)*float(Fraction(dRange,sRange))+float(dMin))
-        src=sb.DataSource()
-        snk=sb.DataSink()
         
-        src.connect(providesComponent=self.comp,providesPortName = 'dataDouble', usesPortName='doubleOut')
-        self.comp.connect(providesComponent=snk,providesPortName='ushortIn',usesPortName='dataUshort_out')
+        inData, expectedData= self.makeDataFiles(sType,sMin,sRange,dType,dMin,dRange,scale)
         
-        sb.start()
-        
-        src.push(data=sinwaveArray.tolist(),EOS=True,complexData=False)
-        time.sleep(1)
-        result = snk.getData()
-        sb.stop()
-        self.comp.releaseObject()
-        
-        count = 0
-        #because of rounding errors look +/- 1 of the value         
-        for i in range(0,len(result)):
-            if (cast_out[i]+1 == result[i] or cast_out[i]-1 == result[i] or cast_out[i] == result[i]):
-                count = count + 1
-        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
-        self.assertEqual(len(result),count)
+        self.runtestcase(scale, "double", "ushort",inData,expectedData)
     
     def double2float(self,scale=True):
-        #each test is its own run
-        self.comp = sb.launch('../DataConverter.spd.xml')
-        self.comp_obj=self.comp.ref
-        self.initializeDicts()
-        
-        #set properties we care about
-        self.comp.normalize_floating_point.Input = scale
-        self.comp.normalize_floating_point.Output = scale
-        
-        t = np.array([],dtype='float')
-        t = np.arange(0,2*np.pi/400.,2*np.pi/400./(self.length))
-        
-        sint = np.sin(50000*t)
+        #data type info
+        sType = np.float64 # input type (from)
         sMin = -1
         sRange = 2
-        dMin = 0
-        dRange = 65535
-        sinwaveArray = np.array([0]*len(sint),'float')
-        cast_in = np.array([0]*len(sint),'float')
-        cast_out= np.array([0]*len(sint),'double')
-        for i in range(0,len(sint)):
-                sinwaveArray[i]=float(sint[i]*sMin)
-                if (sinwaveArray[i] == -0):
-                    sinwaveArray[i] = 0 
-                cast_in[i] = float(sinwaveArray[i])
-                cast_out[i] = float(sinwaveArray[i]-sMin)*float(Fraction(dRange,sRange))+float(dMin)
-        src=sb.DataSource(bytesPerPush=10)
-        snk=sb.DataSink()
+        dType = np.float32 # output type (to)
+        dMin = -1
+        dRange = 2
         
-        src.connect(providesComponent=self.comp,providesPortName = 'dataDouble', usesPortName='doubleOut')
-        self.comp.connect(providesComponent=snk,providesPortName='floatIn',usesPortName='dataFloat_out')
+        inData, expectedData= self.makeDataFiles(sType,sMin,sRange,dType,dMin,dRange,scale)
         
-        sb.start()
-        
-        src.push(data=sinwaveArray.tolist(),EOS=True,complexData=False)
-        time.sleep(1)
-        (result,tstamps) = snk.getData(tstamps=True)
-        sb.stop()
-        self.comp.releaseObject()
-        
-        self.assertEqual(len(cast_in), len(result), "Number of pushed elements does not match number of received elements")
-        data = sinwaveArray.tolist()
-        for i in range(0,len(result)):
-            self.assertTrue(abs(data[i] - result[i]) < 0.00001)
-            
-        for tstamp in tstamps:
-            self.assertEqual(tstamp[0],tstamp[1].twsec)
-            self.assertEqual(0,tstamp[1].tfsec)
+        self.runtestcase(scale, "double", "float",inData,expectedData)
 
     def realToComplex(self, scale=True, enablePlt=False):
 
@@ -2058,211 +1093,193 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
                     print "\tPASS"
         standardsFile.close()
 
-    def testScaledChar2octet(self):
-        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
-        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
-        
+    
+    def testScaledChar2octet(self):      
+        print(sys._getframe().f_code.co_name)
         self.char2octet(scale=True)
-        
+    
+    def testChar2short(self):
+        print(sys._getframe().f_code.co_name)
+        self.char2short(scale=False)           
+    
     def testScaledChar2short(self):
-        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
-        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
-        
+        print(sys._getframe().f_code.co_name)
         self.char2short(scale=True)
-        
+    
     def testScaledChar2ushort(self):
-        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
-        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
-        
+        print(sys._getframe().f_code.co_name)
         self.char2ushort(scale=True)
-        
+
+    def testChar2float(self):
+        print(sys._getframe().f_code.co_name)
+        self.char2float(scale=False)
+    
     def testScaledChar2float(self):
-        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
-        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
-        
+        print(sys._getframe().f_code.co_name)
         self.char2float(scale=True)
+
+    def testChar2double(self):
+        print(sys._getframe().f_code.co_name)
+        self.char2double(scale=False)
         
     def testScaledChar2double(self):
-        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
-        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
-        
+        print(sys._getframe().f_code.co_name)
         self.char2double(scale=True)
-        
+    
+    def testChar2char(self):
+        print(sys._getframe().f_code.co_name)
+        self.char2char(scale=True)        
+    
     def testScaledChar2char(self):
-        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
-        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
-        
+        print(sys._getframe().f_code.co_name)
         self.char2char(scale=True)
         
     def testScaledOctet2char(self):
-        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
-        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
-        
+        print(sys._getframe().f_code.co_name)
         self.octet2char(scale=True)
         
     def testScaledOctet2short(self):
-        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
-        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
-        
+        print(sys._getframe().f_code.co_name)
         self.octet2short(scale=True)
         
+    def testOctet2ushort(self):
+        print(sys._getframe().f_code.co_name)
+        self.octet2ushort(scale=False)
+
     def testScaledOctet2ushort(self):
-        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
-        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
-        
+        print(sys._getframe().f_code.co_name)
         self.octet2ushort(scale=True)
-        
+
+    def testOctet2float(self):
+        print(sys._getframe().f_code.co_name)
+        self.octet2float(scale=False)
+
     def testScaledOctet2float(self):
-        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
-        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
-        
+        print(sys._getframe().f_code.co_name)
         self.octet2float(scale=True)
         
+    def testOctet2double(self):
+        print(sys._getframe().f_code.co_name)
+        self.octet2double(scale=False)
+
     def testScaledOctet2double(self):
-        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
-        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
-        
+        print(sys._getframe().f_code.co_name)
         self.octet2double(scale=True)
         
     def testScaledShort2char(self):
-        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
-        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
-        
+        print(sys._getframe().f_code.co_name)
         self.short2char(scale=True)
         
     def testScaledShort2octet(self):
-        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
-        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
-        
+        print(sys._getframe().f_code.co_name)
         self.short2octet(scale=True)
         
     def testScaledShort2ushort(self):
-        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
-        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
-        
+        print(sys._getframe().f_code.co_name)
         self.short2ushort(scale=True)
+
+    def testShort2float(self):
+        print(sys._getframe().f_code.co_name)
+        self.short2float(scale=False)
         
     def testScaledShort2float(self):
-        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
-        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
-        
+        print(sys._getframe().f_code.co_name)
         self.short2float(scale=True)
+
+    def testShort2double(self):
+        print(sys._getframe().f_code.co_name)
+        self.short2double(scale=False)
         
     def testScaledShort2double(self):
-        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
-        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
-        
+        print(sys._getframe().f_code.co_name)
         self.short2double(scale=True)
         
     def testScaledUshort2char(self):
-        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
-        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
-        
+        print(sys._getframe().f_code.co_name)
         self.ushort2char(scale=True)
         
     def testScaledUshort2octet(self):
-        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
-        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
-        
+        print(sys._getframe().f_code.co_name)
         self.ushort2octet(scale=True)
         
     def testScaledUshort2short(self):
-        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
-        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
-        
+        print(sys._getframe().f_code.co_name)
         self.ushort2short(scale=True)
+
+    def testUshort2float(self):
+        print(sys._getframe().f_code.co_name)
+        self.ushort2float(scale=False) 
         
     def testScaledUshort2float(self):
-        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
-        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
-        
+        print(sys._getframe().f_code.co_name)
         self.ushort2float(scale=True)
         
     def testScaledFloat2char(self):
-        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
-        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
-        
+        print(sys._getframe().f_code.co_name)
         self.float2char(scale=True)
         
     def testScaledFloat2octet(self):
-        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
-        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
-        
+        print(sys._getframe().f_code.co_name)
         self.float2octet(scale=True)
         
     def testScaledFloat2short(self):
-        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
-        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
-        
+        print(sys._getframe().f_code.co_name)
         self.float2short(scale=True)
         
     def testScaledFloat2ushort(self):
-        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
-        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
-        
+        print(sys._getframe().f_code.co_name)
         self.float2ushort(scale=True)
+
+    def testFloat2double(self):
+        print(sys._getframe().f_code.co_name)
+        self.float2double(scale=False)
         
     def testScaledFloat2double(self):
-        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
-        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
-        
+        print(sys._getframe().f_code.co_name)
         self.float2double(scale=True)
         
     def testScaledDouble2char(self):
-        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
-        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
-        
+        print(sys._getframe().f_code.co_name)
         self.double2char(scale=True)
         
     def testScaledDouble2octet(self):
-        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
-        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
-        
+        print(sys._getframe().f_code.co_name)
         self.double2octet(scale=True)
         
     def testScaledDouble2short(self):
-        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
-        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
-        
+        print(sys._getframe().f_code.co_name)
         self.double2short(scale=True)
         
     def testScaledDouble2ushort(self):
-        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
-        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
-        
+        print(sys._getframe().f_code.co_name)
         self.double2ushort(scale=True)
         
+    def testDouble2float(self):
+        print(sys._getframe().f_code.co_name)
+        self.double2float(scale=False)
+
     def testScaledDouble2float(self):
-        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
-        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
-        
+        print(sys._getframe().f_code.co_name)
         self.double2float(scale=True)
         
     def testScaledRealToComplex(self):
-        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
-        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
-        
+        print(sys._getframe().f_code.co_name)
         self.realToComplex(scale=True)
         
     def testScaledRealToComplexShort2Short(self):
-        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
-        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
-        
+        print(sys._getframe().f_code.co_name)
         self.realToComplexShort2Short(scale=True)
         
     def testScaledComplexToReal(self):
-        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
-        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
-        
+        print(sys._getframe().f_code.co_name)
         self.complexToReal(scale=True)
         
     def testScaledComplexToRealShort2Short(self):
-        execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
-        execparams = dict([(x.id, any.from_any(x.value)) for x in execparams])
-        
+        print(sys._getframe().f_code.co_name)
         self.complexToRealShort2Short(scale=True)
 
     def testModeChangeR2CUpdatesSRI(self):
+        print(sys._getframe().f_code.co_name)
         comp = sb.launch('../DataConverter.spd.xml')
         src=sb.DataSource()
         snk=sb.DataSink()
@@ -2291,6 +1308,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.assertTrue(snk.sri().mode == 1) # 1=Complex
     
     def testModeChangeC2RUpdatesSRI(self):
+        print(sys._getframe().f_code.co_name)
         comp = sb.launch('../DataConverter.spd.xml')
         src=sb.DataSource()
         snk=sb.DataSink()
@@ -2319,6 +1337,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.assertTrue(snk.sri().mode == 0)
 
     def testScaBasicBehavior(self):
+        print(sys._getframe().f_code.co_name)
         #######################################################################
         # Launch the component with the default execparams
         execparams = self.getPropertySet(kinds=("execparam",), modes=("readwrite", "writeonly"), includeNil=False)
