@@ -143,7 +143,8 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
             # cast to input type
             inData = ((sint-floatMin)*float(Fraction(sRange,floatRange))+sMin).astype(sType)
             # convert to output type
-            expectedData = (np.float32(inData-sMin)*np.float32(Fraction(dRange,sRange))+dMin).astype(dType)
+            
+            expectedData = ((np.float32(inData)-np.float32(sMin))*np.float32(Fraction(dRange,sRange))+dMin).astype(dType)
         else:
             # If the data is not scaled the just create some data and then convert it to the output type
             inData = (100*sint).astype(sType)
