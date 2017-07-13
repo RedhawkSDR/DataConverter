@@ -336,7 +336,8 @@ private:
         } else if (packet->T.tcstatus == BULKIO::TCS_VALID) {
             _timestamp = packet->T;
         } else if (packet->T.tcstatus != BULKIO::TCS_VALID) {
-            LOG_TRACE(DataConverter_i, "Invalid, T.tcstatus: " << packet->T.tcstatus);
+            LOG_WARN(DataConverter_i, "Invalid, T.tcstatus Sending invalid timecode anyway. tcstatus:" << packet->T.tcstatus);
+            _timestamp = packet->T;
         }
 
         //typename IN_PORT_TYPE::dataTransfer::DataBufferType dataBuffer = packet->dataBuffer;

@@ -28,6 +28,7 @@ import threading
 from new import classobj
 from omniORB import any, CORBA
 from bulkio.bulkioInterfaces import BULKIO, BULKIO__POA
+import bulkio
 from ossie.cf import CF, CF__POA
 from ossie.utils import uuid
 #from ossie.resource import Resouce
@@ -151,6 +152,52 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
             expectedData = inData.astype(dType)
         
         return(inData,expectedData)
+    
+    def testTimeCode(self):
+        
+        class mySinkPort(bulkio.InShortPort):
+            
+            def __init__(self,portname):
+                bulkio.InShortPort.__init__(self,portname)
+                self.lastTimeCode = None
+            
+            def pushPacket(self, data, T, EOS, streamID):
+                self.lastTimeCode = T
+                
+        
+        self.comp = sb.launch('../DataConverter.spd.xml')
+        snk=mySinkPort("dataFloat")       
+        outputPorts = self.getOutputPortNames("short")
+        inputPorts = self.getInputPortNames("short")
+        outport = self.comp.getPort(outputPorts[1])
+        outport.connectPort(snk._this(),"connectionID")
+        #self.comp.connect(providesComponent=snk,providesPortName=outputPorts[0],usesPortName=outputPorts[1])
+        sb.start()
+        
+        input_port = self.comp.getPort(inputPorts[0])
+
+        wsec = 100
+        fsec = 100
+        data = [int(x) for x in range(0,100)]
+        T = BULKIO.PrecisionUTCTime(BULKIO.TCM_CPU, BULKIO.TCS_VALID, 0, wsec, fsec)
+        input_port.pushPacket(data,T,True,"streamID") 
+        time.sleep(.5)
+           
+        lastTimeCode = snk.lastTimeCode
+        self.assertEqual(lastTimeCode.twsec,wsec)
+        self.assertEqual(lastTimeCode.tfsec,fsec)
+
+        # Test invalid timecode. A warning should be produced but the timecode is still passed on.
+        wsec = 200
+        fsec = 200
+        data = [int(x) for x in range(0,100)]
+        T = BULKIO.PrecisionUTCTime(BULKIO.TCM_CPU, BULKIO.TCS_INVALID, 0, wsec, fsec)
+        input_port.pushPacket(data,T,True,"streamID") 
+        time.sleep(.5)
+        
+        lastTimeCode = snk.lastTimeCode
+        self.assertEqual(lastTimeCode.twsec,wsec)
+        self.assertEqual(lastTimeCode.tfsec,fsec)
     
     def runtestcase(self,scale,inType,outType,inData,expectedData):
 
