@@ -883,7 +883,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         sb.start()
         src.push(data=outer.tolist(),sampleRate=Fs,EOS=True,complexData=True)
         time.sleep(1)
-        result = snk.getData()
+        (result,tstamps) = (snk.getData(tstamps=True))
         sb.stop()
         self.comp.releaseObject()
         
@@ -924,6 +924,9 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.assertEqual((0.01>avgOut-avgKnown),True)        
         self.assertEqual((5>np.max(np.abs(error_mag))),True)
         
+        for tstamp in tstamps:
+            self.assertEqual((tstamp[1].twsec>=0), True, "Whole Seconds should always be positive")
+            self.assertEqual(((tstamp[1].tfsec>=0) and (tstamp[1].tfsec<1)), True, "Fractional Seconds should always be between zero and one")
         
         
     def realToComplexShort2Short(self, scale=True, enablePlt=False):

@@ -710,13 +710,6 @@ void DataConverter_i::adjustTimeStamp(BULKIO::PrecisionUTCTime& timestamp, BULKI
 	localtimestamp = timestamp;
 	//adjust the group delay
 	localtimestamp.tfsec += grpDelay;
-
-	if (localtimestamp.tfsec >= 1.0){
-		localtimestamp.tfsec -= 1.0;
-		localtimestamp.twsec += 1.0;
-	} else if (localtimestamp.tfsec <= 1.0) {
-        localtimestamp.tfsec += 1.0;
-		localtimestamp.twsec -= 1.0;        
-    }
+	bulkio::time::utils::normalize (localtimestamp);
 
 }
