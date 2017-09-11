@@ -30,7 +30,7 @@ Prefix:         %{_prefix}
 %define _infodir       %{_prefix}/info
 
 Name:           rh.DataConverter
-Version:        4.0.3
+Version:        4.0.4
 Release:        1%{?dist}
 Summary:        Component %{name}
 
