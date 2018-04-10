@@ -47,8 +47,8 @@ BuildRequires:  bulkioInterfaces >= 2.0
 Requires:       bulkioInterfaces >= 2.0
 
 # C++ requirements
-BuildRequires:  fftw-devel >= 3.2.0
-Requires:       fftw >= 3.2.0
+BuildRequires:  fftw-devel >= 3.2
+Requires:       fftw >= 3.2
 
 %if %{with intel}
 BuildRequires:  compat-libstdc++-33
