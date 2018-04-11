@@ -76,7 +76,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.portTypes = {}
         self.inputFiles = {}
         for type in self.types:
-            self.inputPorts[type] = self.comp_obj.getPort('data' + str(type))
+            self.inputPorts[type] = self.comp_obj.getPort('data' + str(type) + '_in')
             self.outputPorts[type] = self.comp.getPort('data' + str(type) + '_out')
             self.portTypes[type] = 'BULKIO__POA.data' + str(type)
             self.inputFiles[type] = str(type) + '.dat'
@@ -107,17 +107,17 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
     
     def getInputPortNames(self,type):
         if type == "char":
-            return ('dataChar', 'charOut')
+            return ('dataChar_in', 'charOut')
         elif type == "octet":
-            return ('dataOctet','octetOut')
+            return ('dataOctet_in','octetOut')
         elif type == "short":
-            return ('dataShort', 'shortOut')
+            return ('dataShort_in', 'shortOut')
         elif type == "ushort":
-            return ('dataUshort', 'ushortOut')
+            return ('dataUshort_in', 'ushortOut')
         elif type == "float":
-            return ('dataFloat', 'floatOut')
+            return ('dataFloat_in', 'floatOut')
         elif type == "double":
-            return ('dataDouble', 'doubleOut')
+            return ('dataDouble_in', 'doubleOut')
 
     def getOutputPortNames(self,type):
         if type == "char":
@@ -166,7 +166,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
                 
         
         self.comp = sb.launch('../DataConverter.spd.xml')
-        snk=mySinkPort("dataFloat")       
+        snk=mySinkPort("dataFloat_in")       
         outputPorts = self.getOutputPortNames("short")
         inputPorts = self.getInputPortNames("short")
         outport = self.comp.getPort(outputPorts[1])
@@ -747,7 +747,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         src=sb.DataSource()#bytesPerPush=512 + 32)
         snk=sb.DataSink()
 
-        src.connect(self.comp, "dataFloat")
+        src.connect(self.comp, "dataFloat_in")
         self.comp.connect(snk, "floatIn")
         
         sb.start()
@@ -877,7 +877,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         src=sb.DataSource()#bytesPerPush=512+32)
         snk=sb.DataSink()
         
-        src.connect(providesComponent=self.comp,providesPortName = 'dataFloat', usesPortName='floatOut')
+        src.connect(providesComponent=self.comp,providesPortName = 'dataFloat_in', usesPortName='floatOut')
         self.comp.connect(providesComponent=snk,providesPortName='floatIn',usesPortName='dataFloat_out')
         
         sb.start()
@@ -956,7 +956,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         src=sb.DataSource()
         snk=sb.DataSink()
         
-        src.connect(providesComponent=self.comp,providesPortName = 'dataShort', usesPortName='shortOut')
+        src.connect(providesComponent=self.comp,providesPortName = 'dataShort_in', usesPortName='shortOut')
         self.comp.connect(providesComponent=snk,providesPortName='shortIn',usesPortName='dataShort_out')
         
         sb.start()
@@ -1073,7 +1073,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         src=sb.DataSource(bytesPerPush=512+32)
         snk=sb.DataSink()
         
-        src.connect(providesComponent=self.comp,providesPortName = 'dataShort', usesPortName='shortOut')
+        src.connect(providesComponent=self.comp,providesPortName = 'dataShort_in', usesPortName='shortOut')
         self.comp.connect(providesComponent=snk,providesPortName='shortIn',usesPortName='dataShort_out')
         
         sb.start()
@@ -1378,7 +1378,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         src=sb.DataSource()
         snk=sb.DataSink()
         
-        src.connect(comp,'dataDouble')
+        src.connect(comp,'dataDouble_in')
         comp.connect(snk,'ushortIn')
         
         sb.start()
@@ -1407,7 +1407,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         src=sb.DataSource()
         snk=sb.DataSink()
         
-        src.connect(comp,'dataDouble')
+        src.connect(comp,'dataDouble_in')
         comp.connect(snk,'ushortIn')
         
         sb.start()
