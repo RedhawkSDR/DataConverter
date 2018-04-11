@@ -34,7 +34,6 @@ PREPARE_LOGGING(DataConverter_i)
 DataConverter_i::DataConverter_i(const char *uuid, const char *label) : 
 DataConverter_base(uuid, label)
 {
-	_constructor_();
 }
 
 DataConverter_i::~DataConverter_i()
@@ -76,8 +75,9 @@ DataConverter_i::~DataConverter_i()
 	fftwf_cleanup();
 }
 
-void DataConverter_i::_constructor_(){
-	inputMode = 0;
+void DataConverter_i::constructor(){
+
+
 	first_overlap = true;
 	firstRun = true;
 	remainder_v = 0;
@@ -89,7 +89,6 @@ void DataConverter_i::_constructor_(){
 	transformedRBuffer = NULL;
 	fftBuffer = NULL;
 	fftRBuffer = NULL;
-	upsampled = NULL;
 	r2c = NULL;
 	c2c_r = NULL;
 	c2c_f = NULL;
@@ -106,9 +105,6 @@ void DataConverter_i::_constructor_(){
 	upsampled = NULL;
 	filter = NULL;
 
-	_transferSize = 0;
-	createMEM = true;
-	createFFT = true;
 	//debugR2C = fopen("/tmp/debugfile.dat","wb");
 	_samplesSinceLastTimestamp = 0;
 
@@ -123,10 +119,6 @@ void DataConverter_i::_constructor_(){
 	//fftw_init_threads();
 	//fftw_plan_with_nthreads(FFTW_NUMBER_THREADS);
 	mixerPhase = 0;
-
-    addPropertyChangeListener("transformProperties", this, &DataConverter_i::transformPropertiesChanged);
-    addPropertyChangeListener("maxTransferSize", this, &DataConverter_i::maxTransferSizeChanged);
-    addPropertyChangeListener("outputType", this, &DataConverter_i::outputTypeChanged);
     
     _outDoublePort = new OutDoublePortUsingFloats("dataDouble_out");
     addPort("dataDouble_out", _outDoublePort);
@@ -134,6 +126,15 @@ void DataConverter_i::_constructor_(){
     //registerOutPort(_outDoublePort, _outDoublePort->_this());
     
     currSRIPtr = 0;
+
+    _transferSize = maxTransferSize;
+	createMEM = true;
+	createFFT = true;
+
+    addPropertyChangeListener("transformProperties", this, &DataConverter_i::transformPropertiesChanged);
+    addPropertyChangeListener("maxTransferSize", this, &DataConverter_i::maxTransferSizeChanged);
+    addPropertyChangeListener("outputType", this, &DataConverter_i::outputTypeChanged);
+
 }
 
 void DataConverter_i::createMemory(int bufferSize){
@@ -482,8 +483,8 @@ void DataConverter_i::configureSRI(BULKIO::StreamSRI *sri, bool incomingSRI) {
 			cf_offset = -sampleRate/4;
 			sampleRate = sampleRate/2;
 		}
-		else
-			sampleRate = sampleRate;
+		//else
+		//	sampleRate = sampleRate;
 		sri->xdelta = 1.0/sampleRate;
 	}
 

@@ -44,12 +44,19 @@ class DataConverter_base : public Component, protected ThreadedComponent
 
     protected:
         // Member variables exposed as properties
+        /// Property: outputType
         short outputType;
+        /// Property: maxTransferSize
         CORBA::Long maxTransferSize;
+        /// Property: scaleOutput
         scaleOutput_struct scaleOutput;
+        /// Property: normalize_floating_point
         normalize_floating_point_struct normalize_floating_point;
+        /// Property: floatingPointRange
         floatingPointRange_struct floatingPointRange;
+        /// Property: advancedSRI
         advancedSRI_struct advancedSRI;
+        /// Property: transformProperties
         transformProperties_struct transformProperties;
 
         // Ports

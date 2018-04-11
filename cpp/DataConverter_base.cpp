@@ -129,7 +129,7 @@ void DataConverter_base::loadProperties()
                 "readwrite",
                 "",
                 "external",
-                "configure");
+                "property");
 
     addProperty(maxTransferSize,
                 0,
@@ -138,7 +138,7 @@ void DataConverter_base::loadProperties()
                 "readwrite",
                 "samples",
                 "external",
-                "configure");
+                "property");
 
     addProperty(scaleOutput,
                 scaleOutput_struct(),
@@ -147,7 +147,7 @@ void DataConverter_base::loadProperties()
                 "readwrite",
                 "",
                 "external",
-                "configure");
+                "property");
 
     addProperty(normalize_floating_point,
                 normalize_floating_point_struct(),
@@ -156,7 +156,7 @@ void DataConverter_base::loadProperties()
                 "readwrite",
                 "",
                 "external",
-                "configure");
+                "property");
 
     addProperty(floatingPointRange,
                 floatingPointRange_struct(),
@@ -165,7 +165,7 @@ void DataConverter_base::loadProperties()
                 "readwrite",
                 "",
                 "external",
-                "configure");
+                "property");
 
     addProperty(advancedSRI,
                 advancedSRI_struct(),
@@ -174,7 +174,7 @@ void DataConverter_base::loadProperties()
                 "readwrite",
                 "",
                 "external",
-                "configure");
+                "property");
 
     addProperty(transformProperties,
                 transformProperties_struct(),
@@ -183,7 +183,7 @@ void DataConverter_base::loadProperties()
                 "readwrite",
                 "",
                 "external",
-                "configure");
+                "property");
 
 }
 

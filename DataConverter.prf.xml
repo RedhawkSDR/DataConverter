@@ -28,14 +28,14 @@
       <enumeration label="Real" value="1"/>
       <enumeration label="PassThrough" value="0"/>
     </enumerations>
-    <kind kindtype="configure"/>
+    <kind kindtype="property"/>
     <action type="external"/>
   </simple>
   <simple id="maxTransferSize" mode="readwrite" type="long">
     <description>This property limits the maximum size of the output transfer.  If this value is set to 0 (default) the number samples of the output will mimic the number of samples of the input, unless it happens to exceed the corba transfer limit of 2MB.  </description>
     <value>0</value>
     <units>samples</units>
-    <kind kindtype="configure"/>
+    <kind kindtype="property"/>
     <action type="external"/>
   </simple>
   <struct id="scaleOutput" mode="readwrite">
@@ -62,7 +62,7 @@
       <kind kindtype="configure"/>
       <action type="external"/>
     </simple>
-    <configurationkind kindtype="configure"/>
+    <configurationkind kindtype="property"/>
   </struct>
   <struct id="normalize_floating_point" mode="readwrite">
     <description>These values set if the input or output float port values shall be between -1 and 1. Applies to both Float and Double types.</description>
@@ -76,7 +76,7 @@
       <kind kindtype="configure"/>
       <action type="external"/>
     </simple>
-    <configurationkind kindtype="configure"/>
+    <configurationkind kindtype="property"/>
   </struct>
   <struct id="floatingPointRange" mode="readwrite">
     <description>These values specify the range of the floating point values on the input.</description>
@@ -90,7 +90,7 @@
       <kind kindtype="configure"/>
       <action type="external"/>
     </simple>
-    <configurationkind kindtype="configure"/>
+    <configurationkind kindtype="property"/>
   </struct>
   <struct id="advancedSRI" mode="readwrite">
     <description>These are used in the real-to-complex and complex-to-real to correct the col_rf and chan_rf keywords due to inherent frequency translation.</description>
@@ -104,7 +104,7 @@
       <kind kindtype="configure"/>
       <action type="external"/>
     </simple>
-    <configurationkind kindtype="configure"/>
+    <configurationkind kindtype="property"/>
   </struct>
   <struct id="transformProperties" mode="readwrite">
     <description>Used only in real-to-complex and complex-to-real cases to setup transform unique properties.</description>
@@ -143,6 +143,6 @@
       <kind kindtype="configure"/>
       <action type="external"/>
     </simple>
-    <configurationkind kindtype="configure"/>
+    <configurationkind kindtype="property"/>
   </struct>
 </properties>

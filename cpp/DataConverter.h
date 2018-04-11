@@ -63,13 +63,13 @@ class DataConverter_i : public DataConverter_base {
 public:
     DataConverter_i(const char *uuid, const char *label);
     ~DataConverter_i();
-    void _constructor_();
     //template <class IN_PORT_TYPE> bool singleService(IN_PORT_TYPE *dataPortIn);
     //template <typename OUT_TYPE, typename IN_TYPE, typename IN_TYPE_ALLOC, class OUT> void pushDataService(std::vector<IN_TYPE, IN_TYPE_ALLOC> *data, OUT *output, bool EOS, BULKIO::PrecisionUTCTime& tt, std::string streamID, bool scaled);
     void transformPropertiesChanged(const transformProperties_struct* oldVal, const transformProperties_struct* newVal);
     void maxTransferSizeChanged(const CORBA::Long* oldVal, const CORBA::Long* newVal);
     void outputTypeChanged(const short* oldVal, const short* newVal);
     int serviceFunction();
+    void constructor();
 
 private:
     FILE* debugR2C;
