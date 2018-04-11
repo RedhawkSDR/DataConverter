@@ -25,7 +25,7 @@
 int main(int argc, char* argv[])
 {
     DataConverter_i* DataConverter_servant;
-    Resource_impl::start_component(DataConverter_servant, argc, argv);
+    Component::start_component(DataConverter_servant, argc, argv);
     return 0;
 }
 

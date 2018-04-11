@@ -410,12 +410,12 @@ void DataConverter_i::createFilter(){
 int DataConverter_i::serviceFunction()
 {
 	bool retService;
-	retService = singleService(dataChar);
-	retService = retService || singleService(dataOctet);
-	retService = retService || singleService(dataShort);
-	retService = retService || singleService(dataUshort);
-	retService = retService || singleService(dataFloat);
-	retService = retService || singleService(dataDouble);
+	retService = singleService(dataChar_in);
+	retService = retService || singleService(dataOctet_in);
+	retService = retService || singleService(dataShort_in);
+	retService = retService || singleService(dataUshort_in);
+	retService = retService || singleService(dataFloat_in);
+	retService = retService || singleService(dataDouble_in);
 
 	if (retService) {
 		return NORMAL;

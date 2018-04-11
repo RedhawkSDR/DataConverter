@@ -18,17 +18,17 @@
  * along with this program.  If not, see http://www.gnu.org/licenses/.
  */
 
-#ifndef DATACONVERTER_IMPL_BASE_H
-#define DATACONVERTER_IMPL_BASE_H
+#ifndef DATACONVERTER_BASE_IMPL_BASE_H
+#define DATACONVERTER_BASE_IMPL_BASE_H
 
 #include <boost/thread.hpp>
-#include <ossie/Resource_impl.h>
+#include <ossie/Component.h>
 #include <ossie/ThreadedComponent.h>
 
 #include <bulkio/bulkio.h>
 #include "struct_props.h"
 
-class DataConverter_base : public Resource_impl, protected ThreadedComponent
+class DataConverter_base : public Component, protected ThreadedComponent
 {
     public:
         DataConverter_base(const char *uuid, const char *label);
@@ -53,19 +53,31 @@ class DataConverter_base : public Resource_impl, protected ThreadedComponent
         transformProperties_struct transformProperties;
 
         // Ports
-        bulkio::InCharPort *dataChar;
-        bulkio::InOctetPort *dataOctet;
-        bulkio::InShortPort *dataShort;
-        bulkio::InUShortPort *dataUshort;
-        bulkio::InFloatPort *dataFloat;
-        bulkio::InDoublePort *dataDouble;
+        /// Port: dataChar_in
+        bulkio::InCharPort *dataChar_in;
+        /// Port: dataOctet_in
+        bulkio::InOctetPort *dataOctet_in;
+        /// Port: dataShort_in
+        bulkio::InShortPort *dataShort_in;
+        /// Port: dataUshort_in
+        bulkio::InUShortPort *dataUshort_in;
+        /// Port: dataFloat_in
+        bulkio::InFloatPort *dataFloat_in;
+        /// Port: dataDouble_in
+        bulkio::InDoublePort *dataDouble_in;
+        /// Port: dataChar_out
         bulkio::OutCharPort *dataChar_out;
+        /// Port: dataOctet_out
         bulkio::OutOctetPort *dataOctet_out;
+        /// Port: dataShort_out
         bulkio::OutShortPort *dataShort_out;
+        /// Port: dataUshort_out
         bulkio::OutUShortPort *dataUshort_out;
+        /// Port: dataFloat_out
         bulkio::OutFloatPort *dataFloat_out;
+        /// Port: dataDouble_out
         bulkio::OutDoublePort *dataDouble_out;
 
     private:
 };
-#endif // DATACONVERTER_IMPL_BASE_H
+#endif // DATACONVERTER_BASE_IMPL_BASE_H

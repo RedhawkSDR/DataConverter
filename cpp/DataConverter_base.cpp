@@ -31,51 +31,51 @@
 ******************************************************************************************/
 
 DataConverter_base::DataConverter_base(const char *uuid, const char *label) :
-    Resource_impl(uuid, label),
+    Component(uuid, label),
     ThreadedComponent()
 {
     loadProperties();
 
-    dataChar = new bulkio::InCharPort("dataChar");
-    addPort("dataChar", dataChar);
-    dataOctet = new bulkio::InOctetPort("dataOctet");
-    addPort("dataOctet", dataOctet);
-    dataShort = new bulkio::InShortPort("dataShort");
-    addPort("dataShort", dataShort);
-    dataUshort = new bulkio::InUShortPort("dataUshort");
-    addPort("dataUshort", dataUshort);
-    dataFloat = new bulkio::InFloatPort("dataFloat");
-    addPort("dataFloat", dataFloat);
-    dataDouble = new bulkio::InDoublePort("dataDouble");
-    addPort("dataDouble", dataDouble);
+    dataChar_in = new bulkio::InCharPort("dataChar_in");
+    addPort("dataChar_in", "Char input port for data.", dataChar_in);
+    dataOctet_in = new bulkio::InOctetPort("dataOctet_in");
+    addPort("dataOctet_in", "Octet input port for data.", dataOctet_in);
+    dataShort_in = new bulkio::InShortPort("dataShort_in");
+    addPort("dataShort_in", "Short input port for data.", dataShort_in);
+    dataUshort_in = new bulkio::InUShortPort("dataUshort_in");
+    addPort("dataUshort_in", "Unsigned Short input port for data.", dataUshort_in);
+    dataFloat_in = new bulkio::InFloatPort("dataFloat_in");
+    addPort("dataFloat_in", "Float input port for data.", dataFloat_in);
+    dataDouble_in = new bulkio::InDoublePort("dataDouble_in");
+    addPort("dataDouble_in", "Double input port for data.", dataDouble_in);
     dataChar_out = new bulkio::OutCharPort("dataChar_out");
-    addPort("dataChar_out", dataChar_out);
+    addPort("dataChar_out", "Char output port for data.", dataChar_out);
     dataOctet_out = new bulkio::OutOctetPort("dataOctet_out");
-    addPort("dataOctet_out", dataOctet_out);
+    addPort("dataOctet_out", "Octet output port for data.", dataOctet_out);
     dataShort_out = new bulkio::OutShortPort("dataShort_out");
-    addPort("dataShort_out", dataShort_out);
+    addPort("dataShort_out", "Short output port for data.", dataShort_out);
     dataUshort_out = new bulkio::OutUShortPort("dataUshort_out");
-    addPort("dataUshort_out", dataUshort_out);
+    addPort("dataUshort_out", "Unsigned Short output port for data.", dataUshort_out);
     dataFloat_out = new bulkio::OutFloatPort("dataFloat_out");
-    addPort("dataFloat_out", dataFloat_out);
+    addPort("dataFloat_out", "Float output port for data.", dataFloat_out);
     dataDouble_out = new bulkio::OutDoublePort("dataDouble_out");
-    addPort("dataDouble_out", dataDouble_out);
+    addPort("dataDouble_out", "Double output port for data.", dataDouble_out);
 }
 
 DataConverter_base::~DataConverter_base()
 {
-    delete dataChar;
-    dataChar = 0;
-    delete dataOctet;
-    dataOctet = 0;
-    delete dataShort;
-    dataShort = 0;
-    delete dataUshort;
-    dataUshort = 0;
-    delete dataFloat;
-    dataFloat = 0;
-    delete dataDouble;
-    dataDouble = 0;
+    delete dataChar_in;
+    dataChar_in = 0;
+    delete dataOctet_in;
+    dataOctet_in = 0;
+    delete dataShort_in;
+    dataShort_in = 0;
+    delete dataUshort_in;
+    dataUshort_in = 0;
+    delete dataFloat_in;
+    dataFloat_in = 0;
+    delete dataDouble_in;
+    dataDouble_in = 0;
     delete dataChar_out;
     dataChar_out = 0;
     delete dataOctet_out;
@@ -96,13 +96,13 @@ DataConverter_base::~DataConverter_base()
 *******************************************************************************************/
 void DataConverter_base::start() throw (CORBA::SystemException, CF::Resource::StartError)
 {
-    Resource_impl::start();
+    Component::start();
     ThreadedComponent::startThread();
 }
 
 void DataConverter_base::stop() throw (CORBA::SystemException, CF::Resource::StopError)
 {
-    Resource_impl::stop();
+    Component::stop();
     if (!ThreadedComponent::stopThread()) {
         throw CF::Resource::StopError(CF::CF_NOTSET, "Processing thread did not die");
     }
@@ -117,7 +117,7 @@ void DataConverter_base::releaseObject() throw (CORBA::SystemException, CF::Life
         // TODO - this should probably be logged instead of ignored
     }
 
-    Resource_impl::releaseObject();
+    Component::releaseObject();
 }
 
 void DataConverter_base::loadProperties()

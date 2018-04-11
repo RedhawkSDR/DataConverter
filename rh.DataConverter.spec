@@ -30,8 +30,8 @@ Prefix:         %{_prefix}
 %define _infodir       %{_prefix}/info
 
 Name:           rh.DataConverter
-Version:        4.0.4
-Release:        2%{?dist}
+Version:        5.0.0
+Release:        1%{?dist}
 Summary:        Component %{name}
 
 Group:          REDHAWK/Components
@@ -41,6 +41,7 @@ BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires:  redhawk-devel >= 2.0
 Requires:       redhawk >= 2.0
+
 
 # Interface requirements
 BuildRequires:  bulkioInterfaces >= 2.0
@@ -93,6 +94,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,redhawk,redhawk,-)
+%dir %{_prefix}/dom/components/rh
 %dir %{_prefix}/dom/components/rh/DataConverter
 %{_prefix}/dom/components/rh/DataConverter/DataConverter.scd.xml
 %{_prefix}/dom/components/rh/DataConverter/DataConverter.prf.xml
