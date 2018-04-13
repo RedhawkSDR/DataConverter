@@ -19,6 +19,7 @@
 AC_INIT(rh.DataConverter, 5.0.0)
 AM_INIT_AUTOMAKE([nostdinc foreign])
 AC_CONFIG_MACRO_DIR([m4])
+LT_INIT([dlopen])
 
 m4_ifdef([AC_USE_INTEL],[AC_USE_INTEL])
 AC_PROG_CC

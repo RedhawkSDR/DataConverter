@@ -34,9 +34,9 @@
   </descriptor>
   <implementation id="cpp">
     <description>The implementation contains descriptive information about the template for a software component.</description>
-    <code type="Executable">
-      <localfile name="cpp/DataConverter"/>
-      <entrypoint>cpp/DataConverter</entrypoint>
+    <code type="SharedLibrary">
+      <localfile name="cpp/DataConverter.so"/>
+      <entrypoint>cpp/DataConverter.so</entrypoint>
     </code>
     <compiler name="/usr/bin/gcc" version="4.1.2"/>
     <programminglanguage name="C++"/>
