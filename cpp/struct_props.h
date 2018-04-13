@@ -38,11 +38,15 @@ struct scaleOutput_struct {
         octetPort = true;
         shortPort = true;
         ushortPort = true;
-    };
+    }
 
     static std::string getId() {
         return std::string("scaleOutput");
-    };
+    }
+
+    static const char* getFormat() {
+        return "bbbb";
+    }
 
     bool charPort;
     bool octetPort;
@@ -103,11 +107,15 @@ struct normalize_floating_point_struct {
     {
         input = true;
         output = true;
-    };
+    }
 
     static std::string getId() {
         return std::string("normalize_floating_point");
-    };
+    }
+
+    static const char* getFormat() {
+        return "bb";
+    }
 
     bool input;
     bool output;
@@ -152,11 +160,15 @@ struct floatingPointRange_struct {
     {
         minimum = 0.0;
         maximum = 3.402823466e38;
-    };
+    }
 
     static std::string getId() {
         return std::string("floatingPointRange");
-    };
+    }
+
+    static const char* getFormat() {
+        return "dd";
+    }
 
     double minimum;
     double maximum;
@@ -201,11 +213,15 @@ struct advancedSRI_struct {
     {
         update_col_rf_keyword = true;
         update_chan_rf_keyword = true;
-    };
+    }
 
     static std::string getId() {
         return std::string("advancedSRI");
-    };
+    }
+
+    static const char* getFormat() {
+        return "bb";
+    }
 
     bool update_col_rf_keyword;
     bool update_chan_rf_keyword;
@@ -254,11 +270,15 @@ struct transformProperties_struct {
         lowCutoff = .001;
         highCutoff = .499;
         transitionWidth = .001;
-    };
+    }
 
     static std::string getId() {
         return std::string("transformProperties");
-    };
+    }
+
+    static const char* getFormat() {
+        return "bidddd";
+    }
 
     bool tune_fs_over_4;
     CORBA::Long fftSize;

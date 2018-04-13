@@ -39,13 +39,13 @@ License:        GPLv3+
 Source0:        %{name}-%{version}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
-BuildRequires:  redhawk-devel >= 2.0
-Requires:       redhawk >= 2.0
+BuildRequires:  redhawk-devel >= 2.1
+Requires:       redhawk >= 2.1
 
 
 # Interface requirements
-BuildRequires:  bulkioInterfaces >= 2.0
-Requires:       bulkioInterfaces >= 2.0
+BuildRequires:  bulkioInterfaces >= 2.1
+Requires:       bulkioInterfaces >= 2.1
 
 # C++ requirements
 BuildRequires:  fftw-devel >= 3.2
@@ -94,8 +94,8 @@ rm -rf $RPM_BUILD_ROOT
 
 %files
 %defattr(-,redhawk,redhawk,-)
-%dir %{_prefix}/dom/components/rh
-%dir %{_prefix}/dom/components/rh/DataConverter
+%dir %{_sdrroot}/dom/components/rh
+%dir %{_sdrroot}/dom/components/rh/DataConverter
 %{_prefix}/dom/components/rh/DataConverter/DataConverter.scd.xml
 %{_prefix}/dom/components/rh/DataConverter/DataConverter.prf.xml
 %{_prefix}/dom/components/rh/DataConverter/DataConverter.spd.xml

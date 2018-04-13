@@ -34,6 +34,8 @@ DataConverter_base::DataConverter_base(const char *uuid, const char *label) :
     Component(uuid, label),
     ThreadedComponent()
 {
+    setThreadName(label);
+
     loadProperties();
 
     dataChar_in = new bulkio::InCharPort("dataChar_in");
@@ -64,29 +66,29 @@ DataConverter_base::DataConverter_base(const char *uuid, const char *label) :
 
 DataConverter_base::~DataConverter_base()
 {
-    delete dataChar_in;
+    dataChar_in->_remove_ref();
     dataChar_in = 0;
-    delete dataOctet_in;
+    dataOctet_in->_remove_ref();
     dataOctet_in = 0;
-    delete dataShort_in;
+    dataShort_in->_remove_ref();
     dataShort_in = 0;
-    delete dataUshort_in;
+    dataUshort_in->_remove_ref();
     dataUshort_in = 0;
-    delete dataFloat_in;
+    dataFloat_in->_remove_ref();
     dataFloat_in = 0;
-    delete dataDouble_in;
+    dataDouble_in->_remove_ref();
     dataDouble_in = 0;
-    delete dataChar_out;
+    dataChar_out->_remove_ref();
     dataChar_out = 0;
-    delete dataOctet_out;
+    dataOctet_out->_remove_ref();
     dataOctet_out = 0;
-    delete dataShort_out;
+    dataShort_out->_remove_ref();
     dataShort_out = 0;
-    delete dataUshort_out;
+    dataUshort_out->_remove_ref();
     dataUshort_out = 0;
-    delete dataFloat_out;
+    dataFloat_out->_remove_ref();
     dataFloat_out = 0;
-    delete dataDouble_out;
+    dataDouble_out->_remove_ref();
     dataDouble_out = 0;
 }
 

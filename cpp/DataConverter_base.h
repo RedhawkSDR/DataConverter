@@ -28,6 +28,15 @@
 #include <bulkio/bulkio.h>
 #include "struct_props.h"
 
+namespace enums {
+    // Enumerated values for outputType
+    namespace outputType {
+        static const short Complex = 2;
+        static const short Real = 1;
+        static const short PassThrough = 0;
+    }
+}
+
 class DataConverter_base : public Component, protected ThreadedComponent
 {
     public:

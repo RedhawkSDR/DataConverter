@@ -15,17 +15,15 @@
 # You should have received a copy of the GNU General Public License along with this 
 # program.  If not, see http://www.gnu.org/licenses/.
 #
-
-ossieName = rh.DataConverter
-bindir = $(prefix)/dom/components/rh/DataConverter/cpp/
-bin_PROGRAMS = DataConverter
-
-xmldir = $(prefix)/dom/components/rh/DataConverter/
-dist_xml_DATA = ../DataConverter.scd.xml ../DataConverter.prf.xml ../DataConverter.spd.xml
 ACLOCAL_AMFLAGS = -I m4 -I${OSSIEHOME}/share/aclocal/ossie
 AUTOMAKE_OPTIONS = subdir-objects
 
+ossieName = rh.DataConverter
+bindir = $(prefix)/dom/components/rh/DataConverter/cpp
+bin_PROGRAMS = DataConverter
 
+xmldir = $(prefix)/dom/components/rh/DataConverter
+dist_xml_DATA = ../DataConverter.scd.xml ../DataConverter.prf.xml ../DataConverter.spd.xml
 
 distclean-local:
 	rm -rf m4
