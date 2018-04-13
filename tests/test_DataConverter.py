@@ -60,7 +60,6 @@ def correlatewrap(data,filter,*args, **kwargs):
 if SCIPY_GREATER_08:
     scipy.signal.correlate = correlatewrap
 
-
 class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
     """Test for all component implementations in DataConverter"""
 
@@ -765,27 +764,41 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         t = np.arange(0,2*np.pi/400.,2*np.pi/400./32768)
         sint = np.sin(50000*t) * np.sin(1000*t)
         
-        src=sb.DataSource()#bytesPerPush=512 + 32)
-        snk=sb.DataSink()
-
-        src.connect(self.comp, "dataFloat_in")
-        self.comp.connect(snk, "floatIn")
+        streamID = "someSRI"
+        src=sb.StreamSource(format="float",streamID= streamID)
+        snk=sb.StreamSink()
+        
+        src.connect(self.comp,providesPortName = 'dataFloat_in')
+        self.comp.connect(snk,providesPortName='floatIn')
         
         sb.start()
-        src.push(data=sint.tolist(),EOS=True,complexData=False)
-        time.sleep(1)
-        result = snk.getData()
+
+        src.xdelta = 1.0
+        src.complex = 0
+        src.write(sint.tolist(),interleaved=False)
+        src.close()
+        count = 0
+        while (count < 100):
+            if streamID in snk.streamIDs():
+                break;
+            count+=1
+            time.sleep(0.05)
+
+        self.assertEqual(streamID in snk.streamIDs(),True, "Expected Stream Not Present")
+        streamdata = snk.read(timeout=1,streamID=streamID)
+        result = streamdata.data
         sb.stop()
         self.comp.log_level(CF.LogLevels.INFO)
         self.comp.releaseObject()
+
         self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
         
         nans = [1 for x in sint if x != x]
         print 'len sint, len nans:', len(sint), len(nans)
         nans = [1 for x in result if x != x]
         print 'len result, len nans:', len(result), len(nans)
-
-        res = np.array([np.complex(result[ii], result[ii+1]) for ii in np.arange(0,len(result)-1,2)])
+        
+        res = np.array([np.complex(result[i]) for i in range(0,len(result))])
         
         h=signal.hilbert(sint)
         hReal = h.real
@@ -922,22 +935,36 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
             outer[2*ii] = val.real
             outer[2*ii+1] = val.imag
 
-        # TODO Update to Source and Sink 
-        src=sb.DataSource()#bytesPerPush=512+32)
-        snk=sb.DataSink()
+
+        streamID = "someSRI"
+        src=sb.StreamSource(format="float",streamID= streamID)
+        snk=sb.StreamSink()
         
         src.connect(providesComponent=self.comp,providesPortName = 'dataFloat_in', usesPortName='floatOut')
         self.comp.connect(providesComponent=snk,providesPortName='floatIn',usesPortName='dataFloat_out')
         
         sb.start()
-        src.push(data=outer.tolist(),sampleRate=Fs,EOS=True,complexData=True)
-        time.sleep(1)
-        (result,tstamps) = (snk.getData(tstamps=True))
+
+        src.xdelta = 1.0/Fs
+        src.complex = 1
+        src.write(outer.tolist(),interleaved=True)
+        src.close()
+        count = 0
+        while (count < 100):
+            if streamID in snk.streamIDs():
+                break;
+            count+=1
+            time.sleep(0.05)
+
+        self.assertEqual(streamID in snk.streamIDs(),True, "Expected Stream Not Present")
+        streamdata = snk.read(timeout=1,streamID=streamID)
+        result = streamdata.data
+        tstamps = streamdata.timestamps
         sb.stop()
         self.comp.log_level(CF.LogLevels.INFO)
         self.comp.releaseObject()
         self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
-        
+
         # Stats Section
         avgOut = np.mean(result)
         avgKnown = np.mean(xo.real)
@@ -1494,9 +1521,10 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
     def testModeChangeR2CUpdatesSRI(self):
         print(sys._getframe().f_code.co_name)
         comp = sb.launch('../DataConverter.spd.xml')
-        # TODO Update to stream source and sink 
-        src=sb.DataSource()
-        snk=sb.DataSink()
+        
+        streamID = "someSRI"
+        src=sb.StreamSource(format="double",streamID= streamID)
+        snk=sb.StreamSink()
         
         src.connect(comp,'dataDouble_in')
         comp.connect(snk,'ushortIn')
@@ -1504,12 +1532,12 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         comp.transformProperties.fftSize = 512
         
         sb.start()
-        
-        streamID = "someSRI"
-        data = range(1024)
-        src.push(data,complexData=False, sampleRate=1.0, EOS=False, streamID=streamID)
+        data = range(10000)
 
-        # Wait for new SRI to take hold
+        src.setKeyword('kw1',1000)
+        src.xdelta = 1 
+        src.complex = 0
+        src.write(data,interleaved=False)
         count = 0
         while (count < 100):
             if (snk.sri().streamID == streamID):
@@ -1517,30 +1545,25 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
             count+=1
             time.sleep(0.05)
 
-        sri1 = snk.sri()
-        self.assertTrue(sri1.streamID == streamID)
-        self.assertTrue(sri1.mode == 0) # 0=Scalar/Real
-        #print 'len out 1', len(snk.getData())
+        self.assertEqual(streamID in snk.streamIDs(),True, "Expected Stream Not Present")
+        streamdata = snk.read(timeout=1,streamID=streamID)
+        
+        self.assertTrue(streamdata.streamID == streamID)
+        self.assertTrue(streamdata.sri.mode == 0) # 0=Real
 
         comp.outputType = 2 # 2=Complex
+        time.sleep(.1)
+        src.write(data,interleaved=False)
+
+        streamdata2 = snk.read(timeout=2,streamID=streamID)
+        self.assertEqual(streamID in snk.streamIDs(),True, "Expected Stream Not Present")
         
-        src.push(data,complexData=False, sampleRate=1.0, EOS=False, streamID=streamID)
-        #src.push(data,complexData=False, sampleRate=1.0, EOS=True, streamID=streamID)
+        if not streamdata2:
+            self.assertFalse(True, "Did not receive data")
         
-        # Wait for new SRI to take hold
-        count = 0
-        while (count < 100):
-            if (snk.sri().mode == 1):
-                break;
-            count+=1
-            time.sleep(0.05)
-        
-        sri2 = snk.sri()
-        #print 'len out 2', len(snk.getData())
-        
-        self.assertTrue(sri2.streamID == streamID)
-        self.assertTrue(sri2.mode == 1) # 1=Complex
-        
+        self.assertTrue(streamdata2.streamID == streamID)
+        self.assertTrue(streamdata2.sri.mode == 1) # 1=Complex
+
         sb.stop()
         comp.releaseObject()
     
@@ -1564,7 +1587,6 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         src.xdelta = 1.0 
         src.complex = 1
         src.write(data,interleaved=True)
-        # Wait for new SRI to take hold
         count = 0
         while (count < 100):
             if streamID in snk.streamIDs():
@@ -1573,21 +1595,20 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
             time.sleep(0.05)
 
         self.assertEqual(streamID in snk.streamIDs(),True, "Expected Stream Not Present")
-        streamdata = snk.read(timeout=1,streamID=streamID)
+        streamdata = snk.read(timeout=1,streamID=streamID)    
+        #print 'len out 1', len(streamdata.data)
         self.assertTrue(streamdata.streamID == streamID)
         #Defaults to pass through and input data is Complex
         self.assertTrue(streamdata.sri.mode == 1)
-        #print 'len out 1', len(streamdata.data))
-
         #Change output type to be real
-        comp.outputType = 1 # 1=Real
+        comp.outputType = 1 # 1=Real       
         time.sleep(.1)
         src.write(data,interleaved=True)
         streamdata2 = snk.read(timeout=2,streamID=streamID)
-        #print 'len out 2', len(streamdata.data)
+        #print 'len out 2', len(streamdata2.data)
         self.assertTrue(streamdata2.streamID == streamID)
         self.assertTrue(streamdata2.sri.mode == 0)
-        
+   
         sb.stop()
         comp.releaseObject()
 
@@ -1650,8 +1671,8 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         src2=sb.StreamSource(format="double",streamID= streamID2)
         snk=sb.StreamSink()
         
-        src.connect(comp,'dataDouble')
-        src2.connect(comp,'dataDouble')
+        src.connect(comp,'dataDouble_in')
+        src2.connect(comp,'dataDouble_in')
         comp.connect(snk,'ushortIn')
         
         sb.start()
@@ -1659,21 +1680,21 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         data = range(1024)
 
         src.setKeyword('kw1',1000)
-        src.xdelta = 1 
+        src.xdelta = 1
         src.complex = 1
         src.write(data,interleaved=True)
         #src.push(data,complexData=True, sampleRate=1.0, EOS=False, streamID=streamID,SRIKeywords=kws)    
         time.sleep(1)
         
         #Verify Output Data SRI
-        self.assertEqual(streamID in snk.streamIDs(),True, "Expected Stream Not Present")
+        self.assertEqual(streamID in snk.streamIDs(),True, msg="Expected Stream Not Present")
         streamdata = snk.read(timeout=1,streamID=streamID)
-        self.assertEqual(streamdata.streamID,streamID, "Output StreamID does not match")
-        self.assertEqual(streamdata.sri.mode, 1, "Output mode does not match, should be complex, mode=1")
-        self.assertEqual(streamdata.eos,False, "Stream sent an EOS")
-        self.assertAlmostEqual(streamdata.sri.xdelta, 1.0, "X-delta Does Not Match")
-        self.assertEqual(streamdata.sri.keywords[0].id, 'kw1', "Keyword id does not match expected")
-        self.assertEqual(any.from_any(streamdata.sri.keywords[0].value), 1000, "Keyword value does not match expected")
+        self.assertEqual(streamdata.streamID,streamID, msg="Output StreamID does not match")
+        self.assertEqual(streamdata.sri.mode, 1, msg="Output mode does not match, should be complex, mode=1")
+        self.assertEqual(streamdata.eos,False, msg="Stream sent an EOS")
+        self.assertAlmostEqual(streamdata.sri.xdelta, 1.0, msg="X-delta Does Not Match (%s)"%streamdata.sri.xdelta)
+        self.assertEqual(streamdata.sri.keywords[0].id, 'kw1', msg="Keyword id does not match expected")
+        self.assertEqual(any.from_any(streamdata.sri.keywords[0].value), 1000, msg="Keyword value does not match expected")
 
 
         #Push more Data with same stream ID no EOS 
@@ -1688,23 +1709,23 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         time.sleep(1)
          
         #  Verify all good output data.
-        self.assertEqual(streamID in snk.streamIDs(),True, "Expected Stream Not Present")
+        self.assertEqual(streamID in snk.streamIDs(),True, msg="Expected Stream Not Present")
         streamdata = snk.read(timeout=1,streamID=streamID)
-        self.assertEqual(streamdata.streamID,streamID, "Output StreamID does not match")
-        self.assertEqual(streamdata.sri.mode, 1, "Output mode does not match, should be complex, mode=1")
-        self.assertEqual(streamdata.eos,False, "Stream sent an EOS")
-        self.assertAlmostEqual(streamdata.sri.xdelta, 1.0, "X-delta Does Not Match")
-        self.assertEqual(streamdata.sri.keywords[0].id, 'kw1', "Keyword id does not match expected")
-        self.assertEqual(any.from_any(streamdata.sri.keywords[0].value), 1000, "Keyword value does not match expected")
+        self.assertEqual(streamdata.streamID,streamID, msg="Output StreamID does not match")
+        self.assertEqual(streamdata.sri.mode, 1, msg="Output mode does not match, should be complex, mode=1")
+        self.assertEqual(streamdata.eos,False, msg="Stream sent an EOS")
+        self.assertAlmostEqual(streamdata.sri.xdelta, 1.0, msg="X-delta Does Not Match")
+        self.assertEqual(streamdata.sri.keywords[0].id, 'kw1', msg="Keyword id does not match expected")
+        self.assertEqual(any.from_any(streamdata.sri.keywords[0].value), 1000, msg="Keyword value does not match expected")
  
-        self.assertEqual(streamID2 in snk.streamIDs(),True, "Expected Stream Not Present")
+        self.assertEqual(streamID2 in snk.streamIDs(),True, msg="Expected Stream Not Present")
         streamdata = snk.read(timeout=1,streamID=streamID2)
-        self.assertEqual(streamdata.streamID,streamID2, "Output StreamID does not match")
-        self.assertEqual(streamdata.sri.mode, 1, "Output mode does not match, should be complex, mode=1")
-        self.assertEqual(streamdata.eos,False, "Stream sent an EOS")
-        self.assertAlmostEqual(streamdata.sri.xdelta, 1.0, "X-delta Does Not Match")
-        self.assertEqual(streamdata.sri.keywords[0].id, 'kw1', "Keyword id does not match expected")
-        self.assertEqual(any.from_any(streamdata.sri.keywords[0].value), 1000, "Keyword value does not match expected")        
+        self.assertEqual(streamdata.streamID,streamID2, msg="Output StreamID does not match")
+        self.assertEqual(streamdata.sri.mode, 1, msg="Output mode does not match, should be complex, mode=1")
+        self.assertEqual(streamdata.eos,False, msg="Stream sent an EOS")
+        self.assertAlmostEqual(streamdata.sri.xdelta, 1.0, msg="X-delta Does Not Match")
+        self.assertEqual(streamdata.sri.keywords[0].id, 'kw1', msg="Keyword id does not match expected")
+        self.assertEqual(any.from_any(streamdata.sri.keywords[0].value), 1000, msg="Keyword value does not match expected")
          
         # Stop Component
         comp.stop()        
@@ -1727,23 +1748,23 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         
         time.sleep(1)        
         # Verify Output Data and SRI, EOS   
-        self.assertEqual(streamID in snk.streamIDs(),True, "Expected Stream Not Present")
+        self.assertEqual(streamID in snk.streamIDs(),True, msg="Expected Stream Not Present")
         streamdata = snk.read(timeout=1,streamID=streamID)
-        self.assertEqual(streamdata.streamID,streamID, "Output StreamID does not match")
-        self.assertEqual(streamdata.sri.mode, 1, "Output mode does not match, should be complex, mode=1")
-        self.assertEqual(streamdata.eos,True, "Stream sent an EOS")
-        self.assertAlmostEqual(streamdata.sri.xdelta, 0.5, "X-delta Does Not Match")
-        self.assertEqual(streamdata.sri.keywords[0].id, 'kw2', "Keyword id does not match expected")
-        self.assertEqual(any.from_any(streamdata.sri.keywords[0].value), 2000, "Keyword value does not match expected")
+        self.assertEqual(streamdata.streamID,streamID, msg="Output StreamID does not match")
+        self.assertEqual(streamdata.sri.mode, 1, msg="Output mode does not match, should be complex, mode=1")
+        self.assertEqual(streamdata.eos,True, msg="Stream sent an EOS")
+        self.assertAlmostEqual(streamdata.sri.xdelta, 0.5, msg="X-delta Does Not Match")
+        self.assertEqual(streamdata.sri.keywords[0].id, 'kw2', msg="Keyword id does not match expected")
+        self.assertEqual(any.from_any(streamdata.sri.keywords[0].value), 2000, msg="Keyword value does not match expected")
  
-        self.assertEqual(streamID2 in snk.streamIDs(),True, "Expected Stream Not Present")
+        self.assertEqual(streamID2 in snk.streamIDs(),True, msg="Expected Stream Not Present")
         streamdata = snk.read(timeout=1,streamID=streamID2)
-        self.assertEqual(streamdata.streamID,streamID2, "Output StreamID does not match")
-        self.assertEqual(streamdata.sri.mode, 1, "Output mode does not match, should be complex, mode=1")
-        self.assertEqual(streamdata.eos,False, "Stream sent an EOS")
-        self.assertAlmostEqual(streamdata.sri.xdelta, 1.0, "X-delta Does Not Match")
-        self.assertEqual(streamdata.sri.keywords[0].id, 'kw1', "Keyword id does not match expected")
-        self.assertEqual(any.from_any(streamdata.sri.keywords[0].value), 1000, "Keyword value does not match expected") 
+        self.assertEqual(streamdata.streamID,streamID2, msg="Output StreamID does not match")
+        self.assertEqual(streamdata.sri.mode, 1, msg="Output mode does not match, should be complex, mode=1")
+        self.assertEqual(streamdata.eos,False, msg="Stream sent an EOS")
+        self.assertAlmostEqual(streamdata.sri.xdelta, 1.0, msg="X-delta Does Not Match")
+        self.assertEqual(streamdata.sri.keywords[0].id, 'kw1', msg="Keyword id does not match expected")
+        self.assertEqual(any.from_any(streamdata.sri.keywords[0].value), 1000, msg="Keyword value does not match expected")
          
         # Stop Component and push data without SRI updates. 
         comp.stop()
@@ -1753,14 +1774,14 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         comp.start()
         time.sleep(1)
  
-        self.assertEqual(streamID2 in snk.streamIDs(),True, "Expected Stream Not Present")
+        self.assertEqual(streamID2 in snk.streamIDs(),True, msg="Expected Stream Not Present")
         streamdata = snk.read(timeout=1,streamID=streamID2)
-        self.assertEqual(streamdata.streamID,streamID2, "Output StreamID does not match")
-        self.assertEqual(streamdata.sri.mode, 1, "Output mode does not match, should be complex, mode=1")
-        self.assertEqual(streamdata.eos,False, "Stream sent an EOS")
-        self.assertAlmostEqual(streamdata.sri.xdelta, 1.0, "X-delta Does Not Match")
-        self.assertEqual(streamdata.sri.keywords[0].id, 'kw1', "Keyword id does not match expected")
-        self.assertEqual(any.from_any(streamdata.sri.keywords[0].value), 1000, "Keyword value does not match expected") 
+        self.assertEqual(streamdata.streamID,streamID2, msg="Output StreamID does not match")
+        self.assertEqual(streamdata.sri.mode, 1, msg="Output mode does not match, should be complex, mode=1")
+        self.assertEqual(streamdata.eos,False, msg="Stream sent an EOS")
+        self.assertAlmostEqual(streamdata.sri.xdelta, 1.0, msg="X-delta Does Not Match")
+        self.assertEqual(streamdata.sri.keywords[0].id, 'kw1', msg="Keyword id does not match expected")
+        self.assertEqual(any.from_any(streamdata.sri.keywords[0].value), 1000, msg="Keyword value does not match expected")
          
         sb.stop()
         comp.releaseObject()
