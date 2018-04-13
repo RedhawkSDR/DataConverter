@@ -28,6 +28,11 @@
 #include "mathOptimizations.h"
 #include <fftw3.h>
 #include "R2C.h"
+#include <boost/thread/mutex.hpp>
+
+namespace {
+    static boost::mutex fftw_plan_mutex;
+}
 
 class OutDoublePortUsingFloats : public bulkio::OutDoublePort {
 

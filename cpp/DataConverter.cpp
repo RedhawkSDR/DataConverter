@@ -64,15 +64,18 @@ DataConverter_i::~DataConverter_i()
     if (filter  != NULL)
         delete filter;
 
-    if (r2c != NULL)
-        fftwf_destroy_plan(r2c);
-    if (c2c_r != NULL)
-        fftwf_destroy_plan(c2c_r);
-    if (c2c_f != NULL)
-        fftwf_destroy_plan(c2c_f);
-    if (c2c_r2 != NULL)
-        fftwf_destroy_plan(c2c_r2);
-    fftwf_cleanup();
+    {
+        boost::mutex::scoped_lock lock(fftw_plan_mutex);
+        if (r2c != NULL)
+            fftwf_destroy_plan(r2c);
+        if (c2c_r != NULL)
+            fftwf_destroy_plan(c2c_r);
+        if (c2c_f != NULL)
+            fftwf_destroy_plan(c2c_f);
+        if (c2c_r2 != NULL)
+            fftwf_destroy_plan(c2c_r2);
+        fftwf_cleanup();
+    }
 }
 
 void DataConverter_i::constructor(){
@@ -165,14 +168,17 @@ void DataConverter_i::createFFTroute(int bufferSize){
         fftwf_free(transformedRBuffer);
     if (upsampled != NULL)
         fftwf_free(upsampled);
-    if (r2c != NULL)
-        fftwf_destroy_plan(r2c);
-    if (c2c_r != NULL)
-        fftwf_destroy_plan(c2c_r);
-    if (c2c_f != NULL)
-        fftwf_destroy_plan(c2c_f);
-    if (c2c_r2 != NULL)
-        fftwf_destroy_plan(c2c_r2);
+    {
+        boost::mutex::scoped_lock lock(fftw_plan_mutex);
+        if (r2c != NULL)
+            fftwf_destroy_plan(r2c);
+        if (c2c_r != NULL)
+            fftwf_destroy_plan(c2c_r);
+        if (c2c_f != NULL)
+            fftwf_destroy_plan(c2c_f);
+        if (c2c_r2 != NULL)
+            fftwf_destroy_plan(c2c_r2);
+    }
 
     //initialize all pointers to NULL
     fftBuffer = NULL;
@@ -198,17 +204,22 @@ void DataConverter_i::createFFTroute(int bufferSize){
         r2cTempBuffer = (fftwf_complex*)fftwf_malloc(sizeof(fftwf_complex)*transformProperties.fftSize);
         workingBuffer = (fftwf_complex*) fftwf_malloc(sizeof(fftwf_complex)*bufferSize);
         transformedBuffer  = (fftwf_complex*) fftwf_malloc(sizeof(fftwf_complex)*bufferSize);
-        r2c = fftwf_plan_dft_r2c_1d(transformProperties.fftSize, (float*)&fftBuffer[0], workingBuffer, MY_FFTW_FLAGS);
-        c2c_r = fftwf_plan_dft_1d(transformProperties.fftSize, r2cTempBuffer, complexTempBuffer, FFTW_BACKWARD, MY_FFTW_FLAGS);
-
+        {
+            boost::mutex::scoped_lock lock(fftw_plan_mutex);
+            r2c = fftwf_plan_dft_r2c_1d(transformProperties.fftSize, (float*)&fftBuffer[0], workingBuffer, MY_FFTW_FLAGS);
+            c2c_r = fftwf_plan_dft_1d(transformProperties.fftSize, r2cTempBuffer, complexTempBuffer, FFTW_BACKWARD, MY_FFTW_FLAGS);
+        }
     } else {
         upsampled = (fftwf_complex*) fftwf_malloc(sizeof(fftwf_complex)*transformProperties.fftSize*2);
         complexTempBuffer = (fftwf_complex*)fftwf_malloc(sizeof(fftwf_complex)*transformProperties.fftSize*2);
         transformedRBuffer = (float*)fftwf_malloc(sizeof(float)*bufferSize*2);
         workingBuffer = (fftwf_complex*) fftwf_malloc(sizeof(fftwf_complex)*transformProperties.fftSize);
         transformedBuffer  = (fftwf_complex*) fftwf_malloc(sizeof(fftwf_complex)*transformProperties.fftSize);
-        c2c_f  = fftwf_plan_dft_1d(transformProperties.fftSize, fftBuffer, workingBuffer, FFTW_FORWARD, MY_FFTW_FLAGS);
-        c2c_r2 = fftwf_plan_dft_1d(transformProperties.fftSize*2, upsampled, complexTempBuffer, FFTW_BACKWARD, MY_FFTW_FLAGS);
+        {
+            boost::mutex::scoped_lock lock(fftw_plan_mutex);
+            c2c_f  = fftwf_plan_dft_1d(transformProperties.fftSize, fftBuffer, workingBuffer, FFTW_FORWARD, MY_FFTW_FLAGS);
+            c2c_r2 = fftwf_plan_dft_1d(transformProperties.fftSize*2, upsampled, complexTempBuffer, FFTW_BACKWARD, MY_FFTW_FLAGS);
+        }
     }
     createFFT = false;
     createFilter();
