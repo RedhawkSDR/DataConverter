@@ -30,12 +30,12 @@
 #include "R2C.h"
 
 class OutDoublePortUsingFloats : public bulkio::OutDoublePort {
-    
-  public:
+
+public:
     OutDoublePortUsingFloats(std::string name) :
-      bulkio::OutDoublePort(name) 
+        bulkio::OutDoublePort(name)
     {}
-   
+
     void pushPacket(float* data, size_t size, BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamId) {
         std::vector<double> doubleVector;
         for (size_t i = 0; i < size; i++) {
@@ -43,7 +43,7 @@ class OutDoublePortUsingFloats : public bulkio::OutDoublePort {
         }
         bulkio::OutDoublePort::pushPacket(doubleVector, T, EOS, streamId);
     }
-    
+
     void pushPacket(std::vector<float, std::allocator<float> > data, BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamId) {
         std::vector<double> doubleVector(data.begin(), data.end());
         bulkio::OutDoublePort::pushPacket(doubleVector, T, EOS, streamId);
@@ -52,7 +52,6 @@ class OutDoublePortUsingFloats : public bulkio::OutDoublePort {
 
 
 #define IPP_NUMBER_THREADS 4
-#define CORBA_XFR_SIZE 2096640
 #define MY_FFTW_FLAGS (FFTW_MEASURE)
 #define N 1
 #define FFTW_NUMBER_THREADS 4
@@ -81,7 +80,7 @@ private:
     int fft_execute(float* data, int size, bool EOS);
     void updateTimeStamp();
     void moveTimeStamp(int shiftBack);
-    void adjustTimeStamp(BULKIO::PrecisionUTCTime& timestamp, BULKIO::PrecisionUTCTime& localtimestamp);
+    void adjustTimeStamp(const BULKIO::PrecisionUTCTime& timestamp, BULKIO::PrecisionUTCTime& localtimestamp);
 
     //FFT constants
     int _readIndex;
@@ -132,39 +131,33 @@ private:
     fftwf_plan c2c_r;
     fftwf_plan c2c_f;
 
-    //fftwf_complex* _in;
-    //fftwf_complex* _in_r;
-    //fftwf_complex* _out;
     fftwf_complex* complexTempBuffer;
     fftwf_complex* workingBuffer;
     fftwf_complex* tempBuffer;
     fftwf_complex* transferOut;
     float* fftRBuffer;
     fftwf_complex* fftBuffer;
-
     fftwf_complex* transformedBuffer;
     float* transformedRBuffer;
     float* floatBuffer;
     fftwf_complex* complexBuffer;
-
-
     fftwf_complex* r2cTempBuffer;
     fftwf_complex* upsampled;
     int dataAmount;
-    
+
     OutDoublePortUsingFloats* _outDoublePort;
 
     template <typename T>
     bool isFloatingType(T* type=NULL) {
         if (typeid (T) == typeid(float) ||
-            typeid (T) == typeid(double))
+                typeid (T) == typeid(double))
             return true;
         return false;
     }
-    
-    template <typename OUT_TYPE, typename IN_TYPE, typename IN_TYPE_ALLOC, typename OUT_PORT> 
+
+    template <typename OUT_TYPE, typename IN_TYPE, typename IN_TYPE_ALLOC, typename OUT_PORT>
     void pushDataService(std::vector<IN_TYPE, IN_TYPE_ALLOC> *data, OUT_PORT *output, bool EOS, BULKIO::PrecisionUTCTime& tt, std::string streamID, bool scaled) {
-        
+
         float sRange = float(std::numeric_limits<IN_TYPE>::max()) - float(std::numeric_limits<IN_TYPE>::min());
         float sMin = float(std::numeric_limits<IN_TYPE>::min());
         if (normalize_floating_point.input) {
@@ -184,9 +177,9 @@ private:
         unsigned int sized = data->size();
 
         int memoryFootPrint = 0;
-       
+
         if (output->isActive()) {
-             count++;
+            count++;
             if (createMEM || firstRun) {
                 memoryFootPrint = calculate_memorySize(sized);
                 createMemory(memoryFootPrint);
@@ -214,7 +207,7 @@ private:
 
                 if (sized > (unsigned int) _transferSize) {
                     int dataBufferS = 0;
-                    
+
                     dataBufferS = _transferSize;
                     int count = 0;
                     bool EOS_l = false;
@@ -315,15 +308,15 @@ private:
                     }
                 }
             }
-      }
-    };
+        }
+    }
 
     template <class IN_PORT_TYPE> bool singleService(IN_PORT_TYPE *dataPortIn) {
         boost::mutex::scoped_lock lock(property_lock);
 
         typename IN_PORT_TYPE::dataTransfer *packet = dataPortIn->getPacket(0);
         if (packet == NULL)
-            return false;    
+            return false;
         if (packet->inputQueueFlushed)
             std::cout << "INPUT QUEUE HAS FLUSHED!!!!!!" << std::endl;
         // Reconfigure if SRI Changed
@@ -341,10 +334,10 @@ private:
         }
 
         //typename IN_PORT_TYPE::dataTransfer::DataBufferType dataBuffer = packet->dataBuffer;
-        if (typeid(typename IN_PORT_TYPE::dataTransfer::DataBufferType::value_type) == typeid(double)) {           
+        if (typeid(typename IN_PORT_TYPE::dataTransfer::DataBufferType::value_type) == typeid(double)) {
             // Convert incoming doubles to floats
             std::vector<float> dataBuffer(packet->dataBuffer.begin(), packet->dataBuffer.end());
-            
+
             pushDataService<char>(&dataBuffer, dataChar_out, packet->EOS, _timestamp, packet->streamID, scaleOutput.charPort);
             pushDataService<unsigned char>(&dataBuffer, dataOctet_out, packet->EOS, _timestamp, packet->streamID, scaleOutput.octetPort);//,normalize_floating_point.normalized_input);
             pushDataService<short>(&dataBuffer, dataShort_out, packet->EOS, _timestamp, packet->streamID, scaleOutput.shortPort); //,normalize_floating_point.normalized_input);
@@ -360,13 +353,11 @@ private:
             pushDataService<float>(&dataBuffer, dataFloat_out, packet->EOS, _timestamp, packet->streamID,normalize_floating_point.output);//,normalize_floating_point.normalized_output);
             pushDataService<float>(&dataBuffer, _outDoublePort, packet->EOS, _timestamp, packet->streamID,normalize_floating_point.output);//,normalize_floating_point.normalized_output);
         }
-        
+
         /* delete the dataTransfer object */
         delete packet;
         return true;
-    };
-
-
+    }
 };
 
 #endif
