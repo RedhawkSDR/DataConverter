@@ -23,7 +23,6 @@
 
 #include "DataConverter_base.h"
 #include <ossie/prop_helpers.h>
-#include <vector>
 #include "dataTypeTransformOpt.h"
 #include "mathOptimizations.h"
 #include <fftw3.h>
@@ -33,28 +32,6 @@
 namespace {
     static boost::mutex fftw_plan_mutex;
 }
-
-class OutDoublePortUsingFloats : public bulkio::OutDoublePort {
-
-public:
-    OutDoublePortUsingFloats(std::string name) :
-        bulkio::OutDoublePort(name)
-    {}
-
-    void pushPacket(float* data, size_t size, BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamId) {
-        std::vector<double> doubleVector;
-        for (size_t i = 0; i < size; i++) {
-            doubleVector.push_back((double)data[i]);
-        }
-        bulkio::OutDoublePort::pushPacket(doubleVector, T, EOS, streamId);
-    }
-
-    void pushPacket(std::vector<float, std::allocator<float> > data, BULKIO::PrecisionUTCTime& T, bool EOS, const std::string& streamId) {
-        std::vector<double> doubleVector(data.begin(), data.end());
-        bulkio::OutDoublePort::pushPacket(doubleVector, T, EOS, streamId);
-    }
-};
-
 
 #define IPP_NUMBER_THREADS 4
 #define MY_FFTW_FLAGS (FFTW_MEASURE)
@@ -67,8 +44,6 @@ class DataConverter_i : public DataConverter_base {
 public:
     DataConverter_i(const char *uuid, const char *label);
     ~DataConverter_i();
-    //template <class IN_PORT_TYPE> bool singleService(IN_PORT_TYPE *dataPortIn);
-    //template <typename OUT_TYPE, typename IN_TYPE, typename IN_TYPE_ALLOC, class OUT> void pushDataService(std::vector<IN_TYPE, IN_TYPE_ALLOC> *data, OUT *output, bool EOS, BULKIO::PrecisionUTCTime& tt, std::string streamID, bool scaled);
     void transformPropertiesChanged(const transformProperties_struct* oldVal, const transformProperties_struct* newVal);
     void maxTransferSizeChanged(const CORBA::Long* oldVal, const CORBA::Long* newVal);
     void outputTypeChanged(const short* oldVal, const short* newVal);
@@ -81,16 +56,16 @@ private:
     void createFFTroute(int bufferSize);
     int calculate_memorySize(int inputAmount);
     void setupFFT();
-    void configureSRI(BULKIO::StreamSRI *sri, bool incomingSRI=true);
+    void configureSRI(const BULKIO::StreamSRI& sriIn, bool incomingSRI=true);
     int fft_execute(float* data, int size, bool EOS);
-    void updateTimeStamp();
+    //void updateTimeStamp();
     void moveTimeStamp(int shiftBack);
     void adjustTimeStamp(const BULKIO::PrecisionUTCTime& timestamp, BULKIO::PrecisionUTCTime& localtimestamp);
 
     //FFT constants
     int _readIndex;
     int _writeIndex;
-    int _samplesSinceLastTimestamp;
+    //int _samplesSinceLastTimestamp;
     bool first_overlap;
     int _loadedDataCount;
     int overlapAmount;
@@ -104,9 +79,8 @@ private:
     bool createMEM;
     bool createFFT;
     int _transferSize;
-    char* outputB;
+    char* outputBuffer;
     char* conversionBuffer;
-    //std::vector<char> outputB;
     int count;
 
     int remainder_v;
@@ -118,8 +92,8 @@ private:
     //SRI and Time
     BULKIO::StreamSRI* currSRIPtr;
     BULKIO::PrecisionUTCTime _timestamp;
-    double _FFTtimestampSec;
-    double _FFTtimestampFractionalSec;
+    //double _FFTtimestampSec;
+    //double _FFTtimestampFractionalSec;
 
     //constants
     int fftType;
@@ -150,8 +124,6 @@ private:
     fftwf_complex* upsampled;
     int dataAmount;
 
-    OutDoublePortUsingFloats* _outDoublePort;
-
     template <typename T>
     bool isFloatingType(T* type=NULL) {
         if (typeid (T) == typeid(float) ||
@@ -160,209 +132,224 @@ private:
         return false;
     }
 
-    template <typename OUT_TYPE, typename IN_TYPE, typename IN_TYPE_ALLOC, typename OUT_PORT>
-    void pushDataService(std::vector<IN_TYPE, IN_TYPE_ALLOC> *data, OUT_PORT *output, bool EOS, BULKIO::PrecisionUTCTime& tt, std::string streamID, bool scaled) {
+    template <typename OUT_TYPE, typename IN_TYPE, typename OUT_PORT>
+    void pushDataService(const redhawk::shared_buffer<IN_TYPE> data, OUT_PORT *output, bool EOS, BULKIO::PrecisionUTCTime& tt, std::string streamID, bool scaled) {
 
-        float sRange = float(std::numeric_limits<IN_TYPE>::max()) - float(std::numeric_limits<IN_TYPE>::min());
-        float sMin = float(std::numeric_limits<IN_TYPE>::min());
-        if (normalize_floating_point.input) {
-            sRange = 2;
-            sMin = -1;
-        } else {
-            sRange = floatingPointRange.maximum - floatingPointRange.minimum;
-            sMin = floatingPointRange.minimum;
+        LOG_DEBUG(DataConverter_i,"pushDataService|Types: Port: "<<typeid (OUT_PORT).name() << " In: "<<typeid (IN_TYPE).name()<< " Out: " <<typeid (OUT_TYPE).name());
+        if (!output->isActive()) return;
+
+        double sRange = double(std::numeric_limits<IN_TYPE>::max()) - double(std::numeric_limits<IN_TYPE>::min());
+        double sMin = double(std::numeric_limits<IN_TYPE>::min());
+        double dRange = double(std::numeric_limits<OUT_TYPE>::max()) - double(std::numeric_limits<OUT_TYPE>::min());
+        double dMin = (double) (std::numeric_limits<OUT_TYPE>::min());
+
+        if (isFloatingType<IN_TYPE>()) {
+            if (normalize_floating_point.input) {
+                sRange = 2.0;
+                sMin = -1.0;
+            } else {
+                sRange = floatingPointRange.maximum - floatingPointRange.minimum;
+                sMin = floatingPointRange.minimum;
+            }
         }
-        float dRange = float(std::numeric_limits<OUT_TYPE>::max()) - float(std::numeric_limits<OUT_TYPE>::min());
-        float dMin = (float) (std::numeric_limits<OUT_TYPE>::min());
-
-        if (typeid (OUT_TYPE) == typeid (float) && normalize_floating_point.output) {
-            dMin = -1.0;
-            dRange = 2.0;
+        if (isFloatingType<OUT_TYPE>()) {
+            if (normalize_floating_point.output) {
+                dRange = 2.0;
+                dMin = -1.0;
+            } else {
+                dRange = sRange;
+                dMin = sMin;
+            }
         }
-        unsigned int sized = data->size();
 
+        unsigned int sized = data.size(); // TODO FIXME - this size could change from loop to loop without adjusting memory footprint... segfault waiting to happen
         int memoryFootPrint = 0;
 
-        if (output->isActive()) {
-            count++;
-            if (createMEM || firstRun) {
-                memoryFootPrint = calculate_memorySize(sized);
-                createMemory(memoryFootPrint);
-                if (!createFFT)
+        typename OUT_PORT::StreamType stream = output->getStream(streamID);
+        LOG_DEBUG(DataConverter_i,"pushDataService|before: inputMode="<<inputMode);
+        LOG_DEBUG(DataConverter_i,"pushDataService|before: outputMode="<<outputMode);
+        LOG_DEBUG(DataConverter_i,"pushDataService|before: outputType="<<outputType);
+        LOG_DEBUG(DataConverter_i,"pushDataService|before: fftType="<<fftType);
+        LOG_DEBUG(DataConverter_i,"pushDataService|Input size="<<sized);
+        LOG_DEBUG(DataConverter_i,"pushDataService|Output mode="<<stream.complex());
+        count++;
+        LOG_DEBUG(DataConverter_i,"pushDataService|beforeMEM createMEM="<<createMEM<<" createFFT="<<createFFT<<" firstRun="<<firstRun);
+        if (createMEM || firstRun) {
+            LOG_DEBUG(DataConverter_i,"pushDataService|enterMEM createMEM="<<createMEM<<" createFFT="<<createFFT<<" firstRun="<<firstRun);
+            memoryFootPrint = calculate_memorySize(sized);
+            createMemory(memoryFootPrint);
+            if (!createFFT)
+                firstRun = false;
+            LOG_DEBUG(DataConverter_i,"pushDataService|exitMEM createMEM="<<createMEM<<" createFFT="<<createFFT<<" firstRun="<<firstRun);
+        }
+
+        if (isFloatingType<IN_TYPE>() && typeid (IN_TYPE) == typeid (OUT_TYPE)
+                && fftType == 0 && (normalize_floating_point.input || !normalize_floating_point.output)) {
+            // no conversion needed - same floating-point type, no change in mode, no floating point normalization
+            stream.write(redhawk::shared_buffer<OUT_TYPE>::recast(data),tt); if (EOS) stream.close();
+        } else if (typeid (IN_TYPE) == typeid (OUT_TYPE) && fftType == 0 && !isFloatingType<IN_TYPE>()) {
+            // no conversion needed - same type, not change in mode
+            stream.write(redhawk::shared_buffer<OUT_TYPE>::recast(data),tt); if (EOS) stream.close();
+        } else {
+            if (fftType > 0) {
+                LOG_DEBUG(DataConverter_i,"pushDataService|beforeFFT createMEM="<<createMEM<<" createFFT="<<createFFT<<" firstRun="<<firstRun);
+                if ((createFFT || firstRun)) {
+                    LOG_DEBUG(DataConverter_i,"pushDataService|enterFFT createMEM="<<createMEM<<" createFFT="<<createFFT<<" firstRun="<<firstRun);
+                    createFFTroute(memoryFootPrint);
                     firstRun = false;
+                    LOG_DEBUG(DataConverter_i,"pushDataService|exitFFT createMEM="<<createMEM<<" createFFT="<<createFFT<<" firstRun="<<firstRun);
+                }
+                if (!isFloatingType<IN_TYPE>()) {
+                    dataTypeTransformOpt::convertDataType<IN_TYPE, float>((IN_TYPE*)&data[0], (float*) &conversionBuffer[0], scaled, normalize_floating_point.input, normalize_floating_point.output, sized);
+                    sized = fft_execute((float*) &conversionBuffer[0], sized, EOS);
+                } else if (typeid (IN_TYPE) == typeid (float)) {
+                    sized = fft_execute((float*) &data[0], sized, EOS);
+                } else if (typeid (IN_TYPE) == typeid (double)) {
+                    LOG_DEBUG(DataConverter_i,"pushDataService|doubleIn - converting to float, sized="<<sized);
+                    dataTypeTransformOpt::convertDataType<IN_TYPE, float>((IN_TYPE*)&data[0], (float*) &conversionBuffer[0], false, normalize_floating_point.input, normalize_floating_point.output, sized);
+                    LOG_DEBUG(DataConverter_i,"pushDataService|doubleIn - executing fft, sized="<<sized);
+                    sized = fft_execute((float*) &conversionBuffer[0], sized, EOS);
+                    LOG_DEBUG(DataConverter_i,"pushDataService|doubleIn - DONE executing fft, sized="<<sized);
+                }
             }
 
-            if (isFloatingType<IN_TYPE>() && typeid (IN_TYPE) == typeid (OUT_TYPE) && fftType == 0 && (normalize_floating_point.input == normalize_floating_point.output)) {
-                output->pushPacket(*((std::vector<OUT_TYPE>*)data), tt, EOS, streamID);
-            } else if (typeid (IN_TYPE) == typeid (OUT_TYPE) && fftType == 0 && !isFloatingType<IN_TYPE>()) {
-                output->pushPacket(*((std::vector<OUT_TYPE>*)data), tt, EOS, streamID);
-            } else {
-                if (fftType != 0) {
-                    if ((createFFT || firstRun) && fftType > 0) {
-                        createFFTroute(memoryFootPrint);
-                        firstRun = false;
-                    }
-                    if (!isFloatingType<IN_TYPE>() && fftType > 0) {
-                        dataTypeTransformOpt::convertDataType<IN_TYPE, float>((IN_TYPE*)&(*data)[0], (float*) &conversionBuffer[0], scaled, normalize_floating_point.input, normalize_floating_point.output, sized);
-                        sized = fft_execute((float*) &conversionBuffer[0], sized, EOS);
-                    } else if (typeid (IN_TYPE) == typeid (float) && fftType > 0) {
-                        sized = fft_execute((float*) &(*data)[0], sized, EOS);
-                    }
-                }
+            size_t totalIn = sized; // TODO
+            size_t local_transferSize = _transferSize; // store copy so it doesn't change during execution
+            size_t totalSent = 0;
+            size_t curBufferSize = 0;
 
-                if (sized > (unsigned int) _transferSize) {
-                    int dataBufferS = 0;
-
-                    dataBufferS = _transferSize;
-                    int count = 0;
-                    bool EOS_l = false;
-                    for (int i = 0; i < (int) (sized / dataBufferS); ++i) {
-                        count++;
-                        if (sized - (count * dataBufferS) == 0 && EOS)
-                            EOS_l = true;
-
-                        if (fftType > 0 && (typeid (OUT_TYPE) == typeid (float))) {
-                            if (normalize_floating_point.output) {
-                                if (fftType == 1)
-                                    float2floatScaled((float*) &outputB[0], (float*) &transformedRBuffer[i * dataBufferS], dataBufferS, sMin, dRange, sRange, dMin);
-                                else
-                                    float2floatScaled((float*) &outputB[0], (float*) &(*transformedBuffer)[i * dataBufferS], dataBufferS, sMin, dRange, sRange, dMin);
-                                output->pushPacket((OUT_TYPE*) & outputB[0], dataBufferS, tt, EOS_l, streamID);
-                            } else {
-                                if (fftType == 1) {
-                                    output->pushPacket((OUT_TYPE*)&((transformedRBuffer)[i * dataBufferS]), dataBufferS, tt, EOS_l, streamID);
-                                } else {
-                                    output->pushPacket((OUT_TYPE*)&((*transformedBuffer)[i * dataBufferS]), dataBufferS, tt, EOS_l, streamID);
-                                }
-                            }
-                        } else if (fftType > 0 && !isFloatingType<IN_TYPE>()) {
-                            if (fftType == 1) {
-                                dataTypeTransformOpt::convertDataType<float, OUT_TYPE>((float*) &transformedRBuffer[i * dataBufferS], (OUT_TYPE*) & outputB[0], scaled, normalize_floating_point.input, false, dataBufferS);
-                            } else {
-                                dataTypeTransformOpt::convertDataType<float, OUT_TYPE>((float*) &((*transformedBuffer)[i * dataBufferS]), (OUT_TYPE*) & outputB[0], scaled, normalize_floating_point.input, false, dataBufferS);
-                            }
-                            output->pushPacket((OUT_TYPE*) & outputB[0], dataBufferS, tt, EOS_l, streamID);
-                        } else {
-                            if (isFloatingType<IN_TYPE>() && !normalize_floating_point.input) {
-                                dataTypeTransformOpt::convertDataTypeRange<IN_TYPE, OUT_TYPE>((IN_TYPE*)&(*data)[i * dataBufferS], (OUT_TYPE*) & outputB[0], sMin, sRange, dMin, dRange, dataBufferS);
-                            } else {
-                                dataTypeTransformOpt::convertDataType<IN_TYPE, OUT_TYPE>((IN_TYPE*)&(*data)[i * dataBufferS], (OUT_TYPE*) & outputB[0], scaled, normalize_floating_point.input, normalize_floating_point.output, dataBufferS);
-                            }
-                            output->pushPacket((OUT_TYPE*) & outputB[0], dataBufferS, tt, EOS_l, streamID);
-                        }
-                        tt.tfsec = tt.tfsec + ((1.0 / sampleRate) * i * dataBufferS);
-                        if (tt.tfsec >= 1) {
-                            tt.twsec++;
-                            --tt.tfsec;
-                        }
-                    }
-                    if (sized - (count * dataBufferS) != 0) {
-                        int leftover = (sized - (count * dataBufferS));
-                        if (fftType > 0 && (typeid (OUT_TYPE) == typeid (float))) {
-                            if (normalize_floating_point.output) {
-                                if (fftType == 1)
-                                    float2floatScaled((float*) &(outputB[0]), (const float*) &transformedRBuffer[sized - leftover], leftover, sMin, dRange, sRange, dMin);
-                                else
-                                    float2floatScaled((float*) &(outputB[0]), (const float*) &((*transformedBuffer)[sized - leftover]), leftover, sMin, dRange, sRange, dMin);
-                                output->pushPacket((OUT_TYPE*) & outputB[0], leftover, tt, EOS, streamID);
-                            } else {
-                                output->pushPacket((OUT_TYPE*)&((*transformedBuffer)[sized - leftover]), leftover, tt, EOS, streamID);
-                            }
-                        } else if (fftType > 0 && typeid (OUT_TYPE) != typeid (float)) {
-                            if (fftType == 1) {
-                                dataTypeTransformOpt::convertDataType<float, OUT_TYPE>((float*) &transformedRBuffer[sized - leftover], (OUT_TYPE*) & outputB[0], scaled, normalize_floating_point.input, normalize_floating_point.output, leftover);
-                            } else {
-                                dataTypeTransformOpt::convertDataType<float, OUT_TYPE>((float*) &(*transformedBuffer)[sized - leftover], (OUT_TYPE*) & outputB[0], scaled, normalize_floating_point.input, normalize_floating_point.output, leftover);
-                            }
-                            output->pushPacket((OUT_TYPE*) & outputB[0], leftover, tt, EOS, streamID);
-                        } else {
-                            if (isFloatingType<IN_TYPE>() && !normalize_floating_point.input) {
-                                dataTypeTransformOpt::convertDataTypeRange<IN_TYPE, OUT_TYPE>((IN_TYPE*)&(*data)[sized - leftover], (OUT_TYPE*) & outputB[0], sMin, sRange, dMin, dRange, leftover);
-                            } else {
-                                dataTypeTransformOpt::convertDataType<IN_TYPE, OUT_TYPE>((IN_TYPE*)&(*data)[sized - leftover], (OUT_TYPE*) & outputB[0], scaled, normalize_floating_point.input, normalize_floating_point.output, leftover);
-                            }
-                            output->pushPacket((OUT_TYPE*) & outputB[0], leftover, tt, EOS, streamID);
-                        }
-                    }
-                } else {
-                    if (fftType > 0 && (typeid (OUT_TYPE) == typeid (float))) {
-                        if (normalize_floating_point.output) {
-                            if (fftType == 1)
-                                float2floatScaled((float*) &outputB[0], (const float*) &transformedRBuffer[0], sized, sMin, dRange, sRange, dMin);
-                            else
-                                float2floatScaled((float*) &outputB[0], (const float*) &(*transformedBuffer)[0], sized, sMin, dRange, sRange, dMin);
-                            output->pushPacket((OUT_TYPE*) & outputB[0], sized, tt, EOS, streamID);
-                        } else {
-                            output->pushPacket((OUT_TYPE*)&(*transformedBuffer)[0], sized, tt, EOS, streamID);
-                        }
-                    } else if (fftType > 0 && typeid (OUT_TYPE) != typeid (float)) {
-                        if (fftType == 1) {
-                            dataTypeTransformOpt::convertDataType<float, OUT_TYPE>((float*) &(transformedRBuffer[0]), (OUT_TYPE*) & outputB[0], scaled, true, true, sized);
-                            output->pushPacket((OUT_TYPE*)&(outputB[0]), sized, tt, EOS, streamID);
-                        } else {
-                            dataTypeTransformOpt::convertDataType<float, OUT_TYPE>((float*) &(transformedBuffer[0]), (OUT_TYPE*) & outputB[0], scaled, true, true, sized);
-                            output->pushPacket((OUT_TYPE*)&(outputB[0]), sized, tt, EOS, streamID);
-                        }
+            LOG_DEBUG(DataConverter_i,"pushDataService|before loop - totalSent="<<totalSent<<" totalIn="<<totalIn<<" local_transferSize="<<local_transferSize);
+            while(totalSent < totalIn) {
+                LOG_DEBUG(DataConverter_i,"pushDataService|loop - totalSent="<<totalSent<<" totalIn="<<totalIn<<" local_transferSize="<<local_transferSize);
+                curBufferSize = std::min(totalIn-totalSent, local_transferSize);
+                LOG_DEBUG(DataConverter_i,"pushDataService|loop - curBufferSize="<<curBufferSize);
+                if (fftType > 0 && (typeid (OUT_TYPE) == typeid (float))) { // all FFT conversions to float
+                    if (normalize_floating_point.output) {
+                        if (fftType == 1)
+                            float2floatScaled((float*) &outputBuffer[0], (float*) &transformedRBuffer[totalSent], curBufferSize, sMin, dRange, sRange, dMin);
+                        else
+                            float2floatScaled((float*) &outputBuffer[0], (float*) &(*transformedBuffer)[totalSent], curBufferSize, sMin, dRange, sRange, dMin);
+                        stream.write((OUT_TYPE*) & outputBuffer[0], curBufferSize, tt);
                     } else {
-                        if (isFloatingType<IN_TYPE>() && !normalize_floating_point.input) {
-                            dataTypeTransformOpt::convertDataTypeRange<IN_TYPE, OUT_TYPE>((IN_TYPE*)&(*data)[0], (OUT_TYPE*)&(outputB[0]), sMin, sRange, dMin, dRange, sized);
-                        } else {
-                            dataTypeTransformOpt::convertDataType<IN_TYPE, OUT_TYPE>((IN_TYPE*)&(*data)[0], (OUT_TYPE*)&(outputB[0]), scaled, normalize_floating_point.input, normalize_floating_point.output, sized);
-                        }
-                        output->pushPacket((OUT_TYPE*)&(outputB[0]), sized, tt, EOS, streamID);
+                        if (fftType == 1)
+                            stream.write((OUT_TYPE*)&((transformedRBuffer)[totalSent]), curBufferSize, tt);
+                        else
+                            stream.write((OUT_TYPE*)&((*transformedBuffer)[totalSent]), curBufferSize, tt);
                     }
+                } else if (fftType > 0 && (typeid (OUT_TYPE) == typeid (double))) { // all FFT conversions to double
+                    if (normalize_floating_point.output) {
+                        if (fftType == 1)
+                            float2doubleScaled((double*) &outputBuffer[0], (float*) &transformedRBuffer[totalSent], curBufferSize, sMin, dRange, sRange, dMin);
+                        else
+                            float2doubleScaled((double*) &outputBuffer[0], (float*) &(*transformedBuffer)[totalSent], curBufferSize, sMin, dRange, sRange, dMin);
+                        stream.write((OUT_TYPE*) & outputBuffer[0], curBufferSize, tt);
+                    } else {
+                        if (fftType == 1)
+                            float2double((double*) &outputBuffer[0], (float*) &transformedRBuffer[totalSent], curBufferSize);
+                        else
+                            float2double((double*) &outputBuffer[0], (float*) &(*transformedBuffer)[totalSent], curBufferSize);
+                        stream.write((OUT_TYPE*) & outputBuffer[0], curBufferSize, tt);
+                    }
+                } else if (fftType > 0) {// && !isFloatingType<OUT_TYPE>()) { // all FFT conversions to non-floating-point
+                    LOG_DEBUG(DataConverter_i,"pushDataService|FFT conversion to non-floating-point");
+                    if (fftType == 1) {
+                        dataTypeTransformOpt::convertDataType<float, OUT_TYPE>((float*) &transformedRBuffer[totalSent], (OUT_TYPE*) & outputBuffer[0], scaled, normalize_floating_point.input, false, curBufferSize);
+                    } else {
+                        LOG_DEBUG(DataConverter_i,"pushDataService|R2C conversion to non-float");
+                        dataTypeTransformOpt::convertDataType<float, OUT_TYPE>((float*) &((*transformedBuffer)[totalSent]), (OUT_TYPE*) & outputBuffer[0], scaled, normalize_floating_point.input, false, curBufferSize);
+                    }
+                    LOG_DEBUG(DataConverter_i,"pushDataService|FFT to non-float - writing out curBufferSize="<<curBufferSize);
+                    stream.write((OUT_TYPE*) & outputBuffer[0], curBufferSize, tt);
+                    LOG_DEBUG(DataConverter_i,"pushDataService|FFT to non-float - DONE writing out curBufferSize="<<curBufferSize);
+                } else if (typeid (IN_TYPE) == typeid (double)) { // all non-FFT conversions from double
+                    dataTypeTransformOpt::convertDataType<IN_TYPE, float>((IN_TYPE*)&data[totalSent], (float*) &conversionBuffer[0], false, normalize_floating_point.input, normalize_floating_point.output, curBufferSize);
+                    if (!normalize_floating_point.input) {
+                        dataTypeTransformOpt::convertDataTypeRange<float, OUT_TYPE>((float*) &conversionBuffer[0], (OUT_TYPE*) & outputBuffer[0], sMin, sRange, dMin, dRange, curBufferSize);
+                    } else {
+                        dataTypeTransformOpt::convertDataType<float, OUT_TYPE>((float*) &conversionBuffer[0], (OUT_TYPE*) & outputBuffer[0], scaled, normalize_floating_point.input, normalize_floating_point.output, curBufferSize);
+                    }
+                    stream.write((OUT_TYPE*) & outputBuffer[0], curBufferSize, tt);
+                } else if (typeid (OUT_TYPE) == typeid (double)) { // non-FFT conversions not from double, but to double
+                    if (isFloatingType<IN_TYPE>() && !normalize_floating_point.input) {
+                        dataTypeTransformOpt::convertDataTypeRange<IN_TYPE, float>((IN_TYPE*)&data[totalSent], (float*) & conversionBuffer[0], sMin, sRange, dMin, dRange, curBufferSize);
+                    } else {
+                        dataTypeTransformOpt::convertDataType<IN_TYPE, float>((IN_TYPE*)&data[totalSent], (float*) & conversionBuffer[0], scaled, normalize_floating_point.input, normalize_floating_point.output, curBufferSize);
+                    }
+                    float2double((double*) &outputBuffer[0], (float*) &conversionBuffer[totalSent], curBufferSize);
+                    stream.write((OUT_TYPE*) & outputBuffer[0], curBufferSize, tt);
+                } else { // all non-FFT conversions not from or to double
+                    if (isFloatingType<IN_TYPE>() && !normalize_floating_point.input) {
+                        dataTypeTransformOpt::convertDataTypeRange<IN_TYPE, OUT_TYPE>((IN_TYPE*)&data[totalSent], (OUT_TYPE*) & outputBuffer[0], sMin, sRange, dMin, dRange, curBufferSize);
+                    } else {
+                        dataTypeTransformOpt::convertDataType<IN_TYPE, OUT_TYPE>((IN_TYPE*)&data[totalSent], (OUT_TYPE*) & outputBuffer[0], scaled, normalize_floating_point.input, normalize_floating_point.output, curBufferSize);
+                    }
+                    stream.write((OUT_TYPE*) & outputBuffer[0], curBufferSize, tt);
                 }
+                totalSent+=curBufferSize;
+                tt.tfsec = tt.tfsec + ((1.0 / sampleRate) * curBufferSize);
+                bulkio::time::utils::normalize(tt);
+                LOG_DEBUG(DataConverter_i,"pushDataService|loop DONE; wrote curBufferSize="<<curBufferSize<<" more for total of totalSent="<<totalSent);
             }
+            if (EOS) stream.close();
         }
     }
 
     template <class IN_PORT_TYPE> bool singleService(IN_PORT_TYPE *dataPortIn) {
         boost::mutex::scoped_lock lock(property_lock);
 
-        typename IN_PORT_TYPE::dataTransfer *packet = dataPortIn->getPacket(0);
-        if (packet == NULL)
-            return false;
-        if (packet->inputQueueFlushed)
-            std::cout << "INPUT QUEUE HAS FLUSHED!!!!!!" << std::endl;
-        // Reconfigure if SRI Changed
-        if (packet->sriChanged || !currSRIPtr) {
-            configureSRI(&(packet->SRI));
-        }
-        if (packet->T.tcstatus == BULKIO::TCS_VALID && fftType != 0) {
-            adjustTimeStamp(packet->T, _timestamp);
-            _samplesSinceLastTimestamp = 0;
-        } else if (packet->T.tcstatus == BULKIO::TCS_VALID) {
-            _timestamp = packet->T;
-        } else if (packet->T.tcstatus != BULKIO::TCS_VALID) {
-            LOG_WARN(DataConverter_i, "Invalid, T.tcstatus Sending invalid timecode anyway. tcstatus:" << packet->T.tcstatus);
-            _timestamp = packet->T;
+        typename IN_PORT_TYPE::StreamType stream = dataPortIn->getCurrentStream(0);
+        //bulkio::InShortStream stream = dataShort_in->getCurrentStream(0);
+        if (!stream) {
+            return false; // NOOP
         }
 
-        //typename IN_PORT_TYPE::dataTransfer::DataBufferType dataBuffer = packet->dataBuffer;
-        if (typeid(typename IN_PORT_TYPE::dataTransfer::DataBufferType::value_type) == typeid(double)) {
-            // Convert incoming doubles to floats
-            std::vector<float> dataBuffer(packet->dataBuffer.begin(), packet->dataBuffer.end());
-
-            pushDataService<char>(&dataBuffer, dataChar_out, packet->EOS, _timestamp, packet->streamID, scaleOutput.charPort);
-            pushDataService<unsigned char>(&dataBuffer, dataOctet_out, packet->EOS, _timestamp, packet->streamID, scaleOutput.octetPort);//,normalize_floating_point.normalized_input);
-            pushDataService<short>(&dataBuffer, dataShort_out, packet->EOS, _timestamp, packet->streamID, scaleOutput.shortPort); //,normalize_floating_point.normalized_input);
-            pushDataService<unsigned short>(&dataBuffer, dataUshort_out, packet->EOS, _timestamp, packet->streamID, scaleOutput.ushortPort);//,normalize_floating_point.normalized_input);
-            pushDataService<float>(&dataBuffer, dataFloat_out, packet->EOS, _timestamp, packet->streamID,normalize_floating_point.output);//,normalize_floating_point.normalized_output);
-            pushDataService<float>(&(packet->dataBuffer), _outDoublePort, packet->EOS, _timestamp, packet->streamID,normalize_floating_point.output);//,normalize_floating_point.normalized_output);
-        } else {
-            typename IN_PORT_TYPE::dataTransfer::DataBufferType dataBuffer = packet->dataBuffer;
-            pushDataService<char>(&dataBuffer, dataChar_out, packet->EOS, _timestamp, packet->streamID, scaleOutput.charPort);
-            pushDataService<unsigned char>(&dataBuffer, dataOctet_out, packet->EOS, _timestamp, packet->streamID, scaleOutput.octetPort);//,normalize_floating_point.normalized_input);
-            pushDataService<short>(&dataBuffer, dataShort_out, packet->EOS, _timestamp, packet->streamID, scaleOutput.shortPort); //,normalize_floating_point.normalized_input);
-            pushDataService<unsigned short>(&dataBuffer, dataUshort_out, packet->EOS, _timestamp, packet->streamID, scaleOutput.ushortPort);//,normalize_floating_point.normalized_input);
-            pushDataService<float>(&dataBuffer, dataFloat_out, packet->EOS, _timestamp, packet->streamID,normalize_floating_point.output);//,normalize_floating_point.normalized_output);
-            pushDataService<float>(&dataBuffer, _outDoublePort, packet->EOS, _timestamp, packet->streamID,normalize_floating_point.output);//,normalize_floating_point.normalized_output);
+        typename IN_PORT_TYPE::StreamType::DataBlockType block = stream.read();
+        // TODO - should read up to "max transfer size" to make sure we have enough memory allocated
+        //      - account for complex vs scalar input and how that affects how many samples are read
+        //bulkio::ShortDataBlock block = stream.read();
+        if (!block) {
+            if (stream.eos()) {
+                // TODO eos stuff
+                return true; // NORMAL
+            }
+            return false; // NOOP
         }
 
-        /* delete the dataTransfer object */
-        delete packet;
+        if (block.inputQueueFlushed()) {
+            LOG_WARN(DataConverter_i, "Input queue flushed.  Flushing internal buffers.");
+            // TODO flush all our processor states if the queue flushed
+            //flush();
+        }
+
+        if (block.sriChanged() || !currSRIPtr) {
+            configureSRI(block.sri());
+            // currSRIPtr now is a pointer to resulting sri
+
+        }
+
+        if (block.getStartTime().tcstatus == BULKIO::TCS_VALID && fftType != 0) {
+            adjustTimeStamp(block.getStartTime(), _timestamp);
+//            _samplesSinceLastTimestamp = 0;
+        } else if (block.getStartTime().tcstatus == BULKIO::TCS_VALID) {
+            _timestamp = block.getStartTime();
+        } else if (block.getStartTime().tcstatus != BULKIO::TCS_VALID) {
+            LOG_WARN(DataConverter_i, "Invalid, T.tcstatus Sending invalid timecode anyway. tcstatus:" << block.getStartTime().tcstatus);
+            _timestamp = block.getStartTime();
+        }
+
+        redhawk::shared_buffer<typename IN_PORT_TYPE::dataTransfer::DataBufferType::value_type> dataBuffer = block.buffer();
+        pushDataService<signed char>(dataBuffer, dataChar_out, stream.eos(), _timestamp, stream.streamID(), scaleOutput.charPort);
+        pushDataService<unsigned char>(dataBuffer, dataOctet_out, stream.eos(), _timestamp, stream.streamID(), scaleOutput.octetPort);//,normalize_floating_point.normalized_input);
+        pushDataService<short>(dataBuffer, dataShort_out, stream.eos(), _timestamp, stream.streamID(), scaleOutput.shortPort); //,normalize_floating_point.normalized_input);
+        pushDataService<unsigned short>(dataBuffer, dataUshort_out, stream.eos(), _timestamp, stream.streamID(), scaleOutput.ushortPort);//,normalize_floating_point.normalized_input);
+        pushDataService<float>(dataBuffer, dataFloat_out, stream.eos(), _timestamp, stream.streamID(),normalize_floating_point.output);//,normalize_floating_point.normalized_output);
+        pushDataService<double>(dataBuffer, dataDouble_out, stream.eos(), _timestamp, stream.streamID(),normalize_floating_point.output);//,normalize_floating_point.normalized_output);
+
         return true;
     }
+
 };
+
+
 
 #endif

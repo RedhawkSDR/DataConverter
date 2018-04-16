@@ -1026,6 +1026,15 @@ int k = 0;
 #endif
 }
 
+void ushort2uchar(unsigned char* dst, const unsigned short* src, int n){
+	int k=0;
+	if(k<(n)){
+		for(;k<n;++k){
+			dst[k]= (unsigned char)src[k];
+		}
+    }
+}
+
 void ushort2ucharScaled(unsigned char* dst,const  unsigned short* src, int n, float sMin, float dRange, float sRange, float dMin){
 int k = 0;
 #ifdef __SSE2__
@@ -1959,6 +1968,21 @@ void float2charScaled(char* dst, const float* src, int n, float sMin, float dRan
 #endif	
 }
 
+
+void float2double(double* dst, const float* src, int n){
+	int k = 0;
+	for(;k<n;++k){
+		dst[k]=(double)src[k];
+	}
+}
+
+void float2doubleScaled(double* dst, const float* src, int n, double sMin, double dRange, double sRange, double dMin){
+	int k = 0;
+	for(;k<n;++k){
+		double temp = (src[k]-sMin)*(dRange/sRange)+dMin;
+		dst[k]=temp;
+	}
+}
 
 //float2floatScaled(source, dest, size, (float) sMin, (float) dRange, (float) sRange, (float) dMin);
 //float2floatScaled(source, dest, size, (float) sMin, (float) dRange, (float) sRange, (float) dMin);

@@ -63,7 +63,7 @@ if SCIPY_GREATER_08:
 
 class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
     """Test for all component implementations in DataConverter"""
-    
+
     def setUp(self):
         ossie.utils.testing.ScaComponentTestCase.setUp(self)
         self.length = 32
@@ -159,28 +159,31 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
             
             def __init__(self,portname):
                 bulkio.InShortPort.__init__(self,portname)
-                self.lastTimeCode = None
+                self.lastTimeCode = bulkio.timestamp.notSet()
             
             def pushPacket(self, data, T, EOS, streamID):
-                self.lastTimeCode = T
+                #print 'mySinkPort "%s" pushPacket called with %s samples and %s tstamp (%s,%s)'%(self.name,len(data),T.twsec+T.tfsec, streamID, EOS)
+                if not (EOS and T == bulkio.timestamp.notSet()):
+                    self.lastTimeCode = T
                 
         
         self.comp = sb.launch('../DataConverter.spd.xml')
-        snk=mySinkPort("dataFloat_in")       
+        snk=mySinkPort("dataShort_in")
         outputPorts = self.getOutputPortNames("short")
         inputPorts = self.getInputPortNames("short")
         outport = self.comp.getPort(outputPorts[1])
         outport.connectPort(snk._this(),"connectionID")
-        #self.comp.connect(providesComponent=snk,providesPortName=outputPorts[0],usesPortName=outputPorts[1])
         sb.start()
         
         input_port = self.comp.getPort(inputPorts[0])
 
-        wsec = 100
-        fsec = 100
-        data = [int(x) for x in range(0,100)]
-        T = BULKIO.PrecisionUTCTime(BULKIO.TCM_CPU, BULKIO.TCS_VALID, 0, wsec, fsec)
-        input_port.pushPacket(data,T,True,"streamID") 
+        self.sri = bulkio.sri.create("dataConvTest")
+        input_port.pushSRI(self.sri)
+        wsec = 123456.0
+        fsec = 0.654321
+        data = range(1024)
+        T = bulkio.timestamp.create(wsec, fsec)
+        input_port.pushPacket(data,T,True,"dataConvTest") 
         time.sleep(.5)
            
         lastTimeCode = snk.lastTimeCode
@@ -188,11 +191,14 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.assertEqual(lastTimeCode.tfsec,fsec)
 
         # Test invalid timecode. A warning should be produced but the timecode is still passed on.
-        wsec = 200
-        fsec = 200
-        data = [int(x) for x in range(0,100)]
-        T = BULKIO.PrecisionUTCTime(BULKIO.TCM_CPU, BULKIO.TCS_INVALID, 0, wsec, fsec)
-        input_port.pushPacket(data,T,True,"streamID") 
+        wsec = 987654.0
+        fsec = 0.456789
+        data = range(1024)
+        #T = BULKIO.PrecisionUTCTime(BULKIO.TCM_CPU, BULKIO.TCS_INVALID, 0, wsec, fsec)
+        T = bulkio.timestamp.create(wsec, fsec)
+        T.tcstatus = BULKIO.TCS_INVALID
+        input_port.pushSRI(self.sri)
+        input_port.pushPacket(data,T,True,"dataConvTest") 
         time.sleep(.5)
         
         lastTimeCode = snk.lastTimeCode
@@ -1381,6 +1387,8 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         src.connect(comp,'dataDouble_in')
         comp.connect(snk,'ushortIn')
         
+        comp.transformProperties.fftSize = 512
+        
         sb.start()
         
         streamID = "someSRI"
@@ -1392,14 +1400,32 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         while (count < 100):
             if (snk.sri().streamID == streamID):
                 break;
+            count+=1
             time.sleep(0.05)
 
-        self.assertTrue(snk.sri().streamID == streamID)
-        self.assertTrue(snk.sri().mode == 0) # 0=Real
+        sri1 = snk.sri()
+        self.assertTrue(sri1.streamID == streamID)
+        self.assertTrue(sri1.mode == 0) # 0=Scalar/Real
+        #print 'len out 1', len(snk.getData())
 
         comp.outputType = 2 # 2=Complex
-        self.assertTrue(snk.sri().streamID == streamID)
-        self.assertTrue(snk.sri().mode == 1) # 1=Complex
+        
+        src.push(data,complexData=False, sampleRate=1.0, EOS=False, streamID=streamID)
+        #src.push(data,complexData=False, sampleRate=1.0, EOS=True, streamID=streamID)
+        
+        # Wait for new SRI to take hold
+        count = 0
+        while (count < 100):
+            if (snk.sri().mode == 1):
+                break;
+            count+=1
+            time.sleep(0.05)
+        
+        sri2 = snk.sri()
+        #print 'len out 2', len(snk.getData())
+        
+        self.assertTrue(sri2.streamID == streamID)
+        self.assertTrue(sri2.mode == 1) # 1=Complex
     
     def testModeChangeC2RUpdatesSRI(self):
         print(sys._getframe().f_code.co_name)
@@ -1410,10 +1436,12 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         src.connect(comp,'dataDouble_in')
         comp.connect(snk,'ushortIn')
         
+        comp.transformProperties.fftSize = 512
+        
         sb.start()
         
         streamID = "someSRI"
-        data = range(1024)
+        data = range(1024)*2
         src.push(data,complexData=True, sampleRate=1.0, EOS=False, streamID=streamID)
 
         # Wait for new SRI to take hold
@@ -1421,14 +1449,32 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         while (count < 100):
             if (snk.sri().streamID == streamID):
                 break;
+            count+=1
             time.sleep(0.05)
 
-        self.assertTrue(snk.sri().streamID == streamID)
-        self.assertTrue(snk.sri().mode == 1)
+        sri1 = snk.sri()
+        self.assertTrue(sri1.streamID == streamID)
+        self.assertTrue(sri1.mode == 1) # 1=Complex
+        print 'len out 1', len(snk.getData())
 
         comp.outputType = 1 # 1=Real
-        self.assertTrue(snk.sri().streamID == streamID)
-        self.assertTrue(snk.sri().mode == 0)
+
+        src.push(data,complexData=True, sampleRate=1.0, EOS=False, streamID=streamID)
+        #src.push(data,complexData=True, sampleRate=1.0, EOS=True, streamID=streamID)
+        
+        # Wait for new SRI to take hold
+        count = 0
+        while (count < 100):
+            if (snk.sri().mode == 0):
+                break;
+            count+=1
+            time.sleep(0.05)
+        
+        sri2 = snk.sri()
+        #print 'len out 2', len(snk.getData())
+        
+        self.assertTrue(sri2.streamID == streamID)
+        self.assertTrue(sri2.mode == 0) # 0=Scalar/Real
 
     def testScaBasicBehavior(self):
         print(sys._getframe().f_code.co_name)

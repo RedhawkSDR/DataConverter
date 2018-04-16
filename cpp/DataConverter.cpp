@@ -38,8 +38,8 @@ DataConverter_base(uuid, label)
 
 DataConverter_i::~DataConverter_i()
 {
-    if (outputB != NULL)
-        _mm_free(outputB);
+    if (outputBuffer != NULL)
+        _mm_free(outputBuffer);
     if (conversionBuffer != NULL )
         _mm_free(conversionBuffer);
 
@@ -74,6 +74,7 @@ DataConverter_i::~DataConverter_i()
             fftwf_destroy_plan(c2c_f);
         if (c2c_r2 != NULL)
             fftwf_destroy_plan(c2c_r2);
+        r2c = c2c_r = c2c_f = c2c_r2 = NULL;
         fftwf_cleanup();
     }
 }
@@ -82,7 +83,7 @@ void DataConverter_i::constructor(){
     first_overlap = true;
     firstRun = true;
     remainder_v = 0;
-    outputB = NULL;
+    outputBuffer = NULL;
     conversionBuffer = NULL;
 
     workingBuffer = NULL;
@@ -106,7 +107,7 @@ void DataConverter_i::constructor(){
     upsampled = NULL;
     filter = NULL;
 
-    _samplesSinceLastTimestamp = 0;
+//    _samplesSinceLastTimestamp = 0;
 
     _readIndex = 0;
     _writeIndex = 0;
@@ -120,9 +121,6 @@ void DataConverter_i::constructor(){
     //fftw_plan_with_nthreads(FFTW_NUMBER_THREADS);
     mixerPhase = 0;
 
-    _outDoublePort = new OutDoublePortUsingFloats("dataDouble_out");
-    addPort("dataDouble_out", _outDoublePort);
-
     currSRIPtr = 0;
 
     _transferSize = maxTransferSize;
@@ -135,15 +133,15 @@ void DataConverter_i::constructor(){
 }
 
 void DataConverter_i::createMemory(int bufferSize){
-    if (outputB != NULL)
-        _mm_free(outputB);
+    if (outputBuffer != NULL)
+        _mm_free(outputBuffer);
     if (conversionBuffer != NULL)
         _mm_free(conversionBuffer);
     //create a buffer that is used between all times
     //thus is must be a complex float in size
 
     //created for 16byte aligned data
-    outputB = (char*) _mm_malloc(sizeof(float)*bufferSize,16);
+    outputBuffer = (char*) _mm_malloc(sizeof(double)*bufferSize,16);
     conversionBuffer = (char*) _mm_malloc(sizeof(float)*bufferSize,16);
     createMEM = false;
 }
@@ -251,11 +249,25 @@ void DataConverter_i::maxTransferSizeChanged(const CORBA::Long* oldVal,
 }
 
 void DataConverter_i::outputTypeChanged(const short* oldVal, const short* newVal) {
+	LOG_DEBUG(DataConverter_i,__PRETTY_FUNCTION__ << "oldVal="<<*oldVal<<" newVal="<<*newVal);
     boost::mutex::scoped_lock lock(property_lock);
+	LOG_DEBUG(DataConverter_i,"outputTypeChanged|got lock");
+    LOG_DEBUG(DataConverter_i,"outputTypeChanged|before: inputMode="<<inputMode);
+    LOG_DEBUG(DataConverter_i,"outputTypeChanged|before: outputMode="<<outputMode);
+    LOG_DEBUG(DataConverter_i,"outputTypeChanged|before: outputType="<<outputType);
+    LOG_DEBUG(DataConverter_i,"outputTypeChanged|before: fftType="<<fftType);
 
     // Reconfigure current SRI to push out mode change if we have a current SRI
-    if (currSRIPtr)
-        configureSRI(currSRIPtr, false);
+    if (currSRIPtr) {
+    	LOG_DEBUG(DataConverter_i,"outputTypeChanged|configuring sri");
+	    LOG_DEBUG(DataConverter_i,"outputTypeChanged|before: sri.mode="<<currSRIPtr->mode);
+        configureSRI(*currSRIPtr, false);
+	    LOG_DEBUG(DataConverter_i,"outputTypeChanged|after: sri.mode="<<currSRIPtr->mode);
+    }
+    LOG_DEBUG(DataConverter_i,"outputTypeChanged|after: inputMode="<<inputMode);
+    LOG_DEBUG(DataConverter_i,"outputTypeChanged|after: outputMode="<<outputMode);
+    LOG_DEBUG(DataConverter_i,"outputTypeChanged|after: outputType="<<outputType);
+    LOG_DEBUG(DataConverter_i,"outputTypeChanged|after: fftType="<<fftType);
 }
 
 void DataConverter_i::createFilter(){
@@ -421,7 +433,6 @@ int DataConverter_i::serviceFunction()
     if (retService) {
         return NORMAL;
     }
-
     return NOOP;
 }
 
@@ -430,17 +441,13 @@ int DataConverter_i::serviceFunction()
 int DataConverter_i::calculate_memorySize(int inputAmount){
     int value = 0;
     int size = 0;
-
-    if (fftType == 2){ // R2C
+    if (fftType > 0) { // R2C or C2R
         value = ceil(inputAmount/((transformProperties.fftSize * transformProperties.overlap_percentage/100)));
         size = value*transformProperties.fftSize;
-    }else if (fftType == 1){
-        value = ceil(inputAmount/((transformProperties.fftSize * transformProperties.overlap_percentage/100)));
-        size = value*transformProperties.fftSize;
-    }else{
+    } else {
         size = inputAmount;
     }
-    if(maxTransferSize == 0)
+    if (maxTransferSize == 0)
         _transferSize = size;
     return size;
 }
@@ -458,11 +465,11 @@ void DataConverter_i::setupFFT(){
     }
 }
 
-void DataConverter_i::configureSRI(BULKIO::StreamSRI *sri, bool incomingSRI) {
-    sampleRate = 1 / sri->xdelta;
+void DataConverter_i::configureSRI(const BULKIO::StreamSRI& sriIn, bool incomingSRI) {
+    sampleRate = 1 / sriIn.xdelta;
     // Only set the input mode if the SRI is incoming
     if (incomingSRI)
-        inputMode = sri->mode;
+        inputMode = sriIn.mode;
     setupFFT();
 
     double cf_offset = 0;
@@ -475,42 +482,35 @@ void DataConverter_i::configureSRI(BULKIO::StreamSRI *sri, bool incomingSRI) {
             sampleRate = sampleRate/2;
         }
     }
-    sri->xdelta = 1.0/sampleRate;
 
-    for (unsigned int i = 0; i < sri->keywords.length(); ++i){
-        if(std::string(sri->keywords[i].id) == "COL_RF" && advancedSRI.update_col_rf_keyword){
+    BULKIO::StreamSRI* sriOutPtr = new BULKIO::StreamSRI(sriIn);
+    sriOutPtr->xdelta = 1.0/sampleRate;
+
+    for (unsigned int i = 0; i < sriOutPtr->keywords.length(); ++i){
+        if(std::string(sriOutPtr->keywords[i].id) == "COL_RF" && advancedSRI.update_col_rf_keyword){
             CORBA::Double COL_RF = 0;
-            sri->keywords[i].value >>= COL_RF;
+            sriOutPtr->keywords[i].value >>= COL_RF;
             COL_RF += cf_offset;
-            sri->keywords[i].value <<= COL_RF;
+            sriOutPtr->keywords[i].value <<= COL_RF;
         }
-        else if(std::string(sri->keywords[i].id) == "CHAN_RF" && advancedSRI.update_chan_rf_keyword){
+        else if(std::string(sriOutPtr->keywords[i].id) == "CHAN_RF" && advancedSRI.update_chan_rf_keyword){
             CORBA::Double CHAN_RF = 0;
-            sri->keywords[i].value >>= CHAN_RF;
+            sriOutPtr->keywords[i].value >>= CHAN_RF;
             CHAN_RF += cf_offset;
-            sri->keywords[i].value <<= CHAN_RF;
+            sriOutPtr->keywords[i].value <<= CHAN_RF;
         }
     }
-    sri->mode = outputMode;
-
-    // Shouldn't need to check if port is active... Pushing SRI just updates
-    // Port State
-    //if (dataChar_out->isActive())
-    dataChar_out->pushSRI(*sri);
-    //if (dataOctet_out->isActive())
-    dataOctet_out->pushSRI(*sri);
-    //if (dataShort_out->isActive())
-    dataShort_out->pushSRI(*sri);
-    //if (dataUshort_out->isActive())
-    dataUshort_out->pushSRI(*sri);
-    //if (dataFloat_out->isActive())
-    dataFloat_out->pushSRI(*sri);
-    //if (_outDoublePort->isActive())
-    _outDoublePort->pushSRI(*sri);
+    sriOutPtr->mode = outputMode;
+    dataChar_out->createStream(*sriOutPtr);
+    dataOctet_out->createStream(*sriOutPtr);
+    dataShort_out->createStream(*sriOutPtr); // TODO DEBUG (add this back)
+    dataUshort_out->createStream(*sriOutPtr);
+    dataFloat_out->createStream(*sriOutPtr);
+    dataDouble_out->createStream(*sriOutPtr);
 
     // Save off copy of current SRI clean up previous SRI
     BULKIO::StreamSRI* lastSRIPtr = currSRIPtr;
-    currSRIPtr = new BULKIO::StreamSRI(*sri);
+    currSRIPtr = sriOutPtr;
     if (lastSRIPtr) {
         delete lastSRIPtr;
     }
@@ -663,7 +663,7 @@ int DataConverter_i::fft_execute(float* data, int size, bool EOS){
     return dataAmount;
 }
 
-void DataConverter_i::updateTimeStamp() {
+/*void DataConverter_i::updateTimeStamp() {
     _FFTtimestampSec = _timestamp.twsec;
     _FFTtimestampFractionalSec = _timestamp.tfsec + (_samplesSinceLastTimestamp * ((double) 1 / (double) (sampleRate)));
     if (_FFTtimestampFractionalSec >= 1.0) {
@@ -672,7 +672,7 @@ void DataConverter_i::updateTimeStamp() {
     }
     _timestamp.twsec = _FFTtimestampSec;
     _timestamp.tfsec = _FFTtimestampFractionalSec;
-}
+}*/
 
 void DataConverter_i::moveTimeStamp(int shiftBack){
     //save off this timestamp in case there is a remainder from the previous
@@ -681,12 +681,8 @@ void DataConverter_i::moveTimeStamp(int shiftBack){
     if (shiftBack != 0){
         double temp = 0;
         temp = (double)shiftBack * (1.0/sampleRate);
-        if (temp > _timestamp.tfsec){
-            --_timestamp.twsec;
-            _timestamp.tfsec = (1.0 + _timestamp.tfsec) - temp;
-        }else{
-            _timestamp.tfsec = _timestamp.tfsec - temp;
-        }
+        _timestamp.tfsec = _timestamp.tfsec - temp;
+        bulkio::time::utils::normalize(_timestamp);
     }
 }
 
@@ -700,6 +696,6 @@ void DataConverter_i::adjustTimeStamp(const BULKIO::PrecisionUTCTime& timestamp,
     localtimestamp = timestamp;
     //adjust the group delay
     localtimestamp.tfsec += grpDelay;
-    bulkio::time::utils::normalize (localtimestamp);
+    bulkio::time::utils::normalize(localtimestamp);
 
 }
