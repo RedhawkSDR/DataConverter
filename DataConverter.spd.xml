@@ -44,5 +44,10 @@
     <os name="Linux"/>
     <processor name="x86"/>
     <processor name="x86_64"/>
+    <dependency type="runtime_requirements">
+      <softpkgref>
+        <localfile name="/deps/rh/fftlib/fftlib.spd.xml"/>
+      </softpkgref>
+    </dependency>
   </implementation>
 </softpkg>

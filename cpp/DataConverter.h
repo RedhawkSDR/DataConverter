@@ -28,16 +28,12 @@
 #include <fftw3.h>
 #include "R2C.h"
 #include <boost/thread/mutex.hpp>
-
-namespace {
-    static boost::mutex fftw_plan_mutex;
-}
+#include "FftwThreadCoordinator.h"
 
 #define IPP_NUMBER_THREADS 4
 #define MY_FFTW_FLAGS (FFTW_MEASURE)
 #define N 1
 #define FFTW_NUMBER_THREADS 4
-class DataConverter_i;
 
 class DataConverter_i : public DataConverter_base {
     ENABLE_LOGGING
@@ -118,8 +114,8 @@ private:
     fftwf_complex* fftBuffer;
     fftwf_complex* transformedBuffer;
     float* transformedRBuffer;
-    float* floatBuffer;
-    fftwf_complex* complexBuffer;
+//    float* floatBuffer;
+//    fftwf_complex* complexBuffer;
     fftwf_complex* r2cTempBuffer;
     fftwf_complex* upsampled;
     int dataAmount;

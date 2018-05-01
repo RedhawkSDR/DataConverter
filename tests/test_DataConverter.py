@@ -204,6 +204,9 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         lastTimeCode = snk.lastTimeCode
         self.assertEqual(lastTimeCode.twsec,wsec)
         self.assertEqual(lastTimeCode.tfsec,fsec)
+        
+        sb.stop()
+        self.comp.releaseObject()
     
     def runtestcase(self,scale,inType,outType,inData,expectedData):
 
@@ -227,6 +230,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         time.sleep(1)
                 
         (result,tstamps) = (snk.getData(tstamps=True))
+        sb.stop()
         self.comp.releaseObject()
         count = 0;
         
@@ -1426,6 +1430,9 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         
         self.assertTrue(sri2.streamID == streamID)
         self.assertTrue(sri2.mode == 1) # 1=Complex
+        
+        sb.stop()
+        comp.releaseObject()
     
     def testModeChangeC2RUpdatesSRI(self):
         print(sys._getframe().f_code.co_name)
@@ -1475,6 +1482,9 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         
         self.assertTrue(sri2.streamID == streamID)
         self.assertTrue(sri2.mode == 0) # 0=Scalar/Real
+        
+        sb.stop()
+        comp.releaseObject()
 
     def testScaBasicBehavior(self):
         print(sys._getframe().f_code.co_name)

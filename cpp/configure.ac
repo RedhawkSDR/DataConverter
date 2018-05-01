@@ -40,6 +40,7 @@ m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 # Dependencies
 PKG_CHECK_MODULES([PROJECTDEPS], [ossie >= 2.1 omniORB4 >= 4.1.0])
 PKG_CHECK_MODULES([INTERFACEDEPS], [bulkio >= 2.1])
+RH_SOFTPKG_CXX([/deps/rh/fftlib/fftlib.spd.xml],[cpp],[2.1])
 OSSIE_ENABLE_LOG4CXX
 AX_BOOST_BASE([1.41])
 AX_BOOST_SYSTEM

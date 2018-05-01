@@ -1,7 +1,7 @@
 f799a56f5d743d14d91f4a3094e7f48f  main.cpp
 4ee16b4ba36b3ec769e71b4bc644d38c  DataConverter_base.cpp
 8bfcd22353c3a57fee561ad86ee2a56b  reconf
-86fefaca1f7fe21e6296c6c51080cf79  configure.ac
+e74b021b7e48c173d1554f7b52a06e84  configure.ac
 c70a33c97237541606619a67ca106c8a  DataConverter_base.h
 1b64faba27e8dd32e5091cfcbe631389  Makefile.am
 1bfb0847aaf66661bf3866b31fc46f44  struct_props.h

@@ -29,11 +29,34 @@
 
 #include "DataConverter.h"
 
+using namespace fftwf_thread_coordinator;
+
 PREPARE_LOGGING(DataConverter_i)
 
 DataConverter_i::DataConverter_i(const char *uuid, const char *label) : 
 DataConverter_base(uuid, label)
 {
+    outputBuffer = NULL;
+    conversionBuffer = NULL;
+
+    workingBuffer = NULL;
+    transformedBuffer = NULL;
+    transformedRBuffer = NULL;
+    fftBuffer = NULL;
+    fftRBuffer = NULL;
+    r2c = NULL;
+    c2c_r = NULL;
+    c2c_f = NULL;
+    c2c_r2 = NULL;
+
+    tempBuffer = NULL;
+    complexTempBuffer = NULL;
+    r2cTempBuffer = NULL;
+
+//    floatBuffer = NULL;
+//    complexBuffer = NULL;
+    upsampled = NULL;
+    filter = NULL;
 }
 
 DataConverter_i::~DataConverter_i()
@@ -42,6 +65,8 @@ DataConverter_i::~DataConverter_i()
         _mm_free(outputBuffer);
     if (conversionBuffer != NULL )
         _mm_free(conversionBuffer);
+    outputBuffer = NULL;
+    conversionBuffer = NULL;
 
     if (fftBuffer != NULL)
         fftwf_free(fftBuffer);
@@ -61,21 +86,40 @@ DataConverter_i::~DataConverter_i()
         fftwf_free(complexTempBuffer);
     if (r2cTempBuffer  != NULL)
         fftwf_free(r2cTempBuffer);
-    if (filter  != NULL)
-        delete filter;
+    fftBuffer = NULL;
+    fftRBuffer = NULL;
+    workingBuffer = NULL;
+    transformedBuffer = NULL;
+    transformedRBuffer = NULL;
+    upsampled = NULL;
+    tempBuffer = NULL;
+    complexTempBuffer = NULL;
+    r2cTempBuffer = NULL;
 
     {
-        boost::mutex::scoped_lock lock(fftw_plan_mutex);
-        if (r2c != NULL)
+        boost::mutex::scoped_lock lock(getCoordinator()->getPlanMutex());
+        if (r2c != NULL) {
             fftwf_destroy_plan(r2c);
-        if (c2c_r != NULL)
+            r2c = NULL;
+        }
+        if (c2c_r != NULL) {
             fftwf_destroy_plan(c2c_r);
-        if (c2c_f != NULL)
+            c2c_r = NULL;
+        }
+        if (c2c_f != NULL) {
             fftwf_destroy_plan(c2c_f);
-        if (c2c_r2 != NULL)
+            c2c_f = NULL;
+        }
+        if (c2c_r2 != NULL) {
             fftwf_destroy_plan(c2c_r2);
-        r2c = c2c_r = c2c_f = c2c_r2 = NULL;
-        fftwf_cleanup();
+            c2c_r2 = NULL;
+        }
+        if (filter  != NULL) {
+            delete filter;
+            filter = NULL;
+        }
+        //fftwf_cleanup(); // done
+        //fftw_cleanup();  // TODO
     }
 }
 
@@ -83,29 +127,8 @@ void DataConverter_i::constructor(){
     first_overlap = true;
     firstRun = true;
     remainder_v = 0;
-    outputBuffer = NULL;
-    conversionBuffer = NULL;
-
-    workingBuffer = NULL;
-    transformedBuffer = NULL;
-    transformedRBuffer = NULL;
-    fftBuffer = NULL;
-    fftRBuffer = NULL;
-    r2c = NULL;
-    c2c_r = NULL;
-    c2c_f = NULL;
-    c2c_r2 = NULL;
 
     count = 0;
-
-    tempBuffer = NULL;
-    complexTempBuffer = NULL;
-    r2cTempBuffer = NULL;
-
-    floatBuffer = NULL;
-    complexBuffer = NULL;
-    upsampled = NULL;
-    filter = NULL;
 
 //    _samplesSinceLastTimestamp = 0;
 
@@ -167,15 +190,23 @@ void DataConverter_i::createFFTroute(int bufferSize){
     if (upsampled != NULL)
         fftwf_free(upsampled);
     {
-        boost::mutex::scoped_lock lock(fftw_plan_mutex);
-        if (r2c != NULL)
+    	boost::mutex::scoped_lock lock(getCoordinator()->getPlanMutex());
+        if (r2c != NULL) {
             fftwf_destroy_plan(r2c);
-        if (c2c_r != NULL)
+            r2c = NULL;
+        }
+        if (c2c_r != NULL) {
             fftwf_destroy_plan(c2c_r);
-        if (c2c_f != NULL)
+            c2c_r = NULL;
+        }
+        if (c2c_f != NULL) {
             fftwf_destroy_plan(c2c_f);
-        if (c2c_r2 != NULL)
+            c2c_f = NULL;
+        }
+        if (c2c_r2 != NULL) {
             fftwf_destroy_plan(c2c_r2);
+            c2c_r2 = NULL;
+        }
     }
 
     //initialize all pointers to NULL
@@ -188,10 +219,6 @@ void DataConverter_i::createFFTroute(int bufferSize){
     transformedBuffer = NULL;
     transformedRBuffer = NULL;
     upsampled = NULL;
-    r2c = NULL;
-    c2c_r = NULL;
-    c2c_f = NULL;
-    c2c_r2 = NULL;
 
     //used in R2C and C2R
     fftBuffer = (fftwf_complex*) fftwf_malloc(sizeof(fftwf_complex)*transformProperties.fftSize);
@@ -203,7 +230,7 @@ void DataConverter_i::createFFTroute(int bufferSize){
         workingBuffer = (fftwf_complex*) fftwf_malloc(sizeof(fftwf_complex)*bufferSize);
         transformedBuffer  = (fftwf_complex*) fftwf_malloc(sizeof(fftwf_complex)*bufferSize);
         {
-            boost::mutex::scoped_lock lock(fftw_plan_mutex);
+        	boost::mutex::scoped_lock lock(getCoordinator()->getPlanMutex());
             r2c = fftwf_plan_dft_r2c_1d(transformProperties.fftSize, (float*)&fftBuffer[0], workingBuffer, MY_FFTW_FLAGS);
             c2c_r = fftwf_plan_dft_1d(transformProperties.fftSize, r2cTempBuffer, complexTempBuffer, FFTW_BACKWARD, MY_FFTW_FLAGS);
         }
@@ -214,7 +241,7 @@ void DataConverter_i::createFFTroute(int bufferSize){
         workingBuffer = (fftwf_complex*) fftwf_malloc(sizeof(fftwf_complex)*transformProperties.fftSize);
         transformedBuffer  = (fftwf_complex*) fftwf_malloc(sizeof(fftwf_complex)*transformProperties.fftSize);
         {
-            boost::mutex::scoped_lock lock(fftw_plan_mutex);
+        	boost::mutex::scoped_lock lock(getCoordinator()->getPlanMutex());
             c2c_f  = fftwf_plan_dft_1d(transformProperties.fftSize, fftBuffer, workingBuffer, FFTW_FORWARD, MY_FFTW_FLAGS);
             c2c_r2 = fftwf_plan_dft_1d(transformProperties.fftSize*2, upsampled, complexTempBuffer, FFTW_BACKWARD, MY_FFTW_FLAGS);
         }
@@ -279,6 +306,7 @@ void DataConverter_i::createFilter(){
         numberTaps = numberTaps-1;
     numFilterTaps = numberTaps;
 
+    boost::mutex::scoped_lock lock(getCoordinator()->getPlanMutex());
     filter = new R2C(transformProperties.lowCutoff, transformProperties.highCutoff, transformProperties.transitionWidth, numberTaps, transformProperties.fftSize);
 }
 /***********************************************************************************************
