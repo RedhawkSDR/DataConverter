@@ -40,11 +40,17 @@
 #include <cmath>
 #include <algorithm>
 #include "fftw3.h"
+#include "ossie/debug.h"
+#include "FftwThreadCoordinator.h"
+#include <boost/thread/mutex.hpp>
+
+using namespace fftwf_thread_coordinator;
 
 //
 // Debug: write filter taps to file
 //
 #undef WRITE_TAPS_TO_FILE
+//#define WRITE_TAPS_TO_FILE 1
 #ifdef WRITE_TAPS_TO_FILE
 #include <iostream>
 #include <fstream>
@@ -58,6 +64,7 @@
 
 class R2C : public Filter
 {
+    ENABLE_LOGGING
 public:
     //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
     //
@@ -93,16 +100,20 @@ public:
         _input(NULL),
         _fftPlan(NULL)
     {
+        LOG_DEBUG(R2C,"constructor wLo="<<wLo<<" wHi="<<wHi<<" dw="<<dw<<" n="<<n<<" fftSize="<<fftSize);
     	if((dw <= wLo) && (wLo<= 0.5-dw))
         {
+            LOG_TRACE(R2C,"constructor true (dw <= wLo) && (wLo<= 0.5-dw)");
             if(wLo<wHi)
             {
+                LOG_TRACE(R2C,"constructor true wLo<wHi");
                 //
                 // Time vector
                 //
                 RealArray t(n);
-                for (size_t k = 0; k < n; ++k)
+                for (size_t k = 0; k < n; ++k) {
                     t[k] = M_PI*(2.*k + 1. - n);
+                }
 
                 //
                 // In-phase impulse response
@@ -110,6 +121,7 @@ public:
                 //RealArray A(t.apply(FilterTap(wLo, wHi, dw)));
                 RealArray A(n);
                 std::transform(&t[0], &t[n], &A[0], FilterTap(wLo, wHi, dw));
+                LOG_TRACE(R2C,"constructor after FilterTap sample0="<<(double) A[0]);
 
                 //
                 // Quadrature-phase impulse response (flip "A", left to right)
@@ -121,25 +133,66 @@ public:
                 // Filter
                 //
                 std::transform(&A[0], &A[n], &B[0], &_h[0], complexify);
+                LOG_TRACE(R2C,"constructor after complexify sample0="<<(double) _h[0].real());
 		
                 //
                 // Create the Frequency Domain Filter
                 //
                 _h = _h.apply(std::conj<Real>);
+                LOG_TRACE(R2C,"constructor after conj sample0="<<(double) _h[0].real());
 
                 _freqFilter = (fftwf_complex*) fftwf_malloc(sizeof(fftwf_complex)*fftSize);
                 _input = (fftwf_complex*) fftwf_malloc(sizeof(fftwf_complex)*fftSize);
-                _fftPlan = fftwf_plan_dft_1d(fftSize, _input, _freqFilter, FFTW_FORWARD, MY_FFTW_FLAGS);
+                memset((float*) &_input[0],0,sizeof(fftwf_complex)*fftSize);
+                if (_freqFilter==NULL){
+                	LOG_ERROR(R2C,"constructor could not malloc _freqFilter");
+                }
+                if (_input==NULL){
+                	LOG_ERROR(R2C,"constructor could not malloc _input");
+                }
+                {
+                    boost::mutex::scoped_lock lock(getCoordinator()->getPlanMutex());
+                    LOG_DEBUG(R2C,"constructor: creating R2C filter _fftPlan (E) - fftwf_plan_dft_1d FWD size="<<fftSize);
+                    _fftPlan = fftwf_plan_dft_1d(fftSize, _input, _freqFilter, FFTW_FORWARD, MY_FFTW_FLAGS);
+                }
+                if (_fftPlan==NULL){
+                	LOG_ERROR(R2C,"constructor could not create plan _fftPlan");
+                }
 
+                memset((float*) &_input[0],0,sizeof(fftwf_complex)*fftSize);
                 for(size_t ii=0;ii<n;++ii){
                 	_input[ii][0] = _h[ii].real();
                 	_input[ii][1] = _h[ii].imag();
                 }
+                /*for(size_t ii=0;ii<fftSize;++ii){
+                	if (!std::isfinite(_input[ii][0])) {
+                		LOG_ERROR(R2C,"constructor input to fftwf_execute_dft has NaN/inf at index(real)="<<ii);
+                	}
+                	if (!std::isfinite(_input[ii][1])) {
+                		LOG_ERROR(R2C,"constructor input to fftwf_execute_dft has NaN/inf at index(imag)="<<ii);
+                	}
+                	//LOG_INFO(R2C, "_input["<<ii<<"]=("<<_input[ii][0]<<", "<<_input[ii][1]<<"j)");
+                }*/
+                LOG_DEBUG(R2C,"constructor: fftwf_execute_dft(_fftPlan) (E) input0="<<((float*)_input)[0]);
                 fftwf_execute_dft(_fftPlan, (fftwf_complex*)&_input[0], _freqFilter);
+                LOG_DEBUG(R2C,"constructor: fftwf_execute_dft(_fftPlan) (E) output0="<<((float*)_freqFilter)[0]);
+                //size_t nan_count = 0;
                 for(size_t ii=0;ii<fftSize;++ii){
+                	/*if (!std::isfinite(_freqFilter[ii][0])) {
+                		nan_count++;
+                		LOG_TRACE(R2C,"constructor output from fftwf_execute_dft has NaN/inf at index(real)="<<ii);
+                	}
+                	if (!std::isfinite(_freqFilter[ii][1])) {
+                		nan_count++;
+                		LOG_TRACE(R2C,"constructor output from fftwf_execute_dft has NaN/inf at index(imag)="<<ii);
+                	}*/
                 	_freqFilter[ii][0] /= fftSize;
                 	_freqFilter[ii][1] /= fftSize;
                 }
+                /*if (nan_count > 0) {
+                	LOG_ERROR(R2C,"constructor|real_to_complex after /=fftSize nan_count="<<nan_count<<" fftSize="<<fftSize);
+                }*/
+                LOG_TRACE(R2C,"constructor|real_to_complex after /=fftSize sample0="<<((float*)_freqFilter)[0]);
 
 
 #ifdef WRITE_TAPS_TO_FILE
@@ -175,12 +228,21 @@ public:
 
     virtual ~R2C()
     {
-    	if(_freqFilter)
+        LOG_TRACE(R2C,"destructor");
+    	if(_freqFilter) {
     		fftwf_free(_freqFilter);
-    	if(_input)
+    		_freqFilter = NULL;
+    	}
+    	if(_input) {
     		fftwf_free(_input);
-    	if(_fftPlan)
-   			fftwf_destroy_plan(_fftPlan);
+    		_input = NULL;
+    	}
+    	if(_fftPlan) {
+            boost::mutex::scoped_lock lock(getCoordinator()->getPlanMutex());
+            LOG_DEBUG(R2C,"destuctor: destroying R2C filter _fftPlan (E)");
+            fftwf_destroy_plan(_fftPlan);
+            _fftPlan = NULL;
+    	}
     }
 
     //_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/_/
@@ -199,6 +261,7 @@ public:
 
     virtual size_t work(Real *in, Real *inEnd, Complex *out)
     {
+        LOG_TRACE(R2C,"work method (enter)");
         const Complex *h0(&_h[0]);
         size_t n(std::distance(in, inEnd));
 
@@ -226,6 +289,7 @@ public:
 
 
     void workFreq(fftwf_complex *in, fftwf_complex *inEnd, fftwf_complex *out){
+        LOG_TRACE(R2C,"workFreq method (enter)");
     	//this function will take each bin and multiply it by the filter.... it will also work with the complex conjugate of the negative freqs
     	size_t n(std::distance(in, inEnd)); // n will go from 0 -> fftSize/2 and contain fftSize/2+1 elements
     	//std::cout << "n is " << n << std::endl;
