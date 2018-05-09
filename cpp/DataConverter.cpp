@@ -53,8 +53,6 @@ DataConverter_base(uuid, label)
     complexTempBuffer = NULL;
     r2cTempBuffer = NULL;
 
-//    floatBuffer = NULL;
-//    complexBuffer = NULL;
     upsampled = NULL;
     filter = NULL;
 }
@@ -97,40 +95,43 @@ DataConverter_i::~DataConverter_i()
     r2cTempBuffer = NULL;
 
     {
-        boost::mutex::scoped_lock lock(getCoordinator()->getPlanMutex());
         if (r2c != NULL) {
+            boost::mutex::scoped_lock lock(getCoordinator()->getPlanMutex());
+            LOG_DEBUG(DataConverter_i,"destuctor: destroying r2c (A)");
             fftwf_destroy_plan(r2c);
             r2c = NULL;
         }
         if (c2c_r != NULL) {
+            boost::mutex::scoped_lock lock(getCoordinator()->getPlanMutex());
+            LOG_DEBUG(DataConverter_i,"destuctor: destroying c2c_r (B)");
             fftwf_destroy_plan(c2c_r);
             c2c_r = NULL;
         }
         if (c2c_f != NULL) {
+            boost::mutex::scoped_lock lock(getCoordinator()->getPlanMutex());
+            LOG_DEBUG(DataConverter_i,"destuctor: destroying c2c_f (C)");
             fftwf_destroy_plan(c2c_f);
             c2c_f = NULL;
         }
         if (c2c_r2 != NULL) {
+            boost::mutex::scoped_lock lock(getCoordinator()->getPlanMutex());
+            LOG_DEBUG(DataConverter_i,"destuctor: destroying c2c_r2 (D)");
             fftwf_destroy_plan(c2c_r2);
             c2c_r2 = NULL;
         }
         if (filter  != NULL) {
+            LOG_DEBUG(DataConverter_i,"destuctor: destroying R2C filter (E)");
             delete filter;
             filter = NULL;
         }
-        //fftwf_cleanup(); // done
-        //fftw_cleanup();  // TODO
     }
 }
 
 void DataConverter_i::constructor(){
     first_overlap = true;
-    firstRun = true;
     remainder_v = 0;
 
     count = 0;
-
-//    _samplesSinceLastTimestamp = 0;
 
     _readIndex = 0;
     _writeIndex = 0;
@@ -146,6 +147,7 @@ void DataConverter_i::constructor(){
 
     currSRIPtr = 0;
 
+    maxSamplesIn = 0;
     _transferSize = maxTransferSize;
     createMEM = true;
     createFFT = true;
@@ -160,13 +162,15 @@ void DataConverter_i::createMemory(int bufferSize){
         _mm_free(outputBuffer);
     if (conversionBuffer != NULL)
         _mm_free(conversionBuffer);
-    //create a buffer that is used between all times
-    //thus is must be a complex float in size
 
+    //create a buffer that is used between all types
+    //largest output buffer requirement is for double
+    //largest conversion buffer requirement is for float
     //created for 16byte aligned data
     outputBuffer = (char*) _mm_malloc(sizeof(double)*bufferSize,16);
     conversionBuffer = (char*) _mm_malloc(sizeof(float)*bufferSize,16);
     createMEM = false;
+    createFFT = true;
 }
 
 void DataConverter_i::createFFTroute(int bufferSize){
@@ -190,20 +194,31 @@ void DataConverter_i::createFFTroute(int bufferSize){
     if (upsampled != NULL)
         fftwf_free(upsampled);
     {
-    	boost::mutex::scoped_lock lock(getCoordinator()->getPlanMutex());
         if (r2c != NULL) {
+            LOG_TRACE(DataConverter_i,"createFFTroute destroy r2c");
+            boost::mutex::scoped_lock lock(getCoordinator()->getPlanMutex());
+            LOG_DEBUG(DataConverter_i,"createFFTroute: destroying r2c (A)");
             fftwf_destroy_plan(r2c);
             r2c = NULL;
         }
         if (c2c_r != NULL) {
+            LOG_TRACE(DataConverter_i,"createFFTroute destroy c2c_r");
+            boost::mutex::scoped_lock lock(getCoordinator()->getPlanMutex());
+            LOG_DEBUG(DataConverter_i,"createFFTroute: destroying c2c_r (B)");
             fftwf_destroy_plan(c2c_r);
             c2c_r = NULL;
         }
         if (c2c_f != NULL) {
+            LOG_TRACE(DataConverter_i,"createFFTroute destroy c2c_f");
+            boost::mutex::scoped_lock lock(getCoordinator()->getPlanMutex());
+            LOG_DEBUG(DataConverter_i,"createFFTroute: destroying c2c_f (C)");
             fftwf_destroy_plan(c2c_f);
             c2c_f = NULL;
         }
         if (c2c_r2 != NULL) {
+            LOG_TRACE(DataConverter_i,"createFFTroute destroy c2c_r2");
+            boost::mutex::scoped_lock lock(getCoordinator()->getPlanMutex());
+            LOG_DEBUG(DataConverter_i,"createFFTroute: destroying c2c_r2 (D)");
             fftwf_destroy_plan(c2c_r2);
             c2c_r2 = NULL;
         }
@@ -257,15 +272,13 @@ void DataConverter_i::transformPropertiesChanged(const transformProperties_struc
     if (oldVal.fftSize == newVal.fftSize) {
         return;
     }
-    if ( (fftType != 0) || firstRun) {
-        createFFT = true;
-    }
+    createFFT = true;
 }
 
 void DataConverter_i::maxTransferSizeChanged(CORBA::Long oldVal, CORBA::Long newVal) {
     boost::mutex::scoped_lock lock(property_lock);
 
-    if ( (maxTransferSize >= 0) || firstRun) {
+    if (maxTransferSize >= 0) {
         if (maxTransferSize != 0) {
             _transferSize = maxTransferSize;
         }
@@ -296,15 +309,16 @@ void DataConverter_i::outputTypeChanged(short oldVal, short newVal) {
 }
 
 void DataConverter_i::createFilter(){
-    if(filter != NULL)
+    LOG_TRACE(DataConverter_i,"createFilter (enter)");
+    if(filter != NULL) {
         delete filter;
-    filter = NULL;
+        filter = NULL;
+    }
     size_t numberTaps = (transformProperties.fftSize*transformProperties.overlap_percentage/100)+1;
     if(!(numberTaps%2))
         numberTaps = numberTaps-1;
     numFilterTaps = numberTaps;
 
-    boost::mutex::scoped_lock lock(getCoordinator()->getPlanMutex());
     filter = new R2C(transformProperties.lowCutoff, transformProperties.highCutoff, transformProperties.transitionWidth, numberTaps, transformProperties.fftSize);
 }
 /***********************************************************************************************
@@ -475,10 +489,13 @@ int DataConverter_i::calculate_memorySize(int inputAmount){
     }
     if (maxTransferSize == 0)
         _transferSize = size;
+    LOG_TRACE(DataConverter_i,"calculate_memorySize|result="<<size);
     return size;
 }
 
 void DataConverter_i::setupFFT(){
+    LOG_TRACE(DataConverter_i,"setupFFT|inputAmount");
+    int oldFftType = fftType;
     if (inputMode == 0 && outputType == 2) { // Real input, Complex output
         fftType = 2;    // R2C
         outputMode = 1; // Complex
@@ -488,6 +505,10 @@ void DataConverter_i::setupFFT(){
     } else { // passive (outputType==0 or outputType matches inputMode)
         fftType = 0;
         outputMode = inputMode;
+    }
+    if (fftType != oldFftType) {
+        createMEM = true;
+        createFFT = true;
     }
 }
 
@@ -529,7 +550,7 @@ void DataConverter_i::configureSRI(const BULKIO::StreamSRI& sriIn, bool incoming
     sriOutPtr->mode = outputMode;
     dataChar_out->createStream(*sriOutPtr);
     dataOctet_out->createStream(*sriOutPtr);
-    dataShort_out->createStream(*sriOutPtr); // TODO DEBUG (add this back)
+    dataShort_out->createStream(*sriOutPtr);
     dataUshort_out->createStream(*sriOutPtr);
     dataFloat_out->createStream(*sriOutPtr);
     dataDouble_out->createStream(*sriOutPtr);
@@ -562,12 +583,6 @@ int DataConverter_i::fft_execute(float* data, int size, bool EOS){
     if (!real_to_complex)
         overlap = 0;
     int overlapRemovalPosition = (transformProperties.fftSize - overlap);
-    //}
-
-    //always 2
-    //int elements_per_sample_output = 2;
-
-
 
     if (EOS && size <= 0 && (first_overlap || remainder_v <= overlap*elements_per_sample_input)){
         first_overlap = true;
@@ -589,19 +604,14 @@ int DataConverter_i::fft_execute(float* data, int size, bool EOS){
         moveTimeStamp(remainder_v);
     do{
         int elements_to_process = std::min(size_avail,int(transformProperties.fftSize*elements_per_sample_input)-remainder_v);
-        //int elements_to_process = std::min(size_avail,int(transformProperties.fftSize*elements_per_sample_input));
         //move data into processing buffer
         if (elements_to_process > 0){
-            //std::cout << " elements to process is " << elements_to_process << " remainder_v is " << remainder_v << " readIndex is " << _readIndex << std::endl;
-
-            // if elements_to_process is smaller than the fftSize-overlapsize, copy onto the buffer, and continue
             memcpy(&fftBuffRealPtr[remainder_v],&data[_readIndex],sizeof(float)*elements_to_process);
         }
 
         size_avail -= elements_to_process;
         _readIndex += elements_to_process;
         remainder_v += elements_to_process;
-
 
         //fill out incomplete transform with zeros
         int num_zeros = transformProperties.fftSize * elements_per_sample_input - remainder_v;
@@ -610,14 +620,57 @@ int DataConverter_i::fft_execute(float* data, int size, bool EOS){
             remainder_v += num_zeros;
         }
 
-
         //perform fft
         if (remainder_v >= transformProperties.fftSize * elements_per_sample_input){
 
             if (real_to_complex){
                 memcpy(&fftRBuffer[0],(float*)&fftBuffRealPtr[overlapRemovalPosition*elements_per_sample_input],sizeof(float)*overlap*elements_per_sample_input);
+                size_t nan_count = 0;
+                for(long ii=0;ii<overlap*elements_per_sample_input;++ii){
+                    if (std::isnan(fftRBuffer[ii])) {
+                        nan_count++;
+                        if (nan_count <= 2)
+                            LOG_ERROR(DataConverter_i,"fft_execute|real_to_complex input to r2c fft has NaN at index(real)="<<ii);
+                    }
+                    if (std::isnan(fftRBuffer[ii])) {
+                        nan_count++;
+                        if (nan_count <= 2)
+                            LOG_ERROR(DataConverter_i,"fft_execute|real_to_complex input to r2c fft has NaN at index(imag)="<<ii);
+                    }
+                }
+                if (nan_count > 0) LOG_ERROR(DataConverter_i,"fft_execute|real_to_complex input to r2c fft has NaNs; nan_count="<<nan_count);
                 fftwf_execute_dft_r2c(r2c,(float*)&fftBuffer[0],workingBuffer);
+                LOG_DEBUG(DataConverter_i,"fft_execute|real_to_complex before filter sample0="<<((float*)workingBuffer)[0]);
+                nan_count = 0;
+                for(long ii=0;ii<transformProperties.fftSize/2;++ii){
+                    if (std::isnan(workingBuffer[ii][0])) {
+                        nan_count++;
+                        if (nan_count <= 2)
+                            LOG_ERROR(DataConverter_i,"fft_execute|real_to_complex input to filter has NaN at index(real)="<<ii);
+                    }
+                    if (std::isnan(workingBuffer[ii][1])) {
+                        nan_count++;
+                        if (nan_count <= 2)
+                            LOG_ERROR(DataConverter_i,"fft_execute|real_to_complex input to filter has NaN at index(imag)="<<ii);
+                    }
+                }
+                if (nan_count > 0) LOG_ERROR(DataConverter_i,"fft_execute|real_to_complex input to filter has NaNs; nan_count="<<nan_count);
                 filter->workFreq((fftwf_complex*)&workingBuffer[0],(fftwf_complex*)&workingBuffer[transformProperties.fftSize/2],(fftwf_complex*)&r2cTempBuffer[0]);
+                LOG_DEBUG(DataConverter_i,"fft_execute|real_to_complex after filter sample0="<<((float*)r2cTempBuffer)[0]);
+                nan_count = 0;
+                for(long ii=0;ii<(transformProperties.fftSize-3);++ii){
+                    if (std::isnan(r2cTempBuffer[ii][0])) {
+                        nan_count++;
+                        if (nan_count <= 2)
+                            LOG_ERROR(DataConverter_i,"fft_execute|real_to_complex output from filter has NaN at index(real)="<<ii);
+                    }
+                    if (std::isnan(r2cTempBuffer[ii][1])) {
+                        nan_count++;
+                        if (nan_count <= 2)
+                            LOG_ERROR(DataConverter_i,"fft_execute|real_to_complex output from filter has NaN at index(imag)="<<ii);
+                    }
+                }
+                if (nan_count > 0) LOG_ERROR(DataConverter_i,"fft_execute|real_to_complex output from filter has NaNs; nan_count="<<nan_count);
             } else {
                 fftwf_execute_dft(c2c_f,(fftwf_complex*)&fftBuffer[0],&workingBuffer[0]);
                 mul_const((float*)&fftBuffer[0],(const float*) &workingBuffer[0],multiple*0.5,transformProperties.fftSize*2);
@@ -689,17 +742,6 @@ int DataConverter_i::fft_execute(float* data, int size, bool EOS){
     return dataAmount;
 }
 
-/*void DataConverter_i::updateTimeStamp() {
-    _FFTtimestampSec = _timestamp.twsec;
-    _FFTtimestampFractionalSec = _timestamp.tfsec + (_samplesSinceLastTimestamp * ((double) 1 / (double) (sampleRate)));
-    if (_FFTtimestampFractionalSec >= 1.0) {
-        _FFTtimestampSec += floor(_FFTtimestampFractionalSec);
-        _FFTtimestampFractionalSec =  (double) _FFTtimestampFractionalSec - floor(_FFTtimestampFractionalSec);
-    }
-    _timestamp.twsec = _FFTtimestampSec;
-    _timestamp.tfsec = _FFTtimestampFractionalSec;
-}*/
-
 void DataConverter_i::moveTimeStamp(int shiftBack){
     //save off this timestamp in case there is a remainder from the previous
     //new timestamp, but data still left in buffer from previous one
@@ -723,5 +765,11 @@ void DataConverter_i::adjustTimeStamp(const BULKIO::PrecisionUTCTime& timestamp,
     //adjust the group delay
     localtimestamp.tfsec += grpDelay;
     bulkio::time::utils::normalize(localtimestamp);
+}
 
+void DataConverter_i::flush() {
+    // Anything else need to be flushed when there's a gap in data?
+    delete currSRIPtr;
+    currSRIPtr=NULL;
+    createFFT=true;
 }
