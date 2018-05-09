@@ -40,9 +40,9 @@ class DataConverter_i : public DataConverter_base {
 public:
     DataConverter_i(const char *uuid, const char *label);
     ~DataConverter_i();
-    void transformPropertiesChanged(const transformProperties_struct* oldVal, const transformProperties_struct* newVal);
-    void maxTransferSizeChanged(const CORBA::Long* oldVal, const CORBA::Long* newVal);
-    void outputTypeChanged(const short* oldVal, const short* newVal);
+    void transformPropertiesChanged(const transformProperties_struct &oldVal, const transformProperties_struct &newVal);
+    void maxTransferSizeChanged(CORBA::Long oldVal, CORBA::Long newVal);
+    void outputTypeChanged(short oldVal, short newVal);
     int serviceFunction();
     void constructor();
 

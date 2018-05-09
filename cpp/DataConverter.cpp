@@ -150,9 +150,9 @@ void DataConverter_i::constructor(){
     createMEM = true;
     createFFT = true;
 
-    addPropertyChangeListener("transformProperties", this, &DataConverter_i::transformPropertiesChanged);
-    addPropertyChangeListener("maxTransferSize", this, &DataConverter_i::maxTransferSizeChanged);
-    addPropertyChangeListener("outputType", this, &DataConverter_i::outputTypeChanged);
+    addPropertyListener(transformProperties, this, &DataConverter_i::transformPropertiesChanged);
+    addPropertyListener(maxTransferSize, this, &DataConverter_i::maxTransferSizeChanged);
+    addPropertyListener(outputType, this, &DataConverter_i::outputTypeChanged);
 }
 
 void DataConverter_i::createMemory(int bufferSize){
@@ -250,12 +250,11 @@ void DataConverter_i::createFFTroute(int bufferSize){
     createFilter();
 }
 
-void DataConverter_i::transformPropertiesChanged(const transformProperties_struct* oldVal,
-        const transformProperties_struct* newVal) {
+void DataConverter_i::transformPropertiesChanged(const transformProperties_struct &oldVal, const transformProperties_struct &newVal) {
     boost::mutex::scoped_lock lock(property_lock);
 
     // We only care if the fftSize changes
-    if (oldVal->fftSize == newVal->fftSize) {
+    if (oldVal.fftSize == newVal.fftSize) {
         return;
     }
     if ( (fftType != 0) || firstRun) {
@@ -263,8 +262,7 @@ void DataConverter_i::transformPropertiesChanged(const transformProperties_struc
     }
 }
 
-void DataConverter_i::maxTransferSizeChanged(const CORBA::Long* oldVal,
-        const CORBA::Long* newVal) {
+void DataConverter_i::maxTransferSizeChanged(CORBA::Long oldVal, CORBA::Long newVal) {
     boost::mutex::scoped_lock lock(property_lock);
 
     if ( (maxTransferSize >= 0) || firstRun) {
@@ -275,8 +273,8 @@ void DataConverter_i::maxTransferSizeChanged(const CORBA::Long* oldVal,
     }
 }
 
-void DataConverter_i::outputTypeChanged(const short* oldVal, const short* newVal) {
-	LOG_DEBUG(DataConverter_i,__PRETTY_FUNCTION__ << "oldVal="<<*oldVal<<" newVal="<<*newVal);
+void DataConverter_i::outputTypeChanged(short oldVal, short newVal) {
+	LOG_TRACE(DataConverter_i,__PRETTY_FUNCTION__ << "oldVal="<<oldVal<<" newVal="<<newVal);
     boost::mutex::scoped_lock lock(property_lock);
 	LOG_DEBUG(DataConverter_i,"outputTypeChanged|got lock");
     LOG_DEBUG(DataConverter_i,"outputTypeChanged|before: inputMode="<<inputMode);
