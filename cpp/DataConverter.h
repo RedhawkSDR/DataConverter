@@ -124,7 +124,7 @@ private:
     template <typename OUT_TYPE, typename IN_TYPE, typename OUT_PORT>
     void pushDataService(const redhawk::shared_buffer<IN_TYPE> data, OUT_PORT *output, bool EOS, BULKIO::PrecisionUTCTime& tt, std::string streamID, bool scaled) {
 
-        LOG_DEBUG(DataConverter_i,"pushDataService|Types: Port: "<<typeid (OUT_PORT).name() << " In: "<<typeid (IN_TYPE).name()<< " Out: " <<typeid (OUT_TYPE).name());
+        LOG_TRACE(DataConverter_i,"pushDataService|Types: Port: "<<typeid (OUT_PORT).name() << " In: "<<typeid (IN_TYPE).name()<< " Out: " <<typeid (OUT_TYPE).name());
         if (!output->isActive()) return;
 
         double sRange = double(std::numeric_limits<IN_TYPE>::max()) - double(std::numeric_limits<IN_TYPE>::min());
@@ -176,6 +176,7 @@ private:
             LOG_TRACE(DataConverter_i,"pushDataService|no conversion needed: same type, no change in mode");
             stream.write(redhawk::shared_buffer<OUT_TYPE>::recast(data),tt); if (EOS) stream.close();
         } else {
+            LOG_TRACE(DataConverter_i,"pushDataService|conversion needed");
             if (fftType > 0) {
                 LOG_TRACE(DataConverter_i,"pushDataService|fftmem (before) createMEM="<<createMEM<<" createFFT="<<createFFT);
                 if (createFFT) {
@@ -230,6 +231,7 @@ private:
                     else
                         stream.write((OUT_TYPE*)&((*transformedBuffer)[totalSent]), curBufferSize, tt);
                 } else if (fftType > 0 && (typeid (OUT_TYPE) == typeid (double))) { // all FFT conversions to double
+                    LOG_TRACE(DataConverter_i,"pushDataService|outputloop did FFT and output type is double");
                     if (fftType == 1)
                         float2double((double*) &outputBuffer[0], (float*) &transformedRBuffer[totalSent], curBufferSize);
                     else
@@ -247,6 +249,7 @@ private:
                     stream.write((OUT_TYPE*) & outputBuffer[0], curBufferSize, tt);
                     LOG_TRACE(DataConverter_i,"pushDataService|FFT to non-float - DONE writing out curBufferSize="<<curBufferSize);
                 } else if (typeid (IN_TYPE) == typeid (double)) { // all non-FFT conversions from double
+                    LOG_TRACE(DataConverter_i,"pushDataService|non-FFT conversion from double");
                     if (typeid (OUT_TYPE) == typeid (double)) { // double to double normalization
                         double2doubleScaled((double*) &outputBuffer[0], (double*) &data[totalSent], curBufferSize, sMin, dRange, sRange, dMin);
                     } else {
@@ -261,6 +264,7 @@ private:
                     }
                     stream.write((OUT_TYPE*) & outputBuffer[0], curBufferSize, tt);
                 } else if (typeid (OUT_TYPE) == typeid (double)) { // non-FFT conversions not from double, but to double
+                    LOG_TRACE(DataConverter_i,"pushDataService|non-FFT conversion to double");
                     if (isFloatingType<IN_TYPE>() && !normalize_floating_point.input && scaled) { // float to normalized double
                         float2doubleScaled((double*) &outputBuffer[0], (float*)&data[totalSent], curBufferSize, sMin, dRange, sRange, dMin);
                     } else {
@@ -269,6 +273,7 @@ private:
                     }
                     stream.write((OUT_TYPE*) & outputBuffer[0], curBufferSize, tt);
                 } else { // all non-FFT conversions not from or to double
+                    LOG_TRACE(DataConverter_i,"pushDataService|non-FFT conversion not to or from double");
                     if (isFloatingType<IN_TYPE>() && !normalize_floating_point.input && scaled) {
                         dataTypeTransformOpt::convertDataTypeRange<IN_TYPE, OUT_TYPE>((IN_TYPE*)&data[totalSent], (OUT_TYPE*) & outputBuffer[0], sMin, sRange, dMin, dRange, curBufferSize);
                     } else {
@@ -279,7 +284,7 @@ private:
                 totalSent+=curBufferSize;
                 tt.tfsec = tt.tfsec + ((1.0 / sampleRate) * curBufferSize);
                 bulkio::time::utils::normalize(tt);
-                LOG_DEBUG(DataConverter_i,"pushDataService|loop DONE; wrote curBufferSize="<<curBufferSize<<" more for total of totalSent="<<totalSent);
+                LOG_TRACE(DataConverter_i,"pushDataService|loop DONE; wrote curBufferSize="<<curBufferSize<<" more for total of totalSent="<<totalSent);
             }
             if (EOS) stream.close();
         }

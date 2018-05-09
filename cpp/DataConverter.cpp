@@ -32,6 +32,7 @@
 using namespace fftwf_thread_coordinator;
 
 PREPARE_LOGGING(DataConverter_i)
+PREPARE_LOGGING(R2C)
 
 DataConverter_i::DataConverter_i(const char *uuid, const char *label) : 
 DataConverter_base(uuid, label)
@@ -158,6 +159,7 @@ void DataConverter_i::constructor(){
 }
 
 void DataConverter_i::createMemory(int bufferSize){
+    LOG_TRACE(DataConverter_i,"createMemory (enter) bufferSize="<<bufferSize);
     if (outputBuffer != NULL)
         _mm_free(outputBuffer);
     if (conversionBuffer != NULL)
@@ -174,7 +176,7 @@ void DataConverter_i::createMemory(int bufferSize){
 }
 
 void DataConverter_i::createFFTroute(int bufferSize){
-    //std::cout << "Call to createFFTroute " << bufferSize << " " << transformProperties.fftSize << std::endl;
+    LOG_TRACE(DataConverter_i,"createFFTroute (enter) bufferSize="<<bufferSize);
     if (fftBuffer != NULL)
         fftwf_free(fftBuffer);
     if (fftRBuffer != NULL)
@@ -238,47 +240,72 @@ void DataConverter_i::createFFTroute(int bufferSize){
     //used in R2C and C2R
     fftBuffer = (fftwf_complex*) fftwf_malloc(sizeof(fftwf_complex)*transformProperties.fftSize);
     fftRBuffer = (float*) fftwf_malloc(sizeof(float)*transformProperties.fftSize*4);
+    LOG_TRACE(DataConverter_i,"createFFTroute fftBuffer addr is "<<(float*) fftBuffer);
+    LOG_TRACE(DataConverter_i,"createFFTroute fftRBuffer addr is "<<fftRBuffer);
 
     if (fftType == 2){ // R2C
+        LOG_TRACE(DataConverter_i,"createFFTroute|R2C");
         complexTempBuffer = (fftwf_complex*)fftwf_malloc(sizeof(fftwf_complex)*transformProperties.fftSize);
         r2cTempBuffer = (fftwf_complex*)fftwf_malloc(sizeof(fftwf_complex)*transformProperties.fftSize);
         workingBuffer = (fftwf_complex*) fftwf_malloc(sizeof(fftwf_complex)*bufferSize);
         transformedBuffer  = (fftwf_complex*) fftwf_malloc(sizeof(fftwf_complex)*bufferSize);
         {
-        	boost::mutex::scoped_lock lock(getCoordinator()->getPlanMutex());
+            boost::mutex::scoped_lock lock(getCoordinator()->getPlanMutex());
+            LOG_DEBUG(DataConverter_i,"createFFTroute: creating r2c (A) - fftwf_plan_dft_r2c_1d size="<<transformProperties.fftSize);
             r2c = fftwf_plan_dft_r2c_1d(transformProperties.fftSize, (float*)&fftBuffer[0], workingBuffer, MY_FFTW_FLAGS);
+            LOG_DEBUG(DataConverter_i,"createFFTroute: creating c2c_r (B) - fftwf_plan_dft_1d BWD size="<<transformProperties.fftSize);
             c2c_r = fftwf_plan_dft_1d(transformProperties.fftSize, r2cTempBuffer, complexTempBuffer, FFTW_BACKWARD, MY_FFTW_FLAGS);
         }
+        LOG_TRACE(DataConverter_i,"createFFTroute|R2C complexTempBuffer addr is "<<(float*)complexTempBuffer);
+        LOG_TRACE(DataConverter_i,"createFFTroute|R2C r2cTempBuffer addr is "<<(float*)r2cTempBuffer);
+        LOG_TRACE(DataConverter_i,"createFFTroute|R2C workingBuffer addr is "<<(float*)workingBuffer);
+        LOG_TRACE(DataConverter_i,"createFFTroute|R2C r2c addr is "<<(void*)r2c);
+        LOG_TRACE(DataConverter_i,"createFFTroute|R2C c2c_r addr is "<<(void*)c2c_r);
     } else {
+        LOG_TRACE(DataConverter_i,"createFFTroute|C2R");
         upsampled = (fftwf_complex*) fftwf_malloc(sizeof(fftwf_complex)*transformProperties.fftSize*2);
         complexTempBuffer = (fftwf_complex*)fftwf_malloc(sizeof(fftwf_complex)*transformProperties.fftSize*2);
         transformedRBuffer = (float*)fftwf_malloc(sizeof(float)*bufferSize*2);
         workingBuffer = (fftwf_complex*) fftwf_malloc(sizeof(fftwf_complex)*transformProperties.fftSize);
         transformedBuffer  = (fftwf_complex*) fftwf_malloc(sizeof(fftwf_complex)*transformProperties.fftSize);
         {
-        	boost::mutex::scoped_lock lock(getCoordinator()->getPlanMutex());
+            boost::mutex::scoped_lock lock(getCoordinator()->getPlanMutex());
+            LOG_DEBUG(DataConverter_i,"createFFTroute: creating c2c_f (C) - fftwf_plan_dft_1d FWD size="<<transformProperties.fftSize);
             c2c_f  = fftwf_plan_dft_1d(transformProperties.fftSize, fftBuffer, workingBuffer, FFTW_FORWARD, MY_FFTW_FLAGS);
+            LOG_DEBUG(DataConverter_i,"createFFTroute: creating c2c_r2 (D) - fftwf_plan_dft_1d BWD size="<<transformProperties.fftSize*2);
             c2c_r2 = fftwf_plan_dft_1d(transformProperties.fftSize*2, upsampled, complexTempBuffer, FFTW_BACKWARD, MY_FFTW_FLAGS);
         }
+        LOG_TRACE(DataConverter_i,"createFFTroute|R2C upsampled addr is "<<(float*)upsampled);
+        LOG_TRACE(DataConverter_i,"createFFTroute|R2C complexTempBuffer addr is "<<(float*)complexTempBuffer);
+        LOG_TRACE(DataConverter_i,"createFFTroute|R2C transformedRBuffer addr is "<<(float*)transformedRBuffer);
+        LOG_TRACE(DataConverter_i,"createFFTroute|R2C workingBuffer addr is "<<(float*)workingBuffer);
+        LOG_TRACE(DataConverter_i,"createFFTroute|R2C transformedBuffer addr is "<<(float*)transformedBuffer);
+        LOG_TRACE(DataConverter_i,"createFFTroute|R2C c2c_f addr is "<<(void*)c2c_f);
+        LOG_TRACE(DataConverter_i,"createFFTroute|R2C c2c_r2 addr is "<<(void*)c2c_r2);
     }
     createFFT = false;
+    LOG_DEBUG(DataConverter_i,"createFFTroute: creating R2C filter (E)");
     createFilter();
 }
 
 void DataConverter_i::transformPropertiesChanged(const transformProperties_struct &oldVal, const transformProperties_struct &newVal) {
+    LOG_TRACE(DataConverter_i,__PRETTY_FUNCTION__ << "oldVal.fftSize="<<oldVal.fftSize<<" newVal.fftSize="<<newVal.fftSize);
     boost::mutex::scoped_lock lock(property_lock);
 
     // We only care if the fftSize changes
     if (oldVal.fftSize == newVal.fftSize) {
         return;
     }
+    LOG_DEBUG(DataConverter_i," New fftSize configured: "<<newVal.fftSize);
     createFFT = true;
 }
 
 void DataConverter_i::maxTransferSizeChanged(CORBA::Long oldVal, CORBA::Long newVal) {
+    LOG_TRACE(DataConverter_i,__PRETTY_FUNCTION__ << "oldVal="<<oldVal<<" newVal="<<newVal);
     boost::mutex::scoped_lock lock(property_lock);
 
     if (maxTransferSize >= 0) {
+        LOG_DEBUG(DataConverter_i," Configured with maxTransferSize: "<<maxTransferSize);
         if (maxTransferSize != 0) {
             _transferSize = maxTransferSize;
         }
@@ -287,25 +314,18 @@ void DataConverter_i::maxTransferSizeChanged(CORBA::Long oldVal, CORBA::Long new
 }
 
 void DataConverter_i::outputTypeChanged(short oldVal, short newVal) {
-	LOG_TRACE(DataConverter_i,__PRETTY_FUNCTION__ << "oldVal="<<oldVal<<" newVal="<<newVal);
+    LOG_TRACE(DataConverter_i,__PRETTY_FUNCTION__ << "oldVal="<<oldVal<<" newVal="<<newVal);
     boost::mutex::scoped_lock lock(property_lock);
-	LOG_DEBUG(DataConverter_i,"outputTypeChanged|got lock");
-    LOG_DEBUG(DataConverter_i,"outputTypeChanged|before: inputMode="<<inputMode);
-    LOG_DEBUG(DataConverter_i,"outputTypeChanged|before: outputMode="<<outputMode);
-    LOG_DEBUG(DataConverter_i,"outputTypeChanged|before: outputType="<<outputType);
-    LOG_DEBUG(DataConverter_i,"outputTypeChanged|before: fftType="<<fftType);
+    LOG_DEBUG(DataConverter_i," configured with outputType: "<<outputType);
+    LOG_TRACE(DataConverter_i,"outputTypeChanged|before: inputMode="<<inputMode<<" outputMode="<<outputMode<<" outputType="<<outputType<<" fftType="<<fftType);
 
     // Reconfigure current SRI to push out mode change if we have a current SRI
     if (currSRIPtr) {
-    	LOG_DEBUG(DataConverter_i,"outputTypeChanged|configuring sri");
-	    LOG_DEBUG(DataConverter_i,"outputTypeChanged|before: sri.mode="<<currSRIPtr->mode);
+        LOG_TRACE(DataConverter_i,"outputTypeChanged|configuring sri; sri.mode="<<currSRIPtr->mode);
         configureSRI(*currSRIPtr, false);
-	    LOG_DEBUG(DataConverter_i,"outputTypeChanged|after: sri.mode="<<currSRIPtr->mode);
+        LOG_TRACE(DataConverter_i,"outputTypeChanged|after: sri.mode="<<currSRIPtr->mode);
     }
-    LOG_DEBUG(DataConverter_i,"outputTypeChanged|after: inputMode="<<inputMode);
-    LOG_DEBUG(DataConverter_i,"outputTypeChanged|after: outputMode="<<outputMode);
-    LOG_DEBUG(DataConverter_i,"outputTypeChanged|after: outputType="<<outputType);
-    LOG_DEBUG(DataConverter_i,"outputTypeChanged|after: fftType="<<fftType);
+    LOG_TRACE(DataConverter_i,"outputTypeChanged|after: inputMode="<<inputMode<<" outputMode="<<outputMode<<" outputType="<<outputType<<" fftType="<<fftType);
 }
 
 void DataConverter_i::createFilter(){
@@ -315,11 +335,16 @@ void DataConverter_i::createFilter(){
         filter = NULL;
     }
     size_t numberTaps = (transformProperties.fftSize*transformProperties.overlap_percentage/100)+1;
+    LOG_TRACE(DataConverter_i,"createFilter|1  numberTaps="<<numberTaps<<" numFilterTaps="<<numFilterTaps);
     if(!(numberTaps%2))
         numberTaps = numberTaps-1;
+    LOG_TRACE(DataConverter_i,"createFilter|2  numberTaps="<<numberTaps<<" numFilterTaps="<<numFilterTaps);
     numFilterTaps = numberTaps;
+    LOG_TRACE(DataConverter_i,"createFilter|3  numberTaps="<<numberTaps<<" numFilterTaps="<<numFilterTaps);
 
     filter = new R2C(transformProperties.lowCutoff, transformProperties.highCutoff, transformProperties.transitionWidth, numberTaps, transformProperties.fftSize);
+
+    LOG_TRACE(DataConverter_i,"createFilter filter addr is "<<(void*)filter);
 }
 /***********************************************************************************************
 
@@ -479,6 +504,7 @@ int DataConverter_i::serviceFunction()
 
 
 int DataConverter_i::calculate_memorySize(int inputAmount){
+    LOG_TRACE(DataConverter_i,"calculate_memorySize|inputAmount="<<inputAmount);
     int value = 0;
     int size = 0;
     if (fftType > 0) { // R2C or C2R
@@ -494,7 +520,7 @@ int DataConverter_i::calculate_memorySize(int inputAmount){
 }
 
 void DataConverter_i::setupFFT(){
-    LOG_TRACE(DataConverter_i,"setupFFT|inputAmount");
+    LOG_TRACE(DataConverter_i,"setupFFT");
     int oldFftType = fftType;
     if (inputMode == 0 && outputType == 2) { // Real input, Complex output
         fftType = 2;    // R2C
@@ -507,12 +533,14 @@ void DataConverter_i::setupFFT(){
         outputMode = inputMode;
     }
     if (fftType != oldFftType) {
+        LOG_DEBUG(DataConverter_i,"setupFFT - fftType changed from "<<oldFftType<<" to "<<fftType);
         createMEM = true;
         createFFT = true;
     }
 }
 
 void DataConverter_i::configureSRI(const BULKIO::StreamSRI& sriIn, bool incomingSRI) {
+    LOG_TRACE(DataConverter_i,"configureSRI|incomingSRI="<<incomingSRI);
     sampleRate = 1 / sriIn.xdelta;
     // Only set the input mode if the SRI is incoming
     if (incomingSRI)
@@ -563,7 +591,8 @@ void DataConverter_i::configureSRI(const BULKIO::StreamSRI& sriIn, bool incoming
     }
 }
 
-int DataConverter_i::fft_execute(float* data, int size, bool EOS){
+int DataConverter_i::fft_execute(float* data, int size, bool EOS) {
+    LOG_TRACE(DataConverter_i,"fft_execute|enter sample0="<<data[0]);
     _readIndex = 0;
     _writeIndex = 0;
 
@@ -624,54 +653,14 @@ int DataConverter_i::fft_execute(float* data, int size, bool EOS){
         if (remainder_v >= transformProperties.fftSize * elements_per_sample_input){
 
             if (real_to_complex){
+                LOG_TRACE(DataConverter_i,"fft_execute|real_to_complex fftwf_execute_dft_r2c(r2c) (A)");
                 memcpy(&fftRBuffer[0],(float*)&fftBuffRealPtr[overlapRemovalPosition*elements_per_sample_input],sizeof(float)*overlap*elements_per_sample_input);
-                size_t nan_count = 0;
-                for(long ii=0;ii<overlap*elements_per_sample_input;++ii){
-                    if (std::isnan(fftRBuffer[ii])) {
-                        nan_count++;
-                        if (nan_count <= 2)
-                            LOG_ERROR(DataConverter_i,"fft_execute|real_to_complex input to r2c fft has NaN at index(real)="<<ii);
-                    }
-                    if (std::isnan(fftRBuffer[ii])) {
-                        nan_count++;
-                        if (nan_count <= 2)
-                            LOG_ERROR(DataConverter_i,"fft_execute|real_to_complex input to r2c fft has NaN at index(imag)="<<ii);
-                    }
-                }
-                if (nan_count > 0) LOG_ERROR(DataConverter_i,"fft_execute|real_to_complex input to r2c fft has NaNs; nan_count="<<nan_count);
                 fftwf_execute_dft_r2c(r2c,(float*)&fftBuffer[0],workingBuffer);
-                LOG_DEBUG(DataConverter_i,"fft_execute|real_to_complex before filter sample0="<<((float*)workingBuffer)[0]);
-                nan_count = 0;
-                for(long ii=0;ii<transformProperties.fftSize/2;++ii){
-                    if (std::isnan(workingBuffer[ii][0])) {
-                        nan_count++;
-                        if (nan_count <= 2)
-                            LOG_ERROR(DataConverter_i,"fft_execute|real_to_complex input to filter has NaN at index(real)="<<ii);
-                    }
-                    if (std::isnan(workingBuffer[ii][1])) {
-                        nan_count++;
-                        if (nan_count <= 2)
-                            LOG_ERROR(DataConverter_i,"fft_execute|real_to_complex input to filter has NaN at index(imag)="<<ii);
-                    }
-                }
-                if (nan_count > 0) LOG_ERROR(DataConverter_i,"fft_execute|real_to_complex input to filter has NaNs; nan_count="<<nan_count);
+                LOG_TRACE(DataConverter_i,"fft_execute|real_to_complex before filter sample0="<<((float*)workingBuffer)[0]);
                 filter->workFreq((fftwf_complex*)&workingBuffer[0],(fftwf_complex*)&workingBuffer[transformProperties.fftSize/2],(fftwf_complex*)&r2cTempBuffer[0]);
-                LOG_DEBUG(DataConverter_i,"fft_execute|real_to_complex after filter sample0="<<((float*)r2cTempBuffer)[0]);
-                nan_count = 0;
-                for(long ii=0;ii<(transformProperties.fftSize-3);++ii){
-                    if (std::isnan(r2cTempBuffer[ii][0])) {
-                        nan_count++;
-                        if (nan_count <= 2)
-                            LOG_ERROR(DataConverter_i,"fft_execute|real_to_complex output from filter has NaN at index(real)="<<ii);
-                    }
-                    if (std::isnan(r2cTempBuffer[ii][1])) {
-                        nan_count++;
-                        if (nan_count <= 2)
-                            LOG_ERROR(DataConverter_i,"fft_execute|real_to_complex output from filter has NaN at index(imag)="<<ii);
-                    }
-                }
-                if (nan_count > 0) LOG_ERROR(DataConverter_i,"fft_execute|real_to_complex output from filter has NaNs; nan_count="<<nan_count);
+                LOG_TRACE(DataConverter_i,"fft_execute|real_to_complex after filter sample0="<<((float*)r2cTempBuffer)[0]);
             } else {
+                LOG_TRACE(DataConverter_i,"fft_execute|complex_to_real fftwf_execute_dft(c2c_f) (C)");
                 fftwf_execute_dft(c2c_f,(fftwf_complex*)&fftBuffer[0],&workingBuffer[0]);
                 mul_const((float*)&fftBuffer[0],(const float*) &workingBuffer[0],multiple*0.5,transformProperties.fftSize*2);
                 memcpy(&upsampled[0],&fftBuffer[transformProperties.fftSize/2],sizeof(fftwf_complex)*transformProperties.fftSize/2);
@@ -688,10 +677,15 @@ int DataConverter_i::fft_execute(float* data, int size, bool EOS){
                 }
             }
             if (real_to_complex){
+                LOG_TRACE(DataConverter_i,"fft_execute|real_to_complex fftwf_execute_dft(c2c_r) (B)");
+                LOG_DEBUG(DataConverter_i,"fft_execute|real_to_complex before fftwf_execute_dft sample0="<<((float*)r2cTempBuffer)[0]);
                 fftwf_execute_dft(c2c_r,r2cTempBuffer,complexTempBuffer);
+                LOG_DEBUG(DataConverter_i,"fft_execute|real_to_complex after fftwf_execute_dft sample0="<<((float*)complexTempBuffer)[0]);
+                LOG_DEBUG(DataConverter_i,"fft_execute|real_to_complex after fftwf_execute_dft sample[overlap]="<<((float*)complexTempBuffer)[overlap*2]);
 
 
                 if(transformProperties.tune_fs_over_4){
+                    LOG_DEBUG(DataConverter_i,"fft_execute|real_to_complex tune_fs_over_4");
                     //std::cout << " divide by 2 case " << std::endl;
                     //mixing by (Fs/4)/Fs = 1/4 * dec in the time domain
                     //1/4*2 = 1/2 or 0.5
@@ -709,17 +703,21 @@ int DataConverter_i::fft_execute(float* data, int size, bool EOS){
 
                         index++;
                     }
+                    LOG_DEBUG(DataConverter_i,"fft_execute|real_to_complex after tune_fs_over_4 sample0="<<((float*)transformedBuffer)[_writeIndex*2]);
                     //fwrite((fftwf_complex*)&transformedBuffer[_writeIndex],sizeof(fftwf_complex),overlapRemovalPosition/2,debugR2C);
                     //set size of _writeIndex
                     _writeIndex += overlapRemovalPosition/2;
                     dataAmount += overlapRemovalPosition/2 * elements_per_sample_output;
                 }else{
+                    LOG_DEBUG(DataConverter_i,"fft_execute|real_to_complex (no tune)");
 
                     memcpy(&transformedBuffer[_writeIndex],&complexTempBuffer[overlap],sizeof(float)*overlapRemovalPosition*elements_per_sample_output);
+                    LOG_DEBUG(DataConverter_i,"fft_execute|real_to_complex after (no tune) sample0="<<((float*)transformedBuffer)[_writeIndex*2]);
                     _writeIndex += overlapRemovalPosition;
                     dataAmount += overlapRemovalPosition * elements_per_sample_output;
                 }
             }else{
+                LOG_TRACE(DataConverter_i,"fft_execute|complex_to_real fftwf_execute_dft(c2c_r2) (D)");
                 fftwf_execute_dft(c2c_r2,upsampled,complexTempBuffer);
                 //extract the real only value (which we now have 2X of
                 int index_l = _writeIndex;
@@ -739,6 +737,7 @@ int DataConverter_i::fft_execute(float* data, int size, bool EOS){
     }while(size_avail > 0);
     if (EOS)
         first_overlap = true;
+    LOG_TRACE(DataConverter_i,"fft_execute|exit dataAmount="<<dataAmount);
     return dataAmount;
 }
 
