@@ -1,5 +1,7 @@
 variables:
   rh_21_release: '2.1.3'
+  dsp_version: '2.0.1'
+  fftlib_version: '2.1.0'
   namespace: rh.
   test_suite: test_$CI_PROJECT_NAME.py
 
@@ -9,12 +11,16 @@ before_script:
     - safe_ref=$(echo ${CI_COMMIT_REF_NAME} | tr -d /| tr '[:upper:]' '[:lower:]')
     - if [ -z "$CI_COMMIT_TAG" ]; then
         redhawk_version=${latest_version}
+        dsp_version=latest
+        fftlib_version=latest
         rpm_release="0.$CI_PIPELINE_ID.rh${safe_version}";
       else
         redhawk_version=${release_version}
         rpm_release="`rpm --query --queryformat "%{release}\n" --specfile ${namespace}$CI_PROJECT_NAME.spec | head -n 1 | awk -F"." "{print $1}"`.rh${safe_version}";
       fi
     - redhawk_repo=$yum_repo_url/redhawk-core-framework/$redhawk_version/$dist/$arch
+    - dsp_repo=$yum_repo_url/redhawk-sharedlibs/dsp/$dsp_version/rh${safe_version}/$dist/$arch
+    - fftlib_repo=$yum_repo_url/redhawk-sharedlibs/fftlib/$fftlib_version/rh${safe_version}/$dist/$arch
 
 .package: &package
   image: ${docker_registry}${docker_rpm_repository}docker:latest-rpm
@@ -31,7 +37,7 @@ before_script:
                          --build-arg "rpm_release=$rpm_release"
                          --build-arg "spec_file=${namespace}$CI_PROJECT_NAME.spec"
                          --build-arg "arch=$arch"
-                         --build-arg "other_repos=$redhawk_repo" .
+                         --build-arg "other_repos=$redhawk_repo $dsp_repo $fftlib_repo" .
     - id=$(docker container create $CI_PROJECT_PATH_SLUG-$safe_ref-$dist-$arch-rh${safe_version})
     - docker container cp $id:/root/rpmbuild/RPMS/ output/
     - docker container rm -f $id || true
@@ -54,6 +60,8 @@ before_script:
   script:
     - . /usr/local/redhawk/python-virtualenv/bin/activate
     - yum-config-manager --add-repo $redhawk_repo
+    - yum-config-manager --add-repo $dsp_repo
+    - yum-config-manager --add-repo $fftlib_repo
     - touch /var/lib/rpm/* && yum-builddep --nogpgcheck -y ${namespace}$CI_PROJECT_NAME.spec
     - source /etc/profile.d/redhawk.sh
     - export SDRROOT=/var/redhawk/sdr
