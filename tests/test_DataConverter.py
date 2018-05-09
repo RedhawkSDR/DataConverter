@@ -733,7 +733,16 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
 
     def realToComplex(self, scale=True, enablePlt=False):
 
+        FAIL_TEST=0
+        #DEBUG_LEVEL = 5
+        #LOG_LEVEL = CF.LogLevels.DEBUG
+        LOG_LEVEL = CF.LogLevels.INFO
+        
+
         self.comp = sb.launch('../DataConverter.spd.xml')
+        #self.comp = sb.launch('../DataConverter.spd.xml',execparams={'DEBUG_LEVEL':DEBUG_LEVEL})
+        #self.comp = sb.launch('../DataConverter.spd.xml',properties={'DEBUG_LEVEL':DEBUG_LEVEL})
+        self.comp.log_level(LOG_LEVEL)
         self.comp_obj=self.comp.ref
         self.initializeDicts()
         self.comp.start()
@@ -748,12 +757,10 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.comp.normalize_floating_point.Output = scale
         self.comp.outputType = 2
         
-        t = np.array([],dtype='float')
-        t = np.arange(0,2*np.pi/400.,2*np.pi/400./32768)
         #get a bunch of random data between 1 and -1 and create a BPSK Signal
-        
-
+        t = np.arange(0,2*np.pi/400.,2*np.pi/400./32768)
         sint = np.sin(50000*t) * np.sin(1000*t)
+        
         src=sb.DataSource()#bytesPerPush=512 + 32)
         snk=sb.DataSink()
 
@@ -765,8 +772,14 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         time.sleep(1)
         result = snk.getData()
         sb.stop()
+        self.comp.log_level(CF.LogLevels.INFO)
         self.comp.releaseObject()
         self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
+        
+        nans = [1 for x in sint if x != x]
+        print 'len sint, len nans:', len(sint), len(nans)
+        nans = [1 for x in result if x != x]
+        print 'len result, len nans:', len(result), len(nans)
 
         res = np.array([np.complex(result[ii], result[ii+1]) for ii in np.arange(0,len(result)-1,2)])
         
@@ -778,10 +791,16 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         avgOut = np.mean(res)
         avgKnown = np.mean(h)
         stdDeviation = np.std(h)
+        
+        print 'avg res, avg h, stddev h:', avgOut, avgKnown, stdDeviation
 
         corr = signal.correlate(h,res)
-        elementer = corr.argmax()
-        should = int((len(h) + len(res))/2 - 1)
+        elementer = corr.argmax() # index of max correlation
+        should = int((len(h) + len(res))/2 - 1) # average length of expected and actual output, minus 1
+        
+        print 'len h, len res, should, elementer, should-elementer, corr:',len(h), len(res), should, elementer, should-elementer, corr
+        
+        self.assertNotEqual(elementer, 0, 'No correlation found between expected and actual result!')
 
         error_real = np.zeros(min(len(h), len(res)))
         error_imag = np.zeros(min(len(h), len(res)))
@@ -789,9 +808,11 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         error = np.array([np.complex(error_real[ii], error_imag[ii]) for ii in np.arange(len(error_imag))])
         jj = 0
         # calculate absolute error relative to the standard deviation
+        print 'ii, jj, error_mag, h.real, res.real, h.imag, res.imag, stddev'
         for ii in np.arange(should-elementer, len(h) + should-elementer):
             error[jj] = np.complex((h.real[jj] - res.real[ii]), (h.imag[jj] - res.imag[ii]))
             error_mag[jj] = np.abs(np.complex((h.real[jj] - res.real[ii]), (h.imag[jj] - res.imag[ii]))) / stdDeviation
+            if jj%4096 == 0: print ii, jj, error_mag[jj], h.real[jj], res.real[ii], h.imag[jj], res.imag[ii], stdDeviation
             jj+=1
         
         
@@ -816,14 +837,27 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
             plt.plot(error_mag)            
             plt.show()
                 
+        print 'avg res - avg h =', avgOut-avgKnown
+        print 'max(abs(error_mag)):', np.max(np.abs(error_mag))
+        
         self.assertEqual((0.01>avgOut-avgKnown),True)
         self.assertEqual((0.1>np.max(np.abs(error_mag))),True)
 
+        self.assertFalse(FAIL_TEST, "Test passed, failing assert for extra debug")
 
 
     def complexToReal(self, scale=True, enablePlt=False):
 
+        FAIL_TEST=0
+        #DEBUG_LEVEL = 5
+        #LOG_LEVEL = CF.LogLevels.DEBUG
+        LOG_LEVEL = CF.LogLevels.INFO
+        
+
         self.comp = sb.launch('../DataConverter.spd.xml')
+        #self.comp = sb.launch('../DataConverter.spd.xml',execparams={'DEBUG_LEVEL':DEBUG_LEVEL})
+        #self.comp = sb.launch('../DataConverter.spd.xml',properties={'DEBUG_LEVEL':DEBUG_LEVEL})
+        self.comp.log_level(LOG_LEVEL)
         self.comp_obj=self.comp.ref
         self.initializeDicts()
         
@@ -895,7 +929,9 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         time.sleep(1)
         (result,tstamps) = (snk.getData(tstamps=True))
         sb.stop()
+        self.comp.log_level(CF.LogLevels.INFO)
         self.comp.releaseObject()
+        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
         
         # Stats Section
         avgOut = np.mean(result)
@@ -937,11 +973,22 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         for tstamp in tstamps:
             self.assertEqual((tstamp[1].twsec>=0), True, "Whole Seconds should always be positive")
             self.assertEqual(((tstamp[1].tfsec>=0) and (tstamp[1].tfsec<1)), True, "Fractional Seconds should always be between zero and one")
+
+        self.assertFalse(FAIL_TEST, "Test passed, failing assert for extra debug")
         
         
     def realToComplexShort2Short(self, scale=True, enablePlt=False):
 
+        FAIL_TEST=0
+        #DEBUG_LEVEL = 5
+        #LOG_LEVEL = CF.LogLevels.DEBUG
+        LOG_LEVEL = CF.LogLevels.INFO
+        
+
         self.comp = sb.launch('../DataConverter.spd.xml')
+        #self.comp = sb.launch('../DataConverter.spd.xml',execparams={'DEBUG_LEVEL':DEBUG_LEVEL})
+        #self.comp = sb.launch('../DataConverter.spd.xml',properties={'DEBUG_LEVEL':DEBUG_LEVEL})
+        self.comp.log_level(LOG_LEVEL)
         self.comp_obj=self.comp.ref
         self.initializeDicts()
         self.comp.start()
@@ -955,14 +1002,13 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.comp.normalize_floating_point.Input = scale
         self.comp.normalize_floating_point.Output = scale
         self.comp.outputType=2
-            
-        t = np.array([],dtype='float')
-        t = np.arange(0,2*np.pi/400.,2*np.pi/400./32768)
-        #get a bunch of random data between 1 and -1 and create a BPSK Signal
         
+        #get a bunch of random data between 1 and -1 and create a BPSK Signal
+        t = np.arange(0,2*np.pi/400.,2*np.pi/400./32768)
         sint = np.sin(50000*t) * np.sin(1000*t)
         sintS = sint * 32767
         sintS = sintS.astype(np.short)
+        
         src=sb.DataSource()
         snk=sb.DataSink()
         
@@ -974,7 +1020,14 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         time.sleep(1)
         result = snk.getData()
         sb.stop()
+        self.comp.log_level(CF.LogLevels.INFO)
         self.comp.releaseObject()
+        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
+        
+        nans = [1 for x in sintS if x != x]
+        print 'len sintS, len nans:', len(sintS), len(nans)
+        nans = [1 for x in result if x != x]
+        print 'len result, len nans:', len(result), len(nans)
 
         res = np.array([np.complex(result[ii], result[ii+1]) for ii in np.arange(0,len(result)-1,2)])
         
@@ -984,20 +1037,33 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         avgOut = np.mean(res)
         avgKnown = np.mean(h)
         stdDeviation = np.std(h)
+        
+        print 'avg res, avg h, stddev h:', avgOut, avgKnown, stdDeviation
+        
+        self.assertNotEqual(np.std(res), 0, 'Invalid output from DataConverter (likely due to NaN values in fftw processing chain)')
 
         corr = signal.correlate(h,res)
         elementer = corr.argmax()
         should = int((len(h) + len(res))/2 - 1)
+        
+        print 'len h, len res, should, elementer, should-elementer, corr:',len(h), len(res), should, elementer, should-elementer, corr
+        
+        self.assertNotEqual(elementer, 0, 'No correlation found between expected and actual result!')
 
         error_real = np.zeros(min(len(h), len(res)))
         error_imag = np.zeros(min(len(h), len(res)))
         error_mag = np.zeros(min(len(h), len(res)))
         error = np.array([np.complex(error_real[ii], error_imag[ii]) for ii in np.arange(len(error_imag))])
+        
+        self.assertTrue(elementer >= len(h), 'Bad correlation between expected and actual result!')
+        
         jj = 0
         # calculate absolute error relative to the standard deviation
+        print 'ii, jj, error_mag, h.real, res.real, h.imag, res.imag, stddev'
         for ii in np.arange(should-elementer, len(h) + should-elementer):
             error[jj] = np.complex((h.real[jj] - res.real[ii]), (h.imag[jj] - res.imag[ii]))
             error_mag[jj] = np.abs(np.complex((h.real[jj] - res.real[ii]), (h.imag[jj] - res.imag[ii]))) / stdDeviation
+            if jj%1024 == 0: print ii, jj, error_mag[jj], h.real[jj], res.real[ii], h.imag[jj], res.imag[ii], stdDeviation
             jj+=1
         
         
@@ -1022,13 +1088,27 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
             plt.plot(error_mag)            
             plt.show()
                 
+        print 'avg res - avg h =', avgOut-avgKnown
+        print 'max(abs(error_mag)):', np.max(np.abs(error_mag))
+                
         self.assertEqual((0.01>avgOut-avgKnown),True)
         self.assertEqual((0.2>np.max(np.abs(error_mag))),True)
+
+        self.assertFalse(FAIL_TEST, "Test passed, failing assert for extra debug")
 
 
     def complexToRealShort2Short(self, scale=True, enablePlt=False):
 
+        FAIL_TEST=0
+        #DEBUG_LEVEL = 5
+        #LOG_LEVEL = CF.LogLevels.DEBUG
+        LOG_LEVEL = CF.LogLevels.INFO
+        
+
         self.comp = sb.launch('../DataConverter.spd.xml')#, debugger='gdb')
+        #self.comp = sb.launch('../DataConverter.spd.xml',execparams={'DEBUG_LEVEL':DEBUG_LEVEL})
+        #self.comp = sb.launch('../DataConverter.spd.xml',properties={'DEBUG_LEVEL':DEBUG_LEVEL})
+        self.comp.log_level(LOG_LEVEL)
         self.comp_obj=self.comp.ref
         self.initializeDicts()
         #set properties we care about
@@ -1091,7 +1171,9 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         time.sleep(2)
         result = snk.getData()
         sb.stop()
+        self.comp.log_level(CF.LogLevels.INFO)
         self.comp.releaseObject()
+        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
         
         # Stats Section
         avgOut = np.mean(result)
@@ -1129,6 +1211,8 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
                 
         self.assertEqual((0.01>avgOut-avgKnown),True)        
         self.assertEqual((5>np.max(np.abs(error_mag))),True) #ToDo needs to change
+
+        self.assertFalse(FAIL_TEST, "Test passed, failing assert for extra debug")
 
 
 
@@ -1436,7 +1520,9 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
     
     def testModeChangeC2RUpdatesSRI(self):
         print(sys._getframe().f_code.co_name)
+        LOG_LEVEL = CF.LogLevels.TRACE
         comp = sb.launch('../DataConverter.spd.xml')
+        #comp.log_level(LOG_LEVEL)
         src=sb.DataSource()
         snk=sb.DataSink()
         
