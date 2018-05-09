@@ -19,7 +19,7 @@
  */
 
 #ifndef MATHOPTIMIZATIONS_H
-#define	MATHOPTIMIZATIONS_H
+#define MATHOPTIMIZATIONS_H
 #include <stddef.h>
 #ifdef __SSE__
 #include <xmmintrin.h>
@@ -59,7 +59,7 @@ int stack_simd_aligned(void)
    return ALIGNED1(&stack_var_simd);
 }
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
@@ -120,9 +120,13 @@ void float2floatScaled(float* dst, const float* src, int n, float sMin, float dR
 void interleaveFloat(float* rc, const float *r, const float *c, int n);
 void mul_const(float* c, const float *a, const float b, int n);
 void copyfloat(float* dst, const float* src, int n);
-#ifdef	__cplusplus
+
+// from double
+void double2doubleScaled(double* dst, const double* src, int n, double sMin, double dRange, double sRange, double dMin);
+
+#ifdef __cplusplus
 }
 #endif
 
-#endif	/* MATHOPTIMIZATIONS_H */
+#endif /* MATHOPTIMIZATIONS_H */
 
