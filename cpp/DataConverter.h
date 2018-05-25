@@ -34,7 +34,6 @@
 //#define FFTW_NUMBER_THREADS 4
 
 class DataConverter_i : public DataConverter_base {
-    ENABLE_LOGGING
 public:
     DataConverter_i(const char *uuid, const char *label);
     ~DataConverter_i();
@@ -45,6 +44,10 @@ public:
     void constructor();
 
 private:
+    LOGGER singleService_log;
+    LOGGER pushDataService_log;
+    LOGGER R2C_log;
+    LOGGER dataTypeTransformOpt_log;
     //FILE* debugR2C;
     void createMemory(int bufferSize);
     void createFFTroute(int bufferSize);
@@ -124,7 +127,7 @@ private:
     template <typename OUT_TYPE, typename IN_TYPE, typename OUT_PORT>
     void pushDataService(const redhawk::shared_buffer<IN_TYPE> data, OUT_PORT *output, bool EOS, BULKIO::PrecisionUTCTime& tt, std::string streamID, bool scaled) {
 
-        LOG_TRACE(DataConverter_i,"pushDataService|Types: Port: "<<typeid (OUT_PORT).name() << " In: "<<typeid (IN_TYPE).name()<< " Out: " <<typeid (OUT_TYPE).name());
+        RH_TRACE(pushDataService_log,"pushDataService|Types: Port: "<<typeid (OUT_PORT).name() << " In: "<<typeid (IN_TYPE).name()<< " Out: " <<typeid (OUT_TYPE).name());
         if (!output->isActive()) return;
 
         double sRange = double(std::numeric_limits<IN_TYPE>::max()) - double(std::numeric_limits<IN_TYPE>::min());
@@ -150,46 +153,46 @@ private:
                 dMin = sMin;
             }
         }
-        LOG_DEBUG(DataConverter_i,"pushDataService| sMin="<<sMin<<" sRange="<<sRange<<" dMin="<<dMin<<" dRange="<<dRange);
+        RH_DEBUG(pushDataService_log,"pushDataService| sMin="<<sMin<<" sRange="<<sRange<<" dMin="<<dMin<<" dRange="<<dRange);
 
         unsigned int totalIn = data.size();
-        LOG_DEBUG(DataConverter_i,"pushDataService|Input size="<<totalIn);
+        RH_DEBUG(pushDataService_log,"pushDataService|Input size="<<totalIn);
         int memoryFootPrint = 0;
 
         typename OUT_PORT::StreamType stream = output->getStream(streamID);
-        LOG_TRACE(DataConverter_i,"pushDataService|before: inputMode="<<inputMode<<" outputMode="<<outputMode<<" outputType="<<outputType<<" fftType="<<fftType<<" output mode="<<stream.complex());
+        RH_TRACE(pushDataService_log,"pushDataService|before: inputMode="<<inputMode<<" outputMode="<<outputMode<<" outputType="<<outputType<<" fftType="<<fftType<<" output mode="<<stream.complex());
         count++;
-        LOG_TRACE(DataConverter_i,"pushDataService|beforeMEM createMEM="<<createMEM<<" createFFT="<<createFFT);
+        RH_TRACE(pushDataService_log,"pushDataService|beforeMEM createMEM="<<createMEM<<" createFFT="<<createFFT);
         if (createMEM || (createFFT && fftType > 0) || totalIn > maxSamplesIn) {
-            LOG_TRACE(DataConverter_i,"pushDataService|enterMEM createMEM="<<createMEM<<" createFFT="<<createFFT);
+            RH_TRACE(pushDataService_log,"pushDataService|enterMEM createMEM="<<createMEM<<" createFFT="<<createFFT);
             maxSamplesIn = totalIn;
             memoryFootPrint = calculate_memorySize(totalIn);
             createMemory(memoryFootPrint);
-            LOG_TRACE(DataConverter_i,"pushDataService|exitMEM createMEM="<<createMEM<<" createFFT="<<createFFT);
+            RH_TRACE(pushDataService_log,"pushDataService|exitMEM createMEM="<<createMEM<<" createFFT="<<createFFT);
         }
 
         if (isFloatingType<IN_TYPE>() && typeid (IN_TYPE) == typeid (OUT_TYPE)
                 && fftType == 0 && (normalize_floating_point.input || !normalize_floating_point.output)) {
-            LOG_TRACE(DataConverter_i,"pushDataService|no conversion needed: same floating-point type, no change in mode, no floating point normalization");
+            RH_TRACE(pushDataService_log,"pushDataService|no conversion needed: same floating-point type, no change in mode, no floating point normalization");
             stream.write(redhawk::shared_buffer<OUT_TYPE>::recast(data),tt); if (EOS) stream.close();
         } else if (typeid (IN_TYPE) == typeid (OUT_TYPE) && fftType == 0 && !isFloatingType<IN_TYPE>()) {
-            LOG_TRACE(DataConverter_i,"pushDataService|no conversion needed: same type, no change in mode");
+            RH_TRACE(pushDataService_log,"pushDataService|no conversion needed: same type, no change in mode");
             stream.write(redhawk::shared_buffer<OUT_TYPE>::recast(data),tt); if (EOS) stream.close();
         } else {
-            LOG_TRACE(DataConverter_i,"pushDataService|conversion needed");
+            RH_TRACE(pushDataService_log,"pushDataService|conversion needed");
             if (fftType > 0) {
-                LOG_TRACE(DataConverter_i,"pushDataService|fftmem (before) createMEM="<<createMEM<<" createFFT="<<createFFT);
+                RH_TRACE(pushDataService_log,"pushDataService|fftmem (before) createMEM="<<createMEM<<" createFFT="<<createFFT);
                 if (createFFT) {
-                    LOG_TRACE(DataConverter_i,"pushDataService|fftmem (enter) createMEM="<<createMEM<<" createFFT="<<createFFT);
+                    RH_TRACE(pushDataService_log,"pushDataService|fftmem (enter) createMEM="<<createMEM<<" createFFT="<<createFFT);
                     createFFTroute(memoryFootPrint);
-                    LOG_TRACE(DataConverter_i,"pushDataService|fftmem (exit) createMEM="<<createMEM<<" createFFT="<<createFFT);
+                    RH_TRACE(pushDataService_log,"pushDataService|fftmem (exit) createMEM="<<createMEM<<" createFFT="<<createFFT);
                 }
                 if (!isFloatingType<IN_TYPE>()) {
-                    LOG_TRACE(DataConverter_i,"pushDataService|convert integral type to float and execute fft: len="<<totalIn<<" EOS="<<EOS);
-                    dataTypeTransformOpt::convertDataType<IN_TYPE, float>((IN_TYPE*)&data[0], (float*) &conversionBuffer[0], scaled, false, scaled, totalIn);
+                    RH_TRACE(pushDataService_log,"pushDataService|convert integral type to float and execute fft: len="<<totalIn<<" EOS="<<EOS);
+                    dataTypeTransformOpt::convertDataType<IN_TYPE, float>((IN_TYPE*)&data[0], (float*) &conversionBuffer[0], scaled, false, scaled, totalIn, dataTypeTransformOpt_log);
                     totalIn = fft_execute((float*) &conversionBuffer[0], totalIn, EOS);
                 } else if (typeid (IN_TYPE) == typeid (float)) {
-                    LOG_TRACE(DataConverter_i,"pushDataService|execute fft on float input: len="<<totalIn<<" EOS="<<EOS);
+                    RH_TRACE(pushDataService_log,"pushDataService|execute fft on float input: len="<<totalIn<<" EOS="<<EOS);
                     if (scaled && !normalize_floating_point.input) {
                         float2floatScaled((float*) &conversionBuffer[0], (float*) &data[0], totalIn, sMin, 2, sRange, -1);
                         totalIn = fft_execute((float*) &conversionBuffer[0], totalIn, EOS);
@@ -197,19 +200,19 @@ private:
                         totalIn = fft_execute((float*) &data[0], totalIn, EOS);
                     }
                 } else if (typeid (IN_TYPE) == typeid (double)) {
-                    LOG_TRACE(DataConverter_i,"pushDataService|convert double to float and execute fft: len="<<totalIn<<" EOS="<<EOS);
+                    RH_TRACE(pushDataService_log,"pushDataService|convert double to float and execute fft: len="<<totalIn<<" EOS="<<EOS);
                     double floatMin = double(std::numeric_limits<float>::max())*-1;
                     double floatRange = double(std::numeric_limits<float>::max())*2;
                     if (scaled && !normalize_floating_point.input) {
-                        dataTypeTransformOpt::convertDataTypeRange<IN_TYPE, float>((IN_TYPE*)&data[0], (float*) &conversionBuffer[0], sMin, sRange, -1, 2, totalIn);
+                        dataTypeTransformOpt::convertDataTypeRange<IN_TYPE, float>((IN_TYPE*)&data[0], (float*) &conversionBuffer[0], sMin, sRange, -1, 2, totalIn, dataTypeTransformOpt_log);
                     } else if (sMin < floatMin || (sMin+sRange) > (floatMin+floatRange)) {
                         // if input is not within float range, scale such that it does fit when converting to float, then execute fft
                         // additional scaling or normalization will be done later if needed
-                        LOG_WARN(DataConverter_i,"pushDataService|scaling double input to fit in float range");
-                        LOG_INFO(DataConverter_i,"pushDataService|scaling vals: sMin="<<sMin<<" sRange="<<sRange<<" floatMin="<<floatMin<<" floatRange="<<floatRange);
-                        dataTypeTransformOpt::convertDataTypeRange<IN_TYPE, float>((IN_TYPE*)&data[0], (float*) &conversionBuffer[0], sMin, sRange, floatMin, floatRange, totalIn);
+                        RH_WARN(pushDataService_log,"pushDataService|scaling double input to fit in float range");
+                        RH_INFO(pushDataService_log,"pushDataService|scaling vals: sMin="<<sMin<<" sRange="<<sRange<<" floatMin="<<floatMin<<" floatRange="<<floatRange);
+                        dataTypeTransformOpt::convertDataTypeRange<IN_TYPE, float>((IN_TYPE*)&data[0], (float*) &conversionBuffer[0], sMin, sRange, floatMin, floatRange, totalIn, dataTypeTransformOpt_log);
                     } else {
-                        dataTypeTransformOpt::convertDataType<IN_TYPE, float>((IN_TYPE*)&data[0], (float*) &conversionBuffer[0], false, normalize_floating_point.input, false, totalIn);
+                        dataTypeTransformOpt::convertDataType<IN_TYPE, float>((IN_TYPE*)&data[0], (float*) &conversionBuffer[0], false, normalize_floating_point.input, false, totalIn, dataTypeTransformOpt_log);
                     }
                     totalIn = fft_execute((float*) &conversionBuffer[0], totalIn, EOS);
                 }
@@ -219,72 +222,72 @@ private:
             size_t totalSent = 0;
             size_t curBufferSize = 0;
 
-            LOG_TRACE(DataConverter_i,"pushDataService|before outputloop - totalSent="<<totalSent<<" totalIn="<<totalIn<<" local_transferSize="<<local_transferSize);
+            RH_TRACE(pushDataService_log,"pushDataService|before outputloop - totalSent="<<totalSent<<" totalIn="<<totalIn<<" local_transferSize="<<local_transferSize);
             while(totalSent < totalIn) {
-                LOG_TRACE(DataConverter_i,"pushDataService|outputloop - totalSent="<<totalSent<<" totalIn="<<totalIn<<" local_transferSize="<<local_transferSize);
+                RH_TRACE(pushDataService_log,"pushDataService|outputloop - totalSent="<<totalSent<<" totalIn="<<totalIn<<" local_transferSize="<<local_transferSize);
                 curBufferSize = std::min(totalIn-totalSent, local_transferSize);
-                LOG_TRACE(DataConverter_i,"pushDataService|outputloop - curBufferSize="<<curBufferSize);
+                RH_TRACE(pushDataService_log,"pushDataService|outputloop - curBufferSize="<<curBufferSize);
                 if (fftType > 0 && (typeid (OUT_TYPE) == typeid (float))) { // all FFT conversions to float
-                    LOG_TRACE(DataConverter_i,"pushDataService|outputloop did FFT and output type is float");
+                    RH_TRACE(pushDataService_log,"pushDataService|outputloop did FFT and output type is float");
                     if (fftType == 1)
                         stream.write((OUT_TYPE*)&((transformedRBuffer)[totalSent]), curBufferSize, tt);
                     else
                         stream.write((OUT_TYPE*)&((*transformedBuffer)[totalSent]), curBufferSize, tt);
                 } else if (fftType > 0 && (typeid (OUT_TYPE) == typeid (double))) { // all FFT conversions to double
-                    LOG_TRACE(DataConverter_i,"pushDataService|outputloop did FFT and output type is double");
+                    RH_TRACE(pushDataService_log,"pushDataService|outputloop did FFT and output type is double");
                     if (fftType == 1)
                         float2double((double*) &outputBuffer[0], (float*) &transformedRBuffer[totalSent], curBufferSize);
                     else
                         float2double((double*) &outputBuffer[0], (float*) &(*transformedBuffer)[totalSent], curBufferSize);
                     stream.write((OUT_TYPE*) & outputBuffer[0], curBufferSize, tt);
                 } else if (fftType > 0) {// && !isFloatingType<OUT_TYPE>()) { // all FFT conversions to non-floating-point
-                    LOG_TRACE(DataConverter_i,"pushDataService|FFT conversion to non-floating-point");
+                    RH_TRACE(pushDataService_log,"pushDataService|FFT conversion to non-floating-point");
                     if (fftType == 1) {
-                        dataTypeTransformOpt::convertDataType<float, OUT_TYPE>((float*) &transformedRBuffer[totalSent], (OUT_TYPE*) & outputBuffer[0], scaled, scaled, false, curBufferSize);
+                        dataTypeTransformOpt::convertDataType<float, OUT_TYPE>((float*) &transformedRBuffer[totalSent], (OUT_TYPE*) & outputBuffer[0], scaled, scaled, false, curBufferSize, dataTypeTransformOpt_log);
                     } else {
-                        LOG_TRACE(DataConverter_i,"pushDataService|R2C conversion to non-float");
-                        dataTypeTransformOpt::convertDataType<float, OUT_TYPE>((float*) &((*transformedBuffer)[totalSent]), (OUT_TYPE*) & outputBuffer[0], scaled, scaled, false, curBufferSize);
+                        RH_TRACE(pushDataService_log,"pushDataService|R2C conversion to non-float");
+                        dataTypeTransformOpt::convertDataType<float, OUT_TYPE>((float*) &((*transformedBuffer)[totalSent]), (OUT_TYPE*) & outputBuffer[0], scaled, scaled, false, curBufferSize, dataTypeTransformOpt_log);
                     }
-                    LOG_TRACE(DataConverter_i,"pushDataService|FFT to non-float - writing out curBufferSize="<<curBufferSize);
+                    RH_TRACE(pushDataService_log,"pushDataService|FFT to non-float - writing out curBufferSize="<<curBufferSize);
                     stream.write((OUT_TYPE*) & outputBuffer[0], curBufferSize, tt);
-                    LOG_TRACE(DataConverter_i,"pushDataService|FFT to non-float - DONE writing out curBufferSize="<<curBufferSize);
+                    RH_TRACE(pushDataService_log,"pushDataService|FFT to non-float - DONE writing out curBufferSize="<<curBufferSize);
                 } else if (typeid (IN_TYPE) == typeid (double)) { // all non-FFT conversions from double
-                    LOG_TRACE(DataConverter_i,"pushDataService|non-FFT conversion from double");
+                    RH_TRACE(pushDataService_log,"pushDataService|non-FFT conversion from double");
                     if (typeid (OUT_TYPE) == typeid (double)) { // double to double normalization
                         double2doubleScaled((double*) &outputBuffer[0], (double*) &data[totalSent], curBufferSize, sMin, dRange, sRange, dMin);
                     } else {
                         // normalize float output if scaling anyway
                         if (!normalize_floating_point.input && scaled) { // double to normalized float
-                            dataTypeTransformOpt::convertDataTypeRange<IN_TYPE, float>((IN_TYPE*)&data[totalSent], (float*) &conversionBuffer[0], sMin, sRange, -1, 2, curBufferSize);
+                            dataTypeTransformOpt::convertDataTypeRange<IN_TYPE, float>((IN_TYPE*)&data[totalSent], (float*) &conversionBuffer[0], sMin, sRange, -1, 2, curBufferSize, dataTypeTransformOpt_log);
                         } else { // double to float (either not normalized, or input already normalized)
-                            dataTypeTransformOpt::convertDataType<IN_TYPE, float>((IN_TYPE*)&data[totalSent], (float*) &conversionBuffer[0], scaled, normalize_floating_point.input, scaled, curBufferSize);
+                            dataTypeTransformOpt::convertDataType<IN_TYPE, float>((IN_TYPE*)&data[totalSent], (float*) &conversionBuffer[0], scaled, normalize_floating_point.input, scaled, curBufferSize, dataTypeTransformOpt_log);
                         }
                         // input below has been normalized if scaling
-                        dataTypeTransformOpt::convertDataType<float, OUT_TYPE>((float*) &conversionBuffer[0], (OUT_TYPE*) & outputBuffer[0], scaled, normalize_floating_point.input||scaled, normalize_floating_point.output, curBufferSize);
+                        dataTypeTransformOpt::convertDataType<float, OUT_TYPE>((float*) &conversionBuffer[0], (OUT_TYPE*) & outputBuffer[0], scaled, normalize_floating_point.input||scaled, normalize_floating_point.output, curBufferSize, dataTypeTransformOpt_log);
                     }
                     stream.write((OUT_TYPE*) & outputBuffer[0], curBufferSize, tt);
                 } else if (typeid (OUT_TYPE) == typeid (double)) { // non-FFT conversions not from double, but to double
-                    LOG_TRACE(DataConverter_i,"pushDataService|non-FFT conversion to double");
+                    RH_TRACE(pushDataService_log,"pushDataService|non-FFT conversion to double");
                     if (isFloatingType<IN_TYPE>() && !normalize_floating_point.input && scaled) { // float to normalized double
                         float2doubleScaled((double*) &outputBuffer[0], (float*)&data[totalSent], curBufferSize, sMin, dRange, sRange, dMin);
                     } else {
-                        dataTypeTransformOpt::convertDataType<IN_TYPE, float>((IN_TYPE*)&data[totalSent], (float*) & conversionBuffer[0], scaled, normalize_floating_point.input, normalize_floating_point.output, curBufferSize);
+                        dataTypeTransformOpt::convertDataType<IN_TYPE, float>((IN_TYPE*)&data[totalSent], (float*) & conversionBuffer[0], scaled, normalize_floating_point.input, normalize_floating_point.output, curBufferSize, dataTypeTransformOpt_log);
                         float2double((double*) &outputBuffer[0], (float*) &conversionBuffer[totalSent], curBufferSize);
                     }
                     stream.write((OUT_TYPE*) & outputBuffer[0], curBufferSize, tt);
                 } else { // all non-FFT conversions not from or to double
-                    LOG_TRACE(DataConverter_i,"pushDataService|non-FFT conversion not to or from double");
+                    RH_TRACE(pushDataService_log,"pushDataService|non-FFT conversion not to or from double");
                     if (isFloatingType<IN_TYPE>() && !normalize_floating_point.input && scaled) {
-                        dataTypeTransformOpt::convertDataTypeRange<IN_TYPE, OUT_TYPE>((IN_TYPE*)&data[totalSent], (OUT_TYPE*) & outputBuffer[0], sMin, sRange, dMin, dRange, curBufferSize);
+                        dataTypeTransformOpt::convertDataTypeRange<IN_TYPE, OUT_TYPE>((IN_TYPE*)&data[totalSent], (OUT_TYPE*) & outputBuffer[0], sMin, sRange, dMin, dRange, curBufferSize, dataTypeTransformOpt_log);
                     } else {
-                        dataTypeTransformOpt::convertDataType<IN_TYPE, OUT_TYPE>((IN_TYPE*)&data[totalSent], (OUT_TYPE*) & outputBuffer[0], scaled, normalize_floating_point.input, normalize_floating_point.output, curBufferSize);
+                        dataTypeTransformOpt::convertDataType<IN_TYPE, OUT_TYPE>((IN_TYPE*)&data[totalSent], (OUT_TYPE*) & outputBuffer[0], scaled, normalize_floating_point.input, normalize_floating_point.output, curBufferSize, dataTypeTransformOpt_log);
                     }
                     stream.write((OUT_TYPE*) & outputBuffer[0], curBufferSize, tt);
                 }
                 totalSent+=curBufferSize;
                 tt.tfsec = tt.tfsec + ((1.0 / sampleRate) * curBufferSize);
                 bulkio::time::utils::normalize(tt);
-                LOG_TRACE(DataConverter_i,"pushDataService|loop DONE; wrote curBufferSize="<<curBufferSize<<" more for total of totalSent="<<totalSent);
+                RH_TRACE(pushDataService_log,"pushDataService|loop DONE; wrote curBufferSize="<<curBufferSize<<" more for total of totalSent="<<totalSent);
             }
             if (EOS) stream.close();
         }
@@ -301,20 +304,20 @@ private:
         typename IN_PORT_TYPE::StreamType::DataBlockType block = stream.read();
         if (!block) {
             if (stream.eos()) {
-                LOG_DEBUG(DataConverter_i,"Received empty EOS block for stream "<<stream.streamID());
+                RH_DEBUG(singleService_log,"Received empty EOS block for stream "<<stream.streamID());
             } else {
-                LOG_DEBUG(DataConverter_i,"Received empty non-EOS block for stream "<<stream.streamID());
+                RH_DEBUG(singleService_log,"Received empty non-EOS block for stream "<<stream.streamID());
                 return false; // NOOP
             }
         } else {
 
             if (block.inputQueueFlushed()) {
-                LOG_WARN(DataConverter_i, "Input queue flushed.  Flushing internal buffers.");
+                RH_WARN(singleService_log, "Input queue flushed.  Flushing internal buffers.");
                 flush();
             }
 
             if (block.sriChanged() || !currSRIPtr) {
-                LOG_DEBUG(DataConverter_i,"Configuring stream "<<stream.streamID()<<" with updated SRI");
+                RH_DEBUG(singleService_log,"Configuring stream "<<stream.streamID()<<" with updated SRI");
                 configureSRI(block.sri());
                 // currSRIPtr now is a pointer to resulting sri
             }
@@ -324,7 +327,7 @@ private:
             } else if (block.getStartTime().tcstatus == BULKIO::TCS_VALID) {
                 _timestamp = block.getStartTime();
             } else {// if (block.getStartTime().tcstatus != BULKIO::TCS_VALID) {
-                LOG_WARN(DataConverter_i, "Invalid, T.tcstatus Sending invalid timecode anyway. tcstatus:" << block.getStartTime().tcstatus);
+                RH_WARN(singleService_log, "Invalid, T.tcstatus Sending invalid timecode anyway. tcstatus:" << block.getStartTime().tcstatus);
                 _timestamp = block.getStartTime();
             }
         }

@@ -1571,6 +1571,55 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         
         sb.stop()
         comp.releaseObject()
+    
+    def testTwoInstances(self):
+        print(sys._getframe().f_code.co_name)
+        LOG_LEVEL = CF.LogLevels.TRACE
+        
+        # first instance
+        comp = sb.launch('../DataConverter.spd.xml')
+        comp.log_level(LOG_LEVEL)
+        src=sb.DataSource()
+        snk=sb.DataSink()
+        src.connect(comp,'dataShort_in')
+        comp.connect(snk,'ushortIn')
+        comp.transformProperties.fftSize = 512
+        comp.outputType = 1 # 1=Real
+        
+        # second instance
+        comp2 = sb.launch('../DataConverter.spd.xml')
+        comp2.log_level(LOG_LEVEL)
+        src2=sb.DataSource()
+        snk2=sb.DataSink()
+        src2.connect(comp2,'dataShort_in')
+        comp2.connect(snk2,'ushortIn')
+        comp2.transformProperties.fftSize = 512
+        comp2.outputType = 2 # 2=Complex
+        
+        sb.start()
+        
+        streamID = "someSRI"
+        data = range(1024)*4
+        src.push(data,complexData=True, sampleRate=1.0, EOS=True, streamID=streamID+'1')
+        src2.push(data,complexData=False, sampleRate=1.0, EOS=True, streamID=streamID+'2')
+
+        # Wait for new SRI to take hold
+        count = 0
+        while (count < 100):
+            if (snk.sri().streamID == streamID+'1'):
+                break;
+            count+=1
+            time.sleep(0.05)
+        count = 0
+        while (count < 100):
+            if (snk2.sri().streamID == streamID+'2'):
+                break;
+            count+=1
+            time.sleep(0.05)
+        
+        sb.stop()
+        comp.releaseObject()
+        comp2.releaseObject()
 
     def testScaBasicBehavior(self):
         print(sys._getframe().f_code.co_name)

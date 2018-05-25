@@ -72,9 +72,14 @@ namespace dataTypeTransformOpt {
     // Performs Max Scale conversions with float/normalization between [-1,1]
 
     template <typename IN_TYPE, typename OUT_TYPE>
-    void convertDataType(IN_TYPE* source, OUT_TYPE* dest, bool scale = true, bool in_normalized = true, bool out_normalized = true, size_t size = 10000) {
+    void convertDataType(IN_TYPE* source, OUT_TYPE* dest, bool scale = true, bool in_normalized = true, bool out_normalized = true, size_t size = 10000, LOGGER _log=LOGGER()) {
 
-        LOGGER DataConverterLogger = rh_logger::Logger::getLogger("DataConverterLogger");
+        if (!_log) {
+            _log = rh_logger::Logger::getLogger("DataConverter_dataTypeTransformOpt");
+            RH_DEBUG(_log, "convertDataType method passed null logger; creating logger "<<_log->getName());
+        } else {
+            RH_DEBUG(_log, "convertDataType method passed valid logger "<<_log->getName());
+        }
 
         double sRange = double(std::numeric_limits<IN_TYPE>::max()) - double(std::numeric_limits<IN_TYPE>::min());
         double sMin = double(std::numeric_limits<IN_TYPE>::min());
@@ -85,11 +90,11 @@ namespace dataTypeTransformOpt {
             sRange = 2;
             sMin = -1;
         } else if (typeid (IN_TYPE) == typeid (float) && scale) {
-            RH_WARN(DataConverterLogger,"convertDataType| Non-normalized float input - using full numeric limits of float for input range");
+            RH_WARN(_log,"convertDataType| Non-normalized float input - using full numeric limits of float for input range");
             sRange = double(std::numeric_limits<IN_TYPE>::max())*2;
             sMin = double(std::numeric_limits<IN_TYPE>::max())*-1;
         } else if (typeid (IN_TYPE) == typeid (double) && scale) {
-            RH_WARN(DataConverterLogger,"convertDataType| Non-normalized double input - using 1/2 of full double range for input range (centered at 0)");
+            RH_WARN(_log,"convertDataType| Non-normalized double input - using 1/2 of full double range for input range (centered at 0)");
             // cannot represent full range of double as a double, since it's 2*max_val
             sRange = double(std::numeric_limits<IN_TYPE>::max());
             sMin = double((std::numeric_limits<IN_TYPE>::max()/2))*-1;
@@ -149,34 +154,34 @@ namespace dataTypeTransformOpt {
             // Note: unscaled but normalized float is a useless function ignore all calls to it
             else if (typeid (OUT_TYPE) == typeid (short) && typeid (IN_TYPE) == typeid (float)) {
                 if (in_normalized) {
-                    RH_WARN(DataConverterLogger,"convertDataType| Ignoring request not to scale; Scaling normalized float conversion to integral type to produce a valid range");
+                    RH_WARN(_log,"convertDataType| Ignoring request not to scale; Scaling normalized float conversion to integral type to produce a valid range");
                     float2shortScaled((short*) &(dest[0]), (const float*) &(source[0]), size, sMin, dRange, sRange, dMin);
                 } else {
-                    RH_DEBUG(DataConverterLogger,"convertDataType| Requested no scaling for non-normalized float conversion to integral type");
+                    RH_DEBUG(_log,"convertDataType| Requested no scaling for non-normalized float conversion to integral type");
                     float2short((short*)&(dest[0]), (const float*)&(source[0]),size);
                 }
             } else if (typeid (OUT_TYPE) == typeid (unsigned short) && typeid (IN_TYPE) == typeid (float)) {
                 if (in_normalized) {
-                    RH_WARN(DataConverterLogger,"convertDataType| Ignoring request not to scale; Scaling normalized float conversion to integral type to produce a valid range");
-                float2ushortScaled((unsigned short*) &(dest[0]), (const float*) &(source[0]), size, sMin, dRange, sRange, dMin);
+                    RH_WARN(_log,"convertDataType| Ignoring request not to scale; Scaling normalized float conversion to integral type to produce a valid range");
+                    float2ushortScaled((unsigned short*) &(dest[0]), (const float*) &(source[0]), size, sMin, dRange, sRange, dMin);
                 } else {
-                    RH_DEBUG(DataConverterLogger,"convertDataType| Requested no scaling for non-normalized float conversion to integral type");
+                    RH_DEBUG(_log,"convertDataType| Requested no scaling for non-normalized float conversion to integral type");
                     float2ushort((unsigned short*)&(dest[0]), (const float*)&(source[0]),size);
                 }
             } else if (typeid (OUT_TYPE) == typeid (signed char) && typeid (IN_TYPE) == typeid (float)) {
                 if (in_normalized) {
-                    RH_WARN(DataConverterLogger,"convertDataType| Ignoring request not to scale; Scaling normalized float conversion to integral type to produce a valid range");
-                float2charScaled((char*) &(dest[0]), (const float*) &(source[0]), size, sMin, dRange, sRange, dMin);
+                    RH_WARN(_log,"convertDataType| Ignoring request not to scale; Scaling normalized float conversion to integral type to produce a valid range");
+                    float2charScaled((char*) &(dest[0]), (const float*) &(source[0]), size, sMin, dRange, sRange, dMin);
                 } else {
-                    RH_DEBUG(DataConverterLogger,"convertDataType| Requested no scaling for non-normalized float conversion to integral type");
+                    RH_DEBUG(_log,"convertDataType| Requested no scaling for non-normalized float conversion to integral type");
                     float2char((char*)&(dest[0]), (const float*)&(source[0]),size);
                 }
             } else if (typeid (OUT_TYPE) == typeid (unsigned char) && typeid (IN_TYPE) == typeid (float)) {
                 if (in_normalized) {
-                    RH_WARN(DataConverterLogger,"convertDataType| Ignoring request not to scale; Scaling normalized float conversion to integral type to produce a valid range");
-                float2ucharScaled((unsigned char*) &(dest[0]), (const float*) &(source[0]), size, sMin, dRange, sRange, dMin);
+                    RH_WARN(_log,"convertDataType| Ignoring request not to scale; Scaling normalized float conversion to integral type to produce a valid range");
+                    float2ucharScaled((unsigned char*) &(dest[0]), (const float*) &(source[0]), size, sMin, dRange, sRange, dMin);
                 } else {
-                    RH_DEBUG(DataConverterLogger,"convertDataType| Requested no scaling for non-normalized float conversion to integral type");
+                    RH_DEBUG(_log,"convertDataType| Requested no scaling for non-normalized float conversion to integral type");
                     float2uchar((unsigned char*)&(dest[0]), (const float*)&(source[0]),size);
                 }
             } else if (typeid (OUT_TYPE) == typeid (float) && typeid (IN_TYPE) == typeid (float)) {
@@ -190,8 +195,8 @@ namespace dataTypeTransformOpt {
                 }
             }
             else {
-                RH_ERROR(DataConverterLogger,"convertDataType| Ignoring Request not to scale, Did not match expected types. Will try to scale the output to produce a valid range");
-                RH_ERROR(DataConverterLogger,"convertDataType| Types In: "<<typeid (IN_TYPE).name()<< " Out: " <<typeid (OUT_TYPE).name());
+                RH_ERROR(_log,"convertDataType| Ignoring Request not to scale, Did not match expected types. Will try to scale the output to produce a valid range");
+                RH_ERROR(_log,"convertDataType| Types In: "<<typeid (IN_TYPE).name()<< " Out: " <<typeid (OUT_TYPE).name());
                 double tmpFloat;
                 for (size_t i = 0; i < (size_t) size; i++) {
                     tmpFloat = (source[i] - sMin)* (dRange / sRange) + dMin;
@@ -262,8 +267,8 @@ namespace dataTypeTransformOpt {
             //    }
             //}
             else {
-                RH_DEBUG(DataConverterLogger,"convertDataType| Using generic/default scaled conversion");
-                RH_DEBUG(DataConverterLogger,"convertDataType| Types In: "<<typeid (IN_TYPE).name()<< " Out: " <<typeid (OUT_TYPE).name());
+                RH_DEBUG(_log,"convertDataType| Using generic/default scaled conversion");
+                RH_DEBUG(_log,"convertDataType| Types In: "<<typeid (IN_TYPE).name()<< " Out: " <<typeid (OUT_TYPE).name());
                 double tmpFloat;
                 for (size_t i = 0; i < (size_t) size; i++) {
                     tmpFloat = (source[i] - sMin)* (dRange / sRange) + dMin;
@@ -274,9 +279,14 @@ namespace dataTypeTransformOpt {
     }
 
     // Bounds given by user
-    template <typename IN_TYPE, typename OUT_TYPE> void convertDataTypeRange(IN_TYPE* source, OUT_TYPE* dest, double sMin, double sRange, double dMin, double dRange, size_t size = 10000) {
+    template <typename IN_TYPE, typename OUT_TYPE> void convertDataTypeRange(IN_TYPE* source, OUT_TYPE* dest, double sMin, double sRange, double dMin, double dRange, size_t size = 10000, LOGGER _log=LOGGER()) {
 
-        LOGGER DataConverterLogger = rh_logger::Logger::getLogger("DataConverterLogger");
+        if (!_log) {
+            _log = rh_logger::Logger::getLogger("DataConverter_dataTypeTransformOpt");
+            RH_DEBUG(_log, "convertDataTypeRange method passed null logger; creating logger "<<_log->getName());
+        } else {
+            RH_DEBUG(_log, "convertDataTypeRange method passed valid logger "<<_log->getName());
+        }
 
         //////////////////////////////CHAR////////////////////////////
         if (typeid (OUT_TYPE) == typeid (unsigned char) && typeid (IN_TYPE) == typeid (char)) {
@@ -341,8 +351,8 @@ namespace dataTypeTransformOpt {
         //    }
         //}
         else {
-            RH_DEBUG(DataConverterLogger,"convertDataTypeRange| Using generic/default scaled conversion");
-            RH_DEBUG(DataConverterLogger,"convertDataTypeRange| Types In: "<<typeid (IN_TYPE).name()<< " Out: " <<typeid (OUT_TYPE).name());
+            RH_DEBUG(_log,"convertDataTypeRange| Using generic/default scaled conversion");
+            RH_DEBUG(_log,"convertDataTypeRange| Types In: "<<typeid (IN_TYPE).name()<< " Out: " <<typeid (OUT_TYPE).name());
             double tmpFloat;
             for (size_t i = 0; i < (size_t) size; i++) {
                 tmpFloat = (source[i] - sMin)* (dRange / sRange) + dMin;
