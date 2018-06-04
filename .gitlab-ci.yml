@@ -11,16 +11,16 @@ before_script:
     - safe_ref=$(echo ${CI_COMMIT_REF_NAME} | tr -d /| tr '[:upper:]' '[:lower:]')
     - if [ -z "$CI_COMMIT_TAG" ]; then
         redhawk_version=${latest_version}
-        dsp_version=latest
-        fftlib_version=latest
+        dsp_version=develop
+        fftlib_version=develop
         rpm_release="0.$CI_PIPELINE_ID.rh${safe_version}";
       else
         redhawk_version=${release_version}
         rpm_release="`rpm --query --queryformat "%{release}\n" --specfile ${namespace}$CI_PROJECT_NAME.spec | head -n 1 | awk -F"." "{print $1}"`.rh${safe_version}";
       fi
     - redhawk_repo=$yum_repo_url/redhawk-core-framework/$redhawk_version/$dist/$arch
-    - dsp_repo=$yum_repo_url/redhawk-sharedlibs/dsp/$dsp_version/rh${safe_version}/$dist/$arch
-    - fftlib_repo=$yum_repo_url/redhawk-sharedlibs/fftlib/$fftlib_version/rh${safe_version}/$dist/$arch
+    - dsp_repo=$s3_repo_url/redhawk-sharedlibs/dsp/yum/$dsp_version/rh${safe_version}/$dist/$arch
+    - fftlib_repo=$s3_repo_url/redhawk-sharedlibs/fftlib/yum/$fftlib_version/rh${safe_version}/$dist/$arch
 
 .package: &package
   image: ${docker_registry}${docker_rpm_repository}docker:latest-rpm
@@ -180,15 +180,6 @@ deploy-el7-2.1:
     - package:el7:rh2.1
   <<: *s3
 
-deploy-el7-2.0:
-  variables:
-    dist: el7
-    arch: x86_64
-    short_version: '2.0'
-  dependencies:
-    - package:el7:rh2.0
-  <<: *s3
-
 deploy-el6-2.1:
   variables:
     dist: el6
@@ -198,15 +189,6 @@ deploy-el6-2.1:
     - package:el6:rh2.1
   <<: *s3
 
-deploy-el6-2.0:
-  variables:
-    dist: el6
-    arch: x86_64
-    short_version: '2.0'
-  dependencies:
-    - package:el6:rh2.0
-  <<: *s3
-
 deploy-el6-i386-2.1:
   variables:
     dist: el6
@@ -214,13 +196,4 @@ deploy-el6-i386-2.1:
     short_version: '2.1'
   dependencies:
     - package:el6-i386:rh2.1
-  <<: *s3
-
-deploy-el6-i386-2.0:
-  variables:
-    dist: el6
-    arch: i686
-    short_version: '2.0'
-  dependencies:
-    - package:el6-i386:rh2.0
   <<: *s3
