@@ -34,17 +34,6 @@ using namespace fftwf_thread_coordinator;
 DataConverter_i::DataConverter_i(const char *uuid, const char *label) : 
 DataConverter_base(uuid, label)
 {
-    std::string baseLogName  = _baseLog->getName();
-    singleService_log        = _baseLog->getChildLogger(baseLogName+"_singleService");
-    pushDataService_log      = _baseLog->getChildLogger(baseLogName+"_pushDataService");
-    R2C_log                  = _baseLog->getChildLogger(baseLogName+"_R2C");
-    dataTypeTransformOpt_log = _baseLog->getChildLogger(baseLogName+"_dataTypeTransformOpt");
-    RH_DEBUG(_baseLog, " Testing _baseLog with name "<<baseLogName);
-    RH_DEBUG(singleService_log, " Testing singleService_log");
-    RH_DEBUG(pushDataService_log, " Testing pushDataService_log");
-    RH_DEBUG(R2C_log, " Testing R2C_log");
-    RH_DEBUG(dataTypeTransformOpt_log, " Testing dataTypeTransformOpt_log");
-
     outputBuffer = NULL;
     conversionBuffer = NULL;
 
@@ -163,6 +152,17 @@ DataConverter_i::~DataConverter_i()
 }
 
 void DataConverter_i::constructor(){
+    std::string baseLogName  = _baseLog->getName();
+    singleService_log        = _baseLog->getChildLogger(baseLogName+"_singleService");
+    pushDataService_log      = _baseLog->getChildLogger(baseLogName+"_pushDataService");
+    R2C_log                  = _baseLog->getChildLogger(baseLogName+"_R2C");
+    dataTypeTransformOpt_log = _baseLog->getChildLogger(baseLogName+"_dataTypeTransformOpt");
+    RH_DEBUG(_baseLog, " Testing _baseLog with name "<<baseLogName);
+    RH_DEBUG(singleService_log, " Testing singleService_log");
+    RH_DEBUG(pushDataService_log, " Testing pushDataService_log");
+    RH_DEBUG(R2C_log, " Testing R2C_log");
+    RH_DEBUG(dataTypeTransformOpt_log, " Testing dataTypeTransformOpt_log");
+
     first_overlap = true;
     remainder_v = 0;
 
