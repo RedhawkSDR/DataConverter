@@ -152,12 +152,12 @@ DataConverter_i::~DataConverter_i()
 }
 
 void DataConverter_i::constructor(){
-    std::string baseLogName  = _baseLog->getName();
-    singleService_log        = _baseLog->getChildLogger(baseLogName+"_singleService");
-    pushDataService_log      = _baseLog->getChildLogger(baseLogName+"_pushDataService");
-    R2C_log                  = _baseLog->getChildLogger(baseLogName+"_R2C");
-    dataTypeTransformOpt_log = _baseLog->getChildLogger(baseLogName+"_dataTypeTransformOpt");
-    RH_DEBUG(_baseLog, " Testing _baseLog with name "<<baseLogName);
+    //std::string baseLogName  = _baseLog->getName();
+    singleService_log        = _baseLog->getChildLogger("singleService");
+    pushDataService_log      = _baseLog->getChildLogger("pushDataService");
+    R2C_log                  = _baseLog->getChildLogger("R2C");
+    dataTypeTransformOpt_log = _baseLog->getChildLogger("dataTypeTransformOpt");
+    RH_DEBUG(_baseLog, " Testing _baseLog with name "<<_baseLog->getName());
     RH_DEBUG(singleService_log, " Testing singleService_log");
     RH_DEBUG(pushDataService_log, " Testing pushDataService_log");
     RH_DEBUG(R2C_log, " Testing R2C_log");
