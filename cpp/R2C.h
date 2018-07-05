@@ -44,8 +44,6 @@
 #include "FftwThreadCoordinator.h"
 #include <boost/thread/mutex.hpp>
 
-using namespace fftwf_thread_coordinator;
-
 //
 // Debug: write filter taps to file
 //
@@ -156,7 +154,7 @@ public:
                     RH_ERROR(_log,"constructor could not malloc _input");
                 }
                 {
-                    boost::mutex::scoped_lock lock(getCoordinator()->getPlanMutex());
+                    boost::mutex::scoped_lock lock(getFftwfCoordinator()->getPlanMutex());
                     RH_DEBUG(_log,"constructor: creating R2C filter _fftPlan (E) - fftwf_plan_dft_1d FWD size="<<fftSize);
                     _fftPlan = fftwf_plan_dft_1d(fftSize, _input, _freqFilter, FFTW_FORWARD, MY_FFTW_FLAGS);
                 }
@@ -243,7 +241,7 @@ public:
             _input = NULL;
         }
         if(_fftPlan) {
-            boost::mutex::scoped_lock lock(getCoordinator()->getPlanMutex());
+            boost::mutex::scoped_lock lock(getFftwfCoordinator()->getPlanMutex());
             RH_DEBUG(_log,"destuctor: destroying R2C filter _fftPlan (E)");
             fftwf_destroy_plan(_fftPlan);
             _fftPlan = NULL;

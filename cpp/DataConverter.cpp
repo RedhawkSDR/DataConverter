@@ -29,8 +29,6 @@
 
 #include "DataConverter.h"
 
-using namespace fftwf_thread_coordinator;
-
 DataConverter_i::DataConverter_i(const char *uuid, const char *label) : 
 DataConverter_base(uuid, label)
 {
@@ -120,25 +118,25 @@ DataConverter_i::~DataConverter_i()
 
     {
         if (r2c != NULL) {
-            boost::mutex::scoped_lock lock(getCoordinator()->getPlanMutex());
+            boost::mutex::scoped_lock lock(getFftwfCoordinator()->getPlanMutex());
             RH_DEBUG(_baseLog,"destuctor: destroying r2c (A)");
             fftwf_destroy_plan(r2c);
             r2c = NULL;
         }
         if (c2c_r != NULL) {
-            boost::mutex::scoped_lock lock(getCoordinator()->getPlanMutex());
+            boost::mutex::scoped_lock lock(getFftwfCoordinator()->getPlanMutex());
             RH_DEBUG(_baseLog,"destuctor: destroying c2c_r (B)");
             fftwf_destroy_plan(c2c_r);
             c2c_r = NULL;
         }
         if (c2c_f != NULL) {
-            boost::mutex::scoped_lock lock(getCoordinator()->getPlanMutex());
+            boost::mutex::scoped_lock lock(getFftwfCoordinator()->getPlanMutex());
             RH_DEBUG(_baseLog,"destuctor: destroying c2c_f (C)");
             fftwf_destroy_plan(c2c_f);
             c2c_f = NULL;
         }
         if (c2c_r2 != NULL) {
-            boost::mutex::scoped_lock lock(getCoordinator()->getPlanMutex());
+            boost::mutex::scoped_lock lock(getFftwfCoordinator()->getPlanMutex());
             RH_DEBUG(_baseLog,"destuctor: destroying c2c_r2 (D)");
             fftwf_destroy_plan(c2c_r2);
             c2c_r2 = NULL;
@@ -232,28 +230,28 @@ void DataConverter_i::createFFTroute(int bufferSize){
     {
         if (r2c != NULL) {
             RH_TRACE(_baseLog,"createFFTroute destroy r2c");
-            boost::mutex::scoped_lock lock(getCoordinator()->getPlanMutex());
+            boost::mutex::scoped_lock lock(getFftwfCoordinator()->getPlanMutex());
             RH_DEBUG(_baseLog,"createFFTroute: destroying r2c (A)");
             fftwf_destroy_plan(r2c);
             r2c = NULL;
         }
         if (c2c_r != NULL) {
             RH_TRACE(_baseLog,"createFFTroute destroy c2c_r");
-            boost::mutex::scoped_lock lock(getCoordinator()->getPlanMutex());
+            boost::mutex::scoped_lock lock(getFftwfCoordinator()->getPlanMutex());
             RH_DEBUG(_baseLog,"createFFTroute: destroying c2c_r (B)");
             fftwf_destroy_plan(c2c_r);
             c2c_r = NULL;
         }
         if (c2c_f != NULL) {
             RH_TRACE(_baseLog,"createFFTroute destroy c2c_f");
-            boost::mutex::scoped_lock lock(getCoordinator()->getPlanMutex());
+            boost::mutex::scoped_lock lock(getFftwfCoordinator()->getPlanMutex());
             RH_DEBUG(_baseLog,"createFFTroute: destroying c2c_f (C)");
             fftwf_destroy_plan(c2c_f);
             c2c_f = NULL;
         }
         if (c2c_r2 != NULL) {
             RH_TRACE(_baseLog,"createFFTroute destroy c2c_r2");
-            boost::mutex::scoped_lock lock(getCoordinator()->getPlanMutex());
+            boost::mutex::scoped_lock lock(getFftwfCoordinator()->getPlanMutex());
             RH_DEBUG(_baseLog,"createFFTroute: destroying c2c_r2 (D)");
             fftwf_destroy_plan(c2c_r2);
             c2c_r2 = NULL;
@@ -284,7 +282,7 @@ void DataConverter_i::createFFTroute(int bufferSize){
         workingBuffer = (fftwf_complex*) fftwf_malloc(sizeof(fftwf_complex)*bufferSize);
         transformedBuffer  = (fftwf_complex*) fftwf_malloc(sizeof(fftwf_complex)*bufferSize);
         {
-            boost::mutex::scoped_lock lock(getCoordinator()->getPlanMutex());
+            boost::mutex::scoped_lock lock(getFftwfCoordinator()->getPlanMutex());
             RH_DEBUG(_baseLog,"createFFTroute: creating r2c (A) - fftwf_plan_dft_r2c_1d size="<<transformProperties.fftSize);
             r2c = fftwf_plan_dft_r2c_1d(transformProperties.fftSize, (float*)&fftBuffer[0], workingBuffer, MY_FFTW_FLAGS);
             RH_DEBUG(_baseLog,"createFFTroute: creating c2c_r (B) - fftwf_plan_dft_1d BWD size="<<transformProperties.fftSize);
@@ -303,7 +301,7 @@ void DataConverter_i::createFFTroute(int bufferSize){
         workingBuffer = (fftwf_complex*) fftwf_malloc(sizeof(fftwf_complex)*transformProperties.fftSize);
         transformedBuffer  = (fftwf_complex*) fftwf_malloc(sizeof(fftwf_complex)*transformProperties.fftSize);
         {
-            boost::mutex::scoped_lock lock(getCoordinator()->getPlanMutex());
+            boost::mutex::scoped_lock lock(getFftwfCoordinator()->getPlanMutex());
             RH_DEBUG(_baseLog,"createFFTroute: creating c2c_f (C) - fftwf_plan_dft_1d FWD size="<<transformProperties.fftSize);
             c2c_f  = fftwf_plan_dft_1d(transformProperties.fftSize, fftBuffer, workingBuffer, FFTW_FORWARD, MY_FFTW_FLAGS);
             RH_DEBUG(_baseLog,"createFFTroute: creating c2c_r2 (D) - fftwf_plan_dft_1d BWD size="<<transformProperties.fftSize*2);
