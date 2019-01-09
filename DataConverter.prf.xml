@@ -28,14 +28,14 @@
       <enumeration label="Real" value="1"/>
       <enumeration label="PassThrough" value="0"/>
     </enumerations>
-    <kind kindtype="configure"/>
+    <kind kindtype="property"/>
     <action type="external"/>
   </simple>
   <simple id="maxTransferSize" mode="readwrite" type="long">
     <description>This property limits the maximum size of the output transfer.  If this value is set to 0 (default) the number samples of the output will mimic the number of samples of the input, unless it happens to exceed the corba transfer limit of 2MB.  </description>
     <value>0</value>
     <units>samples</units>
-    <kind kindtype="configure"/>
+    <kind kindtype="property"/>
     <action type="external"/>
   </simple>
   <struct id="scaleOutput" mode="readwrite">
@@ -47,22 +47,16 @@
     <simple id="scaleOutput::octetPort" mode="readwrite" name="octetPort" type="boolean">
       <description>Used to scale the output port to maximize the range of unsigned chars.</description>
       <value>true</value>
-      <kind kindtype="configure"/>
-      <action type="external"/>
     </simple>
     <simple id="scaleOutput::shortPort" mode="readwrite" name="shortPort" type="boolean">
       <description>Used to scale the output port to maximize the range of shorts. </description>
       <value>true</value>
-      <kind kindtype="configure"/>
-      <action type="external"/>
     </simple>
     <simple id="scaleOutput::ushortPort" mode="readwrite" name="ushortPort" type="boolean">
       <description>Used to scale the output port to maximize the range of unsigned shorts. </description>
       <value>true</value>
-      <kind kindtype="configure"/>
-      <action type="external"/>
     </simple>
-    <configurationkind kindtype="configure"/>
+    <configurationkind kindtype="property"/>
   </struct>
   <struct id="normalize_floating_point" mode="readwrite">
     <description>These values set if the input or output float port values shall be between -1 and 1. Applies to both Float and Double types.</description>
@@ -73,10 +67,8 @@
     <simple id="normalize_floating_point::output" mode="readwrite" name="output" type="boolean">
       <description>Setting this value to true means that with floating point output will be normalized between -1.0 and 1.0.  A value of false will not convert the output. </description>
       <value>true</value>
-      <kind kindtype="configure"/>
-      <action type="external"/>
     </simple>
-    <configurationkind kindtype="configure"/>
+    <configurationkind kindtype="property"/>
   </struct>
   <struct id="floatingPointRange" mode="readwrite">
     <description>These values specify the range of the floating point values on the input.</description>
@@ -87,10 +79,8 @@
     <simple id="floatingPointRange::maximum" mode="readwrite" name="maximum" type="double">
       <description>The maximum floating point value in the input stream.</description>
       <value>3.402823466e38</value>
-      <kind kindtype="configure"/>
-      <action type="external"/>
     </simple>
-    <configurationkind kindtype="configure"/>
+    <configurationkind kindtype="property"/>
   </struct>
   <struct id="advancedSRI" mode="readwrite">
     <description>These are used in the real-to-complex and complex-to-real to correct the col_rf and chan_rf keywords due to inherent frequency translation.</description>
@@ -101,10 +91,8 @@
     <simple id="advancedSRI::update_chan_rf_keyword" mode="readwrite" name="update_chan_rf_keyword" type="boolean">
       <description>Flag used to update the chan_rf keyword... this is normally used during real-to-complex or complex-to-real transforms.</description>
       <value>true</value>
-      <kind kindtype="configure"/>
-      <action type="external"/>
     </simple>
-    <configurationkind kindtype="configure"/>
+    <configurationkind kindtype="property"/>
   </struct>
   <struct id="transformProperties" mode="readwrite">
     <description>Used only in real-to-complex and complex-to-real cases to setup transform unique properties.</description>
@@ -115,34 +103,24 @@
     <simple id="transformProperties::fftSize" mode="readwrite" name="fftSize" type="long">
       <description>The size of the fft used during real-to-complex, and complex-to-real transformations.</description>
       <value>2048</value>
-      <kind kindtype="configure"/>
-      <action type="external"/>
     </simple>
     <simple id="transformProperties::overlap_percentage" mode="readwrite" name="overlap_percentage" type="double">
       <description>This value is used during the real-to-complex transform only.  It is used to define the percentage of overlap with relation to the fftSize.  This value also determines the size of the filter used during the hilbert transform.  It is not recommended to change this value from the default of 25 percent.</description>
       <value>25</value>
       <units>percentage</units>
-      <kind kindtype="configure"/>
-      <action type="external"/>
     </simple>
     <simple id="transformProperties::lowCutoff" mode="readwrite" name="lowCutoff" type="double">
       <description>This value is used during the real-to-complex transform only.  It is used to set the low cutoff frequency on the hilbert filter. It is not recommended to change this value from the default.</description>
       <value>.001</value>
-      <kind kindtype="configure"/>
-      <action type="external"/>
     </simple>
     <simple id="transformProperties::highCutoff" mode="readwrite" name="highCutoff" type="double">
       <description>This value is used during the real-to-complex transform only.  It is used to set the high cutoff frequency on the hilbert filter. It is not recommended to change this value from the default.</description>
       <value>.499</value>
-      <kind kindtype="configure"/>
-      <action type="external"/>
     </simple>
     <simple id="transformProperties::transitionWidth" mode="readwrite" name="transitionWidth" type="double">
       <description>This value is used during the real-to-complex transform only.  It is used to set the high transition bandwidth on the creation of the hilbert filter. It is not recommended to change this value from the default.</description>
       <value>.001</value>
-      <kind kindtype="configure"/>
-      <action type="external"/>
     </simple>
-    <configurationkind kindtype="configure"/>
+    <configurationkind kindtype="property"/>
   </struct>
 </properties>

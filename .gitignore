@@ -19,3 +19,10 @@ cpp/install-sh
 cpp/ltmain.sh
 cpp/missing
 *.o
+cpp/.libs/
+*.la
+*.so
+*.lo
+cpp/libtool
+cpp/m4/
+tests/TEST*.xml

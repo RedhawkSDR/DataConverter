@@ -28,6 +28,8 @@
 *******************************************************************************************/
 
 #include <ossie/CorbaUtils.h>
+#include <CF/cf.h>
+#include <ossie/PropertyMap.h>
 
 struct scaleOutput_struct {
     scaleOutput_struct ()
@@ -36,11 +38,15 @@ struct scaleOutput_struct {
         octetPort = true;
         shortPort = true;
         ushortPort = true;
-    };
+    }
 
     static std::string getId() {
         return std::string("scaleOutput");
-    };
+    }
+
+    static const char* getFormat() {
+        return "bbbb";
+    }
 
     bool charPort;
     bool octetPort;
@@ -51,37 +57,34 @@ struct scaleOutput_struct {
 inline bool operator>>= (const CORBA::Any& a, scaleOutput_struct& s) {
     CF::Properties* temp;
     if (!(a >>= temp)) return false;
-    CF::Properties& props = *temp;
-    for (unsigned int idx = 0; idx < props.length(); idx++) {
-        if (!strcmp("scaleOutput::charPort", props[idx].id)) {
-            if (!(props[idx].value >>= s.charPort)) return false;
-        }
-        else if (!strcmp("scaleOutput::octetPort", props[idx].id)) {
-            if (!(props[idx].value >>= s.octetPort)) return false;
-        }
-        else if (!strcmp("scaleOutput::shortPort", props[idx].id)) {
-            if (!(props[idx].value >>= s.shortPort)) return false;
-        }
-        else if (!strcmp("scaleOutput::ushortPort", props[idx].id)) {
-            if (!(props[idx].value >>= s.ushortPort)) return false;
-        }
+    const redhawk::PropertyMap& props = redhawk::PropertyMap::cast(*temp);
+    if (props.contains("scaleOutput::charPort")) {
+        if (!(props["scaleOutput::charPort"] >>= s.charPort)) return false;
+    }
+    if (props.contains("scaleOutput::octetPort")) {
+        if (!(props["scaleOutput::octetPort"] >>= s.octetPort)) return false;
+    }
+    if (props.contains("scaleOutput::shortPort")) {
+        if (!(props["scaleOutput::shortPort"] >>= s.shortPort)) return false;
+    }
+    if (props.contains("scaleOutput::ushortPort")) {
+        if (!(props["scaleOutput::ushortPort"] >>= s.ushortPort)) return false;
     }
     return true;
-};
+}
 
 inline void operator<<= (CORBA::Any& a, const scaleOutput_struct& s) {
-    CF::Properties props;
-    props.length(4);
-    props[0].id = CORBA::string_dup("scaleOutput::charPort");
-    props[0].value <<= s.charPort;
-    props[1].id = CORBA::string_dup("scaleOutput::octetPort");
-    props[1].value <<= s.octetPort;
-    props[2].id = CORBA::string_dup("scaleOutput::shortPort");
-    props[2].value <<= s.shortPort;
-    props[3].id = CORBA::string_dup("scaleOutput::ushortPort");
-    props[3].value <<= s.ushortPort;
+    redhawk::PropertyMap props;
+ 
+    props["scaleOutput::charPort"] = s.charPort;
+ 
+    props["scaleOutput::octetPort"] = s.octetPort;
+ 
+    props["scaleOutput::shortPort"] = s.shortPort;
+ 
+    props["scaleOutput::ushortPort"] = s.ushortPort;
     a <<= props;
-};
+}
 
 inline bool operator== (const scaleOutput_struct& s1, const scaleOutput_struct& s2) {
     if (s1.charPort!=s2.charPort)
@@ -93,22 +96,26 @@ inline bool operator== (const scaleOutput_struct& s1, const scaleOutput_struct& 
     if (s1.ushortPort!=s2.ushortPort)
         return false;
     return true;
-};
+}
 
 inline bool operator!= (const scaleOutput_struct& s1, const scaleOutput_struct& s2) {
     return !(s1==s2);
-};
+}
 
 struct normalize_floating_point_struct {
     normalize_floating_point_struct ()
     {
         input = true;
         output = true;
-    };
+    }
 
     static std::string getId() {
         return std::string("normalize_floating_point");
-    };
+    }
+
+    static const char* getFormat() {
+        return "bb";
+    }
 
     bool input;
     bool output;
@@ -117,27 +124,24 @@ struct normalize_floating_point_struct {
 inline bool operator>>= (const CORBA::Any& a, normalize_floating_point_struct& s) {
     CF::Properties* temp;
     if (!(a >>= temp)) return false;
-    CF::Properties& props = *temp;
-    for (unsigned int idx = 0; idx < props.length(); idx++) {
-        if (!strcmp("normalize_floating_point::input", props[idx].id)) {
-            if (!(props[idx].value >>= s.input)) return false;
-        }
-        else if (!strcmp("normalize_floating_point::output", props[idx].id)) {
-            if (!(props[idx].value >>= s.output)) return false;
-        }
+    const redhawk::PropertyMap& props = redhawk::PropertyMap::cast(*temp);
+    if (props.contains("normalize_floating_point::input")) {
+        if (!(props["normalize_floating_point::input"] >>= s.input)) return false;
+    }
+    if (props.contains("normalize_floating_point::output")) {
+        if (!(props["normalize_floating_point::output"] >>= s.output)) return false;
     }
     return true;
-};
+}
 
 inline void operator<<= (CORBA::Any& a, const normalize_floating_point_struct& s) {
-    CF::Properties props;
-    props.length(2);
-    props[0].id = CORBA::string_dup("normalize_floating_point::input");
-    props[0].value <<= s.input;
-    props[1].id = CORBA::string_dup("normalize_floating_point::output");
-    props[1].value <<= s.output;
+    redhawk::PropertyMap props;
+ 
+    props["normalize_floating_point::input"] = s.input;
+ 
+    props["normalize_floating_point::output"] = s.output;
     a <<= props;
-};
+}
 
 inline bool operator== (const normalize_floating_point_struct& s1, const normalize_floating_point_struct& s2) {
     if (s1.input!=s2.input)
@@ -145,22 +149,26 @@ inline bool operator== (const normalize_floating_point_struct& s1, const normali
     if (s1.output!=s2.output)
         return false;
     return true;
-};
+}
 
 inline bool operator!= (const normalize_floating_point_struct& s1, const normalize_floating_point_struct& s2) {
     return !(s1==s2);
-};
+}
 
 struct floatingPointRange_struct {
     floatingPointRange_struct ()
     {
         minimum = 0.0;
         maximum = 3.402823466e38;
-    };
+    }
 
     static std::string getId() {
         return std::string("floatingPointRange");
-    };
+    }
+
+    static const char* getFormat() {
+        return "dd";
+    }
 
     double minimum;
     double maximum;
@@ -169,27 +177,24 @@ struct floatingPointRange_struct {
 inline bool operator>>= (const CORBA::Any& a, floatingPointRange_struct& s) {
     CF::Properties* temp;
     if (!(a >>= temp)) return false;
-    CF::Properties& props = *temp;
-    for (unsigned int idx = 0; idx < props.length(); idx++) {
-        if (!strcmp("floatingPointRange::minimum", props[idx].id)) {
-            if (!(props[idx].value >>= s.minimum)) return false;
-        }
-        else if (!strcmp("floatingPointRange::maximum", props[idx].id)) {
-            if (!(props[idx].value >>= s.maximum)) return false;
-        }
+    const redhawk::PropertyMap& props = redhawk::PropertyMap::cast(*temp);
+    if (props.contains("floatingPointRange::minimum")) {
+        if (!(props["floatingPointRange::minimum"] >>= s.minimum)) return false;
+    }
+    if (props.contains("floatingPointRange::maximum")) {
+        if (!(props["floatingPointRange::maximum"] >>= s.maximum)) return false;
     }
     return true;
-};
+}
 
 inline void operator<<= (CORBA::Any& a, const floatingPointRange_struct& s) {
-    CF::Properties props;
-    props.length(2);
-    props[0].id = CORBA::string_dup("floatingPointRange::minimum");
-    props[0].value <<= s.minimum;
-    props[1].id = CORBA::string_dup("floatingPointRange::maximum");
-    props[1].value <<= s.maximum;
+    redhawk::PropertyMap props;
+ 
+    props["floatingPointRange::minimum"] = s.minimum;
+ 
+    props["floatingPointRange::maximum"] = s.maximum;
     a <<= props;
-};
+}
 
 inline bool operator== (const floatingPointRange_struct& s1, const floatingPointRange_struct& s2) {
     if (s1.minimum!=s2.minimum)
@@ -197,72 +202,26 @@ inline bool operator== (const floatingPointRange_struct& s1, const floatingPoint
     if (s1.maximum!=s2.maximum)
         return false;
     return true;
-};
+}
 
 inline bool operator!= (const floatingPointRange_struct& s1, const floatingPointRange_struct& s2) {
     return !(s1==s2);
-};
-
-struct doublePointRange_struct {
-    doublePointRange_struct ()
-    {
-    };
-
-    static std::string getId() {
-        return std::string("doublePointRange");
-    };
-
-    double minimum;
-    double maximum;
-};
-
-inline bool operator>>= (const CORBA::Any& a, doublePointRange_struct& s) {
-    CF::Properties* temp;
-    if (!(a >>= temp)) return false;
-    CF::Properties& props = *temp;
-    for (unsigned int idx = 0; idx < props.length(); idx++) {
-        if (!strcmp("doublePointRange::minimum", props[idx].id)) {
-            if (!(props[idx].value >>= s.minimum)) return false;
-        }
-        else if (!strcmp("doublePointRange::maximum", props[idx].id)) {
-            if (!(props[idx].value >>= s.maximum)) return false;
-        }
-    }
-    return true;
-};
-
-inline void operator<<= (CORBA::Any& a, const doublePointRange_struct& s) {
-    CF::Properties props;
-    props.length(2);
-    props[0].id = CORBA::string_dup("doublePointRange::minimum");
-    props[0].value <<= s.minimum;
-    props[1].id = CORBA::string_dup("doublePointRange::maximum");
-    props[1].value <<= s.maximum;
-    a <<= props;
-};
-
-inline bool operator== (const doublePointRange_struct& s1, const doublePointRange_struct& s2) {
-    if (s1.minimum!=s2.minimum)
-        return false;
-    if (s1.maximum!=s2.maximum)
-        return false;
-    return true;
-};
-
-inline bool operator!= (const doublePointRange_struct& s1, const doublePointRange_struct& s2) {
-    return !(s1==s2);
-};
+}
 
 struct advancedSRI_struct {
     advancedSRI_struct ()
     {
         update_col_rf_keyword = true;
         update_chan_rf_keyword = true;
-    };
+    }
 
     static std::string getId() {
         return std::string("advancedSRI");
-    };
+    }
+
+    static const char* getFormat() {
+        return "bb";
+    }
 
     bool update_col_rf_keyword;
     bool update_chan_rf_keyword;
@@ -271,27 +230,24 @@ struct advancedSRI_struct {
 inline bool operator>>= (const CORBA::Any& a, advancedSRI_struct& s) {
     CF::Properties* temp;
     if (!(a >>= temp)) return false;
-    CF::Properties& props = *temp;
-    for (unsigned int idx = 0; idx < props.length(); idx++) {
-        if (!strcmp("advancedSRI::update_col_rf_keyword", props[idx].id)) {
-            if (!(props[idx].value >>= s.update_col_rf_keyword)) return false;
-        }
-        else if (!strcmp("advancedSRI::update_chan_rf_keyword", props[idx].id)) {
-            if (!(props[idx].value >>= s.update_chan_rf_keyword)) return false;
-        }
+    const redhawk::PropertyMap& props = redhawk::PropertyMap::cast(*temp);
+    if (props.contains("advancedSRI::update_col_rf_keyword")) {
+        if (!(props["advancedSRI::update_col_rf_keyword"] >>= s.update_col_rf_keyword)) return false;
+    }
+    if (props.contains("advancedSRI::update_chan_rf_keyword")) {
+        if (!(props["advancedSRI::update_chan_rf_keyword"] >>= s.update_chan_rf_keyword)) return false;
     }
     return true;
-};
+}
 
 inline void operator<<= (CORBA::Any& a, const advancedSRI_struct& s) {
-    CF::Properties props;
-    props.length(2);
-    props[0].id = CORBA::string_dup("advancedSRI::update_col_rf_keyword");
-    props[0].value <<= s.update_col_rf_keyword;
-    props[1].id = CORBA::string_dup("advancedSRI::update_chan_rf_keyword");
-    props[1].value <<= s.update_chan_rf_keyword;
+    redhawk::PropertyMap props;
+ 
+    props["advancedSRI::update_col_rf_keyword"] = s.update_col_rf_keyword;
+ 
+    props["advancedSRI::update_chan_rf_keyword"] = s.update_chan_rf_keyword;
     a <<= props;
-};
+}
 
 inline bool operator== (const advancedSRI_struct& s1, const advancedSRI_struct& s2) {
     if (s1.update_col_rf_keyword!=s2.update_col_rf_keyword)
@@ -299,11 +255,11 @@ inline bool operator== (const advancedSRI_struct& s1, const advancedSRI_struct& 
     if (s1.update_chan_rf_keyword!=s2.update_chan_rf_keyword)
         return false;
     return true;
-};
+}
 
 inline bool operator!= (const advancedSRI_struct& s1, const advancedSRI_struct& s2) {
     return !(s1==s2);
-};
+}
 
 struct transformProperties_struct {
     transformProperties_struct ()
@@ -314,11 +270,15 @@ struct transformProperties_struct {
         lowCutoff = .001;
         highCutoff = .499;
         transitionWidth = .001;
-    };
+    }
 
     static std::string getId() {
         return std::string("transformProperties");
-    };
+    }
+
+    static const char* getFormat() {
+        return "bidddd";
+    }
 
     bool tune_fs_over_4;
     CORBA::Long fftSize;
@@ -331,47 +291,44 @@ struct transformProperties_struct {
 inline bool operator>>= (const CORBA::Any& a, transformProperties_struct& s) {
     CF::Properties* temp;
     if (!(a >>= temp)) return false;
-    CF::Properties& props = *temp;
-    for (unsigned int idx = 0; idx < props.length(); idx++) {
-        if (!strcmp("transformProperties::tune_fs_over_4", props[idx].id)) {
-            if (!(props[idx].value >>= s.tune_fs_over_4)) return false;
-        }
-        else if (!strcmp("transformProperties::fftSize", props[idx].id)) {
-            if (!(props[idx].value >>= s.fftSize)) return false;
-        }
-        else if (!strcmp("transformProperties::overlap_percentage", props[idx].id)) {
-            if (!(props[idx].value >>= s.overlap_percentage)) return false;
-        }
-        else if (!strcmp("transformProperties::lowCutoff", props[idx].id)) {
-            if (!(props[idx].value >>= s.lowCutoff)) return false;
-        }
-        else if (!strcmp("transformProperties::highCutoff", props[idx].id)) {
-            if (!(props[idx].value >>= s.highCutoff)) return false;
-        }
-        else if (!strcmp("transformProperties::transitionWidth", props[idx].id)) {
-            if (!(props[idx].value >>= s.transitionWidth)) return false;
-        }
+    const redhawk::PropertyMap& props = redhawk::PropertyMap::cast(*temp);
+    if (props.contains("transformProperties::tune_fs_over_4")) {
+        if (!(props["transformProperties::tune_fs_over_4"] >>= s.tune_fs_over_4)) return false;
+    }
+    if (props.contains("transformProperties::fftSize")) {
+        if (!(props["transformProperties::fftSize"] >>= s.fftSize)) return false;
+    }
+    if (props.contains("transformProperties::overlap_percentage")) {
+        if (!(props["transformProperties::overlap_percentage"] >>= s.overlap_percentage)) return false;
+    }
+    if (props.contains("transformProperties::lowCutoff")) {
+        if (!(props["transformProperties::lowCutoff"] >>= s.lowCutoff)) return false;
+    }
+    if (props.contains("transformProperties::highCutoff")) {
+        if (!(props["transformProperties::highCutoff"] >>= s.highCutoff)) return false;
+    }
+    if (props.contains("transformProperties::transitionWidth")) {
+        if (!(props["transformProperties::transitionWidth"] >>= s.transitionWidth)) return false;
     }
     return true;
-};
+}
 
 inline void operator<<= (CORBA::Any& a, const transformProperties_struct& s) {
-    CF::Properties props;
-    props.length(6);
-    props[0].id = CORBA::string_dup("transformProperties::tune_fs_over_4");
-    props[0].value <<= s.tune_fs_over_4;
-    props[1].id = CORBA::string_dup("transformProperties::fftSize");
-    props[1].value <<= s.fftSize;
-    props[2].id = CORBA::string_dup("transformProperties::overlap_percentage");
-    props[2].value <<= s.overlap_percentage;
-    props[3].id = CORBA::string_dup("transformProperties::lowCutoff");
-    props[3].value <<= s.lowCutoff;
-    props[4].id = CORBA::string_dup("transformProperties::highCutoff");
-    props[4].value <<= s.highCutoff;
-    props[5].id = CORBA::string_dup("transformProperties::transitionWidth");
-    props[5].value <<= s.transitionWidth;
+    redhawk::PropertyMap props;
+ 
+    props["transformProperties::tune_fs_over_4"] = s.tune_fs_over_4;
+ 
+    props["transformProperties::fftSize"] = s.fftSize;
+ 
+    props["transformProperties::overlap_percentage"] = s.overlap_percentage;
+ 
+    props["transformProperties::lowCutoff"] = s.lowCutoff;
+ 
+    props["transformProperties::highCutoff"] = s.highCutoff;
+ 
+    props["transformProperties::transitionWidth"] = s.transitionWidth;
     a <<= props;
-};
+}
 
 inline bool operator== (const transformProperties_struct& s1, const transformProperties_struct& s2) {
     if (s1.tune_fs_over_4!=s2.tune_fs_over_4)
@@ -387,10 +344,10 @@ inline bool operator== (const transformProperties_struct& s1, const transformPro
     if (s1.transitionWidth!=s2.transitionWidth)
         return false;
     return true;
-};
+}
 
 inline bool operator!= (const transformProperties_struct& s1, const transformProperties_struct& s2) {
     return !(s1==s2);
-};
+}
 
 #endif // STRUCTPROPS_H

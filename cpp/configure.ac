@@ -16,9 +16,10 @@
 # program.  If not, see http://www.gnu.org/licenses/.
 #
 
-AC_INIT(rh.DataConverter, 4.0.4)
+AC_INIT(rh.DataConverter, 5.0.0)
 AM_INIT_AUTOMAKE([nostdinc foreign])
 AC_CONFIG_MACRO_DIR([m4])
+LT_INIT([dlopen])
 
 m4_ifdef([AC_USE_INTEL],[AC_USE_INTEL])
 AC_PROG_CC
@@ -37,8 +38,9 @@ OSSIE_SDRROOT_AS_PREFIX
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
 # Dependencies
-PKG_CHECK_MODULES([PROJECTDEPS], [ossie >= 2.0 omniORB4 >= 4.1.0])
-PKG_CHECK_MODULES([INTERFACEDEPS], [bulkio >= 2.0])
+PKG_CHECK_MODULES([PROJECTDEPS], [ossie >= 2.1 omniORB4 >= 4.1.0])
+PKG_CHECK_MODULES([INTERFACEDEPS], [bulkio >= 2.1])
+RH_SOFTPKG_CXX([/deps/rh/fftlib/fftlib.spd.xml],[cpp],[2.1])
 OSSIE_ENABLE_LOG4CXX
 AX_BOOST_BASE([1.41])
 AX_BOOST_SYSTEM
@@ -52,7 +54,7 @@ AC_SUBST(IPP_LIBS)
 CXXFLAGS="$CXXFLAGS $IPP_CFLAGS -DHAVE_IPP"
 LIBS="$LIBS $IPP_LIBS"
 else
-PKG_CHECK_MODULES(FFTW, fftw3f >= 3.0.0,,exit)
+PKG_CHECK_MODULES(FFTW, fftw3f >= 3.2,,exit)
 AC_SUBST(FFTW_CFLAGS)
 AC_SUBST(FFTW_LIBS)
 CXXFLAGS="$CXXFLAGS $FFTW_CFLAGS"

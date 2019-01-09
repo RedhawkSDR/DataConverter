@@ -19,7 +19,7 @@
  */
 
 #ifndef MATHOPTIMIZATIONS_H
-#define	MATHOPTIMIZATIONS_H
+#define MATHOPTIMIZATIONS_H
 #include <stddef.h>
 #ifdef __SSE__
 #include <xmmintrin.h>
@@ -59,59 +59,74 @@ int stack_simd_aligned(void)
    return ALIGNED1(&stack_var_simd);
 }
 
-#ifdef	__cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
-void char2ucharScaled(unsigned char* dst, const char* src, int n);
+
+
+// from char
 void char2uchar(unsigned char* dst, const char* src, int n);
-void uchar2char(char* dst, const unsigned char* src, int n);
-void uchar2charScaled(char* dst, const unsigned char* src, int n);
-void uchar2short(short* dst, const unsigned char* src, int n);
 void char2short(short* dst, const char* src, int n);
 void char2ushort(unsigned short* dst, const  char* src, int n);
-void uchar2shortScaled(short* dst, const unsigned char* src, int n, short sMin,short dR_dM, short dMin);
-void uchar2ushort(unsigned short* dst, const unsigned char* src, int n);
-void uchar2ushortScaled(unsigned short* dst, const unsigned char* src, int n, unsigned short sMin,unsigned short dR_dM, unsigned short dMin);
+void char2float( float *dst, const char* src, int n);
+void char2ucharScaled(unsigned char* dst, const char* src, int n);
 void char2shortScaled(short* dst, const char* src, int n, short sMin,short dR_dM, short dMin);
 void char2ushortScaled(unsigned short* dst, const char* src, int n, short sMin,short dR_dM, short dMin);
-
-void char2float( float *dst, const char* src, int n);
-void uchar2float( float *dst, const unsigned char* src, int n);
 void char2floatScaled( float *dst, const char* src, int n, float sMin,float dRange, float sRange, float dMin);
+
+// from uchar
+void uchar2char(char* dst, const unsigned char* src, int n);
+void uchar2short(short* dst, const unsigned char* src, int n);
+void uchar2ushort(unsigned short* dst, const unsigned char* src, int n);
+void uchar2float( float *dst, const unsigned char* src, int n);
+void uchar2charScaled(char* dst, const unsigned char* src, int n);
+void uchar2shortScaled(short* dst, const unsigned char* src, int n, short sMin,short dR_dM, short dMin);
+void uchar2ushortScaled(unsigned short* dst, const unsigned char* src, int n, unsigned short sMin,unsigned short dR_dM, unsigned short dMin);
 void uchar2floatScaled( float *dst,const  unsigned char* src, int n, float sMin,float dRange, float sRange, float dMin);
-void short2ucharScaled(unsigned char* dst, const short* src, int n, float sMin, float dRange, float sRange, float dMin);
-void short2uchar(unsigned char* dst, const short* src, int n);
+
+// from short
 void short2char(char* dst, const short* src, int n);
-void ushort2char(char* dst, const unsigned short* src, int n);
-void ushort2charScaled(char* dst,const  unsigned short* src, int n, float sMin, float dRange, float sRange, float dMin);
-void ushort2ucharScaled(unsigned char* dst,const  unsigned short* src, int n, float sMin, float dRange, float sRange, float dMin);
-void short2charScaled(char* dst, const short* src, int n, float sMin, float dRange, float sRange, float dMin);
-
+void short2uchar(unsigned char* dst, const short* src, int n);
 void short2ushort(unsigned short* dst, const short* src, int n);
-void ushort2short(short* dst, const unsigned short* src, int n);
-void ushort2shortScaled(short* dst, const unsigned short* src, int n);
 void short2float( float *dst, const short *src, int n);
-void ushort2float( float *dst, const unsigned short *src, int n);
-
+void short2float2( float *dst, const short *src, int n); // TODO what is this?
+void short2charScaled(char* dst, const short* src, int n, float sMin, float dRange, float sRange, float dMin);
+void short2ucharScaled(unsigned char* dst, const short* src, int n, float sMin, float dRange, float sRange, float dMin);
 void short2ushortScaled( unsigned short *dst, const short *src, int n);
 void short2floatScaled( float *dst, const short *src, int n, float sMin,float dRange,float sRange, float dMin);
+
+// from ushort
+void ushort2char(char* dst, const unsigned short* src, int n);
+void ushort2uchar(unsigned char* dst, const unsigned short* src, int n);
+void ushort2short(short* dst, const unsigned short* src, int n);
+void ushort2float( float *dst, const unsigned short *src, int n);
+void ushort2charScaled(char* dst,const  unsigned short* src, int n, float sMin, float dRange, float sRange, float dMin);
+void ushort2ucharScaled(unsigned char* dst,const  unsigned short* src, int n, float sMin, float dRange, float sRange, float dMin);
+void ushort2shortScaled(short* dst, const unsigned short* src, int n);
 void ushort2floatScaled( float *dst,const  unsigned short *src, int n, float sMin,float dRange,float sRange, float dMin);
-void short2float2( float *dst, const short *src, int n);
-void copyfloat(float* dst, const float* src, int n);
+
+// from float
 void float2char(char* dst, const float* src, int n);
-void float2charScaled(char* dst, const float* src, int n, float sMin, float dRange, float sRange, float dMin);
-void float2floatScaled(float* dst, const float* src, int n, float sMin, float dRange, float sRange, float dMin);
 void float2uchar(unsigned char* dst, const float* src, int n);
-void float2ucharScaled(unsigned char* dst,const  float* src, int n, float sMin, float dRange, float sRange, float dMin);
 void float2short(short* dst, const float* src, int n);
-void float2shortScaled(short* dst, const float* src, int n, float sMin, float dRange, float sRange, float dMin);
 void float2ushort(unsigned short* dst, const float* src, int n);
+void float2double(double* dst, const float* src, int n);
+void float2charScaled(char* dst, const float* src, int n, float sMin, float dRange, float sRange, float dMin);
+void float2ucharScaled(unsigned char* dst,const  float* src, int n, float sMin, float dRange, float sRange, float dMin);
+void float2shortScaled(short* dst, const float* src, int n, float sMin, float dRange, float sRange, float dMin);
 void float2ushortScaled(unsigned short* dst, const float* src, int n, float sMin, float dRange, float sRange, float dMin);
+void float2doubleScaled(double* dst, const float* src, int n, double sMin, double dRange, double sRange, double dMin);
+void float2floatScaled(float* dst, const float* src, int n, float sMin, float dRange, float sRange, float dMin);
 void interleaveFloat(float* rc, const float *r, const float *c, int n);
 void mul_const(float* c, const float *a, const float b, int n);
-#ifdef	__cplusplus
+void copyfloat(float* dst, const float* src, int n);
+
+// from double
+void double2doubleScaled(double* dst, const double* src, int n, double sMin, double dRange, double sRange, double dMin);
+
+#ifdef __cplusplus
 }
 #endif
 
-#endif	/* MATHOPTIMIZATIONS_H */
+#endif /* MATHOPTIMIZATIONS_H */
 

@@ -43,7 +43,7 @@ import numpy as np
 from scipy import stats
 import random as rand
 
-import cmath
+import cmath,math
 from array import array
 from fractions import Fraction
 
@@ -60,10 +60,9 @@ def correlatewrap(data,filter,*args, **kwargs):
 if SCIPY_GREATER_08:
     scipy.signal.correlate = correlatewrap
 
-
 class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
     """Test for all component implementations in DataConverter"""
-    
+
     def setUp(self):
         ossie.utils.testing.ScaComponentTestCase.setUp(self)
         self.length = 32
@@ -76,7 +75,7 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.portTypes = {}
         self.inputFiles = {}
         for type in self.types:
-            self.inputPorts[type] = self.comp_obj.getPort('data' + str(type))
+            self.inputPorts[type] = self.comp_obj.getPort('data' + str(type) + '_in')
             self.outputPorts[type] = self.comp.getPort('data' + str(type) + '_out')
             self.portTypes[type] = 'BULKIO__POA.data' + str(type)
             self.inputFiles[type] = str(type) + '.dat'
@@ -107,17 +106,17 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
     
     def getInputPortNames(self,type):
         if type == "char":
-            return ('dataChar', 'charOut')
+            return ('dataChar_in', 'charOut')
         elif type == "octet":
-            return ('dataOctet','octetOut')
+            return ('dataOctet_in','octetOut')
         elif type == "short":
-            return ('dataShort', 'shortOut')
+            return ('dataShort_in', 'shortOut')
         elif type == "ushort":
-            return ('dataUshort', 'ushortOut')
+            return ('dataUshort_in', 'ushortOut')
         elif type == "float":
-            return ('dataFloat', 'floatOut')
+            return ('dataFloat_in', 'floatOut')
         elif type == "double":
-            return ('dataDouble', 'doubleOut')
+            return ('dataDouble_in', 'doubleOut')
 
     def getOutputPortNames(self,type):
         if type == "char":
@@ -159,28 +158,31 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
             
             def __init__(self,portname):
                 bulkio.InShortPort.__init__(self,portname)
-                self.lastTimeCode = None
+                self.lastTimeCode = bulkio.timestamp.notSet()
             
             def pushPacket(self, data, T, EOS, streamID):
-                self.lastTimeCode = T
+                #print 'mySinkPort "%s" pushPacket called with %s samples and %s tstamp (%s,%s)'%(self.name,len(data),T.twsec+T.tfsec, streamID, EOS)
+                if not (EOS and T == bulkio.timestamp.notSet()):
+                    self.lastTimeCode = T
                 
         
         self.comp = sb.launch('../DataConverter.spd.xml')
-        snk=mySinkPort("dataFloat")       
+        snk=mySinkPort("dataShort_in")
         outputPorts = self.getOutputPortNames("short")
         inputPorts = self.getInputPortNames("short")
         outport = self.comp.getPort(outputPorts[1])
         outport.connectPort(snk._this(),"connectionID")
-        #self.comp.connect(providesComponent=snk,providesPortName=outputPorts[0],usesPortName=outputPorts[1])
         sb.start()
         
         input_port = self.comp.getPort(inputPorts[0])
 
-        wsec = 100
-        fsec = 100
-        data = [int(x) for x in range(0,100)]
-        T = BULKIO.PrecisionUTCTime(BULKIO.TCM_CPU, BULKIO.TCS_VALID, 0, wsec, fsec)
-        input_port.pushPacket(data,T,True,"streamID") 
+        self.sri = bulkio.sri.create("dataConvTest")
+        input_port.pushSRI(self.sri)
+        wsec = 123456.0
+        fsec = 0.654321
+        data = range(1024)
+        T = bulkio.timestamp.create(wsec, fsec)
+        input_port.pushPacket(data,T,True,"dataConvTest") 
         time.sleep(.5)
            
         lastTimeCode = snk.lastTimeCode
@@ -188,16 +190,22 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.assertEqual(lastTimeCode.tfsec,fsec)
 
         # Test invalid timecode. A warning should be produced but the timecode is still passed on.
-        wsec = 200
-        fsec = 200
-        data = [int(x) for x in range(0,100)]
-        T = BULKIO.PrecisionUTCTime(BULKIO.TCM_CPU, BULKIO.TCS_INVALID, 0, wsec, fsec)
-        input_port.pushPacket(data,T,True,"streamID") 
+        wsec = 987654.0
+        fsec = 0.456789
+        data = range(1024)
+        #T = BULKIO.PrecisionUTCTime(BULKIO.TCM_CPU, BULKIO.TCS_INVALID, 0, wsec, fsec)
+        T = bulkio.timestamp.create(wsec, fsec)
+        T.tcstatus = BULKIO.TCS_INVALID
+        input_port.pushSRI(self.sri)
+        input_port.pushPacket(data,T,True,"dataConvTest") 
         time.sleep(.5)
         
         lastTimeCode = snk.lastTimeCode
         self.assertEqual(lastTimeCode.twsec,wsec)
         self.assertEqual(lastTimeCode.tfsec,fsec)
+        
+        sb.stop()
+        self.comp.releaseObject()
     
     def runtestcase(self,scale,inType,outType,inData,expectedData):
 
@@ -209,18 +217,27 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.scaleInputPort(scale,inType)
         self.scaleOutputPort(scale,outType)
         
-        src=sb.DataSource()
-        snk=sb.DataSink()
+        src=sb.StreamSource(format=inType)
+        snk=sb.StreamSink()
         
         inputPorts = self.getInputPortNames(inType)
         outputPorts = self.getOutputPortNames(outType)
         src.connect(providesComponent=self.comp,providesPortName = inputPorts[0], usesPortName=inputPorts[1])
         self.comp.connect(providesComponent=snk,providesPortName=outputPorts[0],usesPortName=outputPorts[1])
         sb.start()
-        src.push(data=inData.tolist(),EOS=True,complexData=False)
+        src.complex=False
+        twsec = math.floor(time.time())
+        src.write(data=inData.tolist())
+        src.close()
         time.sleep(1)
                 
-        (result,tstamps) = (snk.getData(tstamps=True))
+        streamdata = snk.read(timeout=5)     
+        if not(streamdata):
+              self.assertTrue(False, "No Data Stream Received")
+        print "Got Data of length " , len(streamdata.data), len(inData) , len(expectedData)
+        result = streamdata.data
+        tstamps = streamdata.timestamps
+        sb.stop()
         self.comp.releaseObject()
         count = 0;
         
@@ -237,19 +254,15 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
             if (outType in ("float", "double")):
                 self.assertTrue(abs(expectedData[i] - result[i]) < 0.00001)         
             elif (outType in ("octet")):
-                result[i] = ord(result[i])
                 self.assertTrue(expectedData[i]+1 == result[i] or expectedData[i]-1 == result[i] or expectedData[i] == result[i])                       
             else:
                 self.assertTrue(expectedData[i]+1 == result[i] or expectedData[i]-1 == result[i] or expectedData[i] == result[i])    
         self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
 
         
-        # Default for Data Source is Start time 0 and sample rate 1, therefore each sample offset should be equal to the whole number of seconds.
-        for tstamp in tstamps:
-            self.assertEqual(tstamp[0],tstamp[1].twsec)
-            self.assertEqual(0,tstamp[1].tfsec)
-
-
+        self.assertEqual(tstamps[0][0],0) #First timestamp offset should be 0
+        self.assertAlmostEqual(tstamps[0][1].twsec,twsec,1) #First timestamp should have start time when data was sent in 
+       
 
     def char2char(self,scale=True):
 
@@ -723,7 +736,16 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
 
     def realToComplex(self, scale=True, enablePlt=False):
 
+        FAIL_TEST=0
+        #DEBUG_LEVEL = 5
+        #LOG_LEVEL = CF.LogLevels.DEBUG
+        LOG_LEVEL = CF.LogLevels.INFO
+        
+
         self.comp = sb.launch('../DataConverter.spd.xml')
+        #self.comp = sb.launch('../DataConverter.spd.xml',execparams={'DEBUG_LEVEL':DEBUG_LEVEL})
+        #self.comp = sb.launch('../DataConverter.spd.xml',properties={'DEBUG_LEVEL':DEBUG_LEVEL})
+        self.comp.log_level(LOG_LEVEL)
         self.comp_obj=self.comp.ref
         self.initializeDicts()
         self.comp.start()
@@ -738,27 +760,45 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.comp.normalize_floating_point.Output = scale
         self.comp.outputType = 2
         
-        t = np.array([],dtype='float')
-        t = np.arange(0,2*np.pi/400.,2*np.pi/400./32768)
         #get a bunch of random data between 1 and -1 and create a BPSK Signal
-        
-
+        t = np.arange(0,2*np.pi/400.,2*np.pi/400./32768)
         sint = np.sin(50000*t) * np.sin(1000*t)
-        src=sb.DataSource()#bytesPerPush=512 + 32)
-        snk=sb.DataSink()
-
-        src.connect(self.comp, "dataFloat")
-        self.comp.connect(snk, "floatIn")
+        
+        streamID = "someSRI"
+        src=sb.StreamSource(format="float",streamID= streamID)
+        snk=sb.StreamSink()
+        
+        src.connect(self.comp,providesPortName = 'dataFloat_in')
+        self.comp.connect(snk,providesPortName='floatIn')
         
         sb.start()
-        src.push(data=sint.tolist(),EOS=True,complexData=False)
-        time.sleep(1)
-        result = snk.getData()
-        sb.stop()
-        self.comp.releaseObject()
-        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
 
-        res = np.array([np.complex(result[ii], result[ii+1]) for ii in np.arange(0,len(result)-1,2)])
+        src.xdelta = 1.0
+        src.complex = 0
+        src.write(sint.tolist(),interleaved=False)
+        src.close()
+        count = 0
+        while (count < 100):
+            if streamID in snk.streamIDs():
+                break;
+            count+=1
+            time.sleep(0.05)
+
+        self.assertEqual(streamID in snk.streamIDs(),True, "Expected Stream Not Present")
+        streamdata = snk.read(timeout=1,streamID=streamID)
+        result = streamdata.data
+        sb.stop()
+        self.comp.log_level(CF.LogLevels.INFO)
+        self.comp.releaseObject()
+
+        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
+        
+        nans = [1 for x in sint if x != x]
+        print 'len sint, len nans:', len(sint), len(nans)
+        nans = [1 for x in result if x != x]
+        print 'len result, len nans:', len(result), len(nans)
+        
+        res = np.array([np.complex(result[i]) for i in range(0,len(result))])
         
         h=signal.hilbert(sint)
         hReal = h.real
@@ -768,10 +808,16 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         avgOut = np.mean(res)
         avgKnown = np.mean(h)
         stdDeviation = np.std(h)
+        
+        print 'avg res, avg h, stddev h:', avgOut, avgKnown, stdDeviation
 
         corr = signal.correlate(h,res)
-        elementer = corr.argmax()
-        should = int((len(h) + len(res))/2 - 1)
+        elementer = corr.argmax() # index of max correlation
+        should = int((len(h) + len(res))/2 - 1) # average length of expected and actual output, minus 1
+        
+        print 'len h, len res, should, elementer, should-elementer, corr:',len(h), len(res), should, elementer, should-elementer, corr
+        
+        self.assertNotEqual(elementer, 0, 'No correlation found between expected and actual result!')
 
         error_real = np.zeros(min(len(h), len(res)))
         error_imag = np.zeros(min(len(h), len(res)))
@@ -779,9 +825,11 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         error = np.array([np.complex(error_real[ii], error_imag[ii]) for ii in np.arange(len(error_imag))])
         jj = 0
         # calculate absolute error relative to the standard deviation
+        print 'ii, jj, error_mag, h.real, res.real, h.imag, res.imag, stddev'
         for ii in np.arange(should-elementer, len(h) + should-elementer):
             error[jj] = np.complex((h.real[jj] - res.real[ii]), (h.imag[jj] - res.imag[ii]))
             error_mag[jj] = np.abs(np.complex((h.real[jj] - res.real[ii]), (h.imag[jj] - res.imag[ii]))) / stdDeviation
+            if jj%4096 == 0: print ii, jj, error_mag[jj], h.real[jj], res.real[ii], h.imag[jj], res.imag[ii], stdDeviation
             jj+=1
         
         
@@ -806,14 +854,27 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
             plt.plot(error_mag)            
             plt.show()
                 
+        print 'avg res - avg h =', avgOut-avgKnown
+        print 'max(abs(error_mag)):', np.max(np.abs(error_mag))
+        
         self.assertEqual((0.01>avgOut-avgKnown),True)
         self.assertEqual((0.1>np.max(np.abs(error_mag))),True)
 
+        self.assertFalse(FAIL_TEST, "Test passed, failing assert for extra debug")
 
 
     def complexToReal(self, scale=True, enablePlt=False):
 
+        FAIL_TEST=0
+        #DEBUG_LEVEL = 5
+        #LOG_LEVEL = CF.LogLevels.DEBUG
+        LOG_LEVEL = CF.LogLevels.INFO
+        
+
         self.comp = sb.launch('../DataConverter.spd.xml')
+        #self.comp = sb.launch('../DataConverter.spd.xml',execparams={'DEBUG_LEVEL':DEBUG_LEVEL})
+        #self.comp = sb.launch('../DataConverter.spd.xml',properties={'DEBUG_LEVEL':DEBUG_LEVEL})
+        self.comp.log_level(LOG_LEVEL)
         self.comp_obj=self.comp.ref
         self.initializeDicts()
         
@@ -874,19 +935,36 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
             outer[2*ii] = val.real
             outer[2*ii+1] = val.imag
 
-        src=sb.DataSource()#bytesPerPush=512+32)
-        snk=sb.DataSink()
+
+        streamID = "someSRI"
+        src=sb.StreamSource(format="float",streamID= streamID)
+        snk=sb.StreamSink()
         
-        src.connect(providesComponent=self.comp,providesPortName = 'dataFloat', usesPortName='floatOut')
+        src.connect(providesComponent=self.comp,providesPortName = 'dataFloat_in', usesPortName='floatOut')
         self.comp.connect(providesComponent=snk,providesPortName='floatIn',usesPortName='dataFloat_out')
         
         sb.start()
-        src.push(data=outer.tolist(),sampleRate=Fs,EOS=True,complexData=True)
-        time.sleep(1)
-        (result,tstamps) = (snk.getData(tstamps=True))
+
+        src.xdelta = 1.0/Fs
+        src.complex = 1
+        src.write(outer.tolist(),interleaved=True)
+        src.close()
+        count = 0
+        while (count < 100):
+            if streamID in snk.streamIDs():
+                break;
+            count+=1
+            time.sleep(0.05)
+
+        self.assertEqual(streamID in snk.streamIDs(),True, "Expected Stream Not Present")
+        streamdata = snk.read(timeout=1,streamID=streamID)
+        result = streamdata.data
+        tstamps = streamdata.timestamps
         sb.stop()
+        self.comp.log_level(CF.LogLevels.INFO)
         self.comp.releaseObject()
-        
+        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
+
         # Stats Section
         avgOut = np.mean(result)
         avgKnown = np.mean(xo.real)
@@ -927,11 +1005,22 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         for tstamp in tstamps:
             self.assertEqual((tstamp[1].twsec>=0), True, "Whole Seconds should always be positive")
             self.assertEqual(((tstamp[1].tfsec>=0) and (tstamp[1].tfsec<1)), True, "Fractional Seconds should always be between zero and one")
+
+        self.assertFalse(FAIL_TEST, "Test passed, failing assert for extra debug")
         
         
     def realToComplexShort2Short(self, scale=True, enablePlt=False):
 
+        FAIL_TEST=0
+        #DEBUG_LEVEL = 5
+        #LOG_LEVEL = CF.LogLevels.DEBUG
+        LOG_LEVEL = CF.LogLevels.INFO
+        
+
         self.comp = sb.launch('../DataConverter.spd.xml')
+        #self.comp = sb.launch('../DataConverter.spd.xml',execparams={'DEBUG_LEVEL':DEBUG_LEVEL})
+        #self.comp = sb.launch('../DataConverter.spd.xml',properties={'DEBUG_LEVEL':DEBUG_LEVEL})
+        self.comp.log_level(LOG_LEVEL)
         self.comp_obj=self.comp.ref
         self.initializeDicts()
         self.comp.start()
@@ -945,28 +1034,43 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         self.comp.normalize_floating_point.Input = scale
         self.comp.normalize_floating_point.Output = scale
         self.comp.outputType=2
-            
-        t = np.array([],dtype='float')
-        t = np.arange(0,2*np.pi/400.,2*np.pi/400./32768)
-        #get a bunch of random data between 1 and -1 and create a BPSK Signal
         
+        #get a bunch of random data between 1 and -1 and create a BPSK Signal
+        t = np.arange(0,2*np.pi/400.,2*np.pi/400./32768)
         sint = np.sin(50000*t) * np.sin(1000*t)
         sintS = sint * 32767
         sintS = sintS.astype(np.short)
-        src=sb.DataSource()
-        snk=sb.DataSink()
         
-        src.connect(providesComponent=self.comp,providesPortName = 'dataShort', usesPortName='shortOut')
+        streamID = "someSRI"
+        src=sb.StreamSource(format="short",streamID= streamID)
+        snk=sb.StreamSink()
+        
+        src.connect(providesComponent=self.comp,providesPortName = 'dataShort_in', usesPortName='shortOut')
         self.comp.connect(providesComponent=snk,providesPortName='shortIn',usesPortName='dataShort_out')
         
         sb.start()
-        src.push(data=sintS.tolist(),EOS=True,complexData=False)
-        time.sleep(1)
-        result = snk.getData()
-        sb.stop()
-        self.comp.releaseObject()
 
-        res = np.array([np.complex(result[ii], result[ii+1]) for ii in np.arange(0,len(result)-1,2)])
+        src.xdelta = 1.0
+        src.complex = 0
+        src.write(sintS.tolist(),interleaved=False)
+        src.close()
+        time.sleep(5) 
+
+        self.assertEqual(streamID in snk.streamIDs(),True, "Expected Stream Not Present")
+        streamdata = snk.read(timeout=1,streamID=streamID)
+        result = streamdata.data
+
+        sb.stop()
+        self.comp.log_level(CF.LogLevels.INFO)
+        self.comp.releaseObject()
+        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
+        
+        nans = [1 for x in sintS if x != x]
+        print 'len sintS, len nans:', len(sintS), len(nans)
+        nans = [1 for x in result if x != x]
+        print 'len result, len nans:', len(result), len(nans)
+
+        res = np.array([np.complex(result[i]) for i in range(0,len(result))])
         
         h=signal.hilbert(sint) * 32767
         
@@ -974,20 +1078,33 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         avgOut = np.mean(res)
         avgKnown = np.mean(h)
         stdDeviation = np.std(h)
+        
+        print 'avg res, avg h, stddev h:', avgOut, avgKnown, stdDeviation
+        
+        self.assertNotEqual(np.std(res), 0, 'Invalid output from DataConverter (likely due to NaN values in fftw processing chain)')
 
         corr = signal.correlate(h,res)
         elementer = corr.argmax()
         should = int((len(h) + len(res))/2 - 1)
+        
+        print 'len h, len res, should, elementer, should-elementer, corr:',len(h), len(res), should, elementer, should-elementer, corr
+        
+        self.assertNotEqual(elementer, 0, 'No correlation found between expected and actual result!')
 
         error_real = np.zeros(min(len(h), len(res)))
         error_imag = np.zeros(min(len(h), len(res)))
         error_mag = np.zeros(min(len(h), len(res)))
         error = np.array([np.complex(error_real[ii], error_imag[ii]) for ii in np.arange(len(error_imag))])
+        
+        self.assertTrue(elementer >= len(h), 'Bad correlation between expected and actual result!')
+        
         jj = 0
         # calculate absolute error relative to the standard deviation
+        print 'ii, jj, error_mag, h.real, res.real, h.imag, res.imag, stddev'
         for ii in np.arange(should-elementer, len(h) + should-elementer):
             error[jj] = np.complex((h.real[jj] - res.real[ii]), (h.imag[jj] - res.imag[ii]))
             error_mag[jj] = np.abs(np.complex((h.real[jj] - res.real[ii]), (h.imag[jj] - res.imag[ii]))) / stdDeviation
+            if jj%1024 == 0: print ii, jj, error_mag[jj], h.real[jj], res.real[ii], h.imag[jj], res.imag[ii], stdDeviation
             jj+=1
         
         
@@ -1012,13 +1129,27 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
             plt.plot(error_mag)            
             plt.show()
                 
+        print 'avg res - avg h =', avgOut-avgKnown
+        print 'max(abs(error_mag)):', np.max(np.abs(error_mag))
+                
         self.assertEqual((0.01>avgOut-avgKnown),True)
         self.assertEqual((0.2>np.max(np.abs(error_mag))),True)
+
+        self.assertFalse(FAIL_TEST, "Test passed, failing assert for extra debug")
 
 
     def complexToRealShort2Short(self, scale=True, enablePlt=False):
 
+        FAIL_TEST=0
+        #DEBUG_LEVEL = 5
+        #LOG_LEVEL = CF.LogLevels.DEBUG
+        LOG_LEVEL = CF.LogLevels.INFO
+        
+
         self.comp = sb.launch('../DataConverter.spd.xml')#, debugger='gdb')
+        #self.comp = sb.launch('../DataConverter.spd.xml',execparams={'DEBUG_LEVEL':DEBUG_LEVEL})
+        #self.comp = sb.launch('../DataConverter.spd.xml',properties={'DEBUG_LEVEL':DEBUG_LEVEL})
+        self.comp.log_level(LOG_LEVEL)
         self.comp_obj=self.comp.ref
         self.initializeDicts()
         #set properties we care about
@@ -1069,19 +1200,32 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         xo = np.fft.ifft(Xo)
         
         xo = xo * 32767
-
-        src=sb.DataSource(bytesPerPush=512+32)
-        snk=sb.DataSink()
+       
+        streamID = "someSRI"
+        src=sb.StreamSource(format="short",streamID= streamID)
+        snk=sb.StreamSink()
         
-        src.connect(providesComponent=self.comp,providesPortName = 'dataShort', usesPortName='shortOut')
+        src.connect(providesComponent=self.comp,providesPortName = 'dataShort_in', usesPortName='shortOut')
         self.comp.connect(providesComponent=snk,providesPortName='shortIn',usesPortName='dataShort_out')
         
         sb.start()
-        src.push(data=outer.tolist(),sampleRate=Fs,EOS=True,complexData=True)
-        time.sleep(2)
-        result = snk.getData()
+
+        src.xdelta = 1.0/Fs
+        src.complex = 1
+        src.write(outer.tolist(),interleaved=True)
+        src.close()
+        time.sleep(5) 
+
+        
+        self.assertEqual(streamID in snk.streamIDs(),True, "Expected Stream Not Present")
+        streamdata = snk.read(timeout=1,streamID=streamID)
+        result = streamdata.data
+        
+                
         sb.stop()
+        self.comp.log_level(CF.LogLevels.INFO)
         self.comp.releaseObject()
+        self.assertNotEqual(len(result), 0, "Did not receive pushed data!")
         
         # Stats Section
         avgOut = np.mean(result)
@@ -1119,6 +1263,8 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
                 
         self.assertEqual((0.01>avgOut-avgKnown),True)        
         self.assertEqual((5>np.max(np.abs(error_mag))),True) #ToDo needs to change
+
+        self.assertFalse(FAIL_TEST, "Test passed, failing assert for extra debug")
 
 
 
@@ -1375,60 +1521,279 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
     def testModeChangeR2CUpdatesSRI(self):
         print(sys._getframe().f_code.co_name)
         comp = sb.launch('../DataConverter.spd.xml')
-        src=sb.DataSource()
-        snk=sb.DataSink()
-        
-        src.connect(comp,'dataDouble')
-        comp.connect(snk,'ushortIn')
-        
-        sb.start()
         
         streamID = "someSRI"
-        data = range(1024)
-        src.push(data,complexData=False, sampleRate=1.0, EOS=False, streamID=streamID)
+        src=sb.StreamSource(format="double",streamID= streamID)
+        snk=sb.StreamSink()
+        
+        src.connect(comp,'dataDouble_in')
+        comp.connect(snk,'ushortIn')
+        
+        comp.transformProperties.fftSize = 512
+        
+        sb.start()
+        data = range(10000)
 
-        # Wait for new SRI to take hold
+        src.setKeyword('kw1',1000)
+        src.xdelta = 1 
+        src.complex = 0
+        src.write(data,interleaved=False)
         count = 0
         while (count < 100):
-            if (snk.sri().streamID == streamID):
+            if streamID in snk.streamIDs():
                 break;
+            count+=1
             time.sleep(0.05)
 
-        self.assertTrue(snk.sri().streamID == streamID)
-        self.assertTrue(snk.sri().mode == 0) # 0=Real
+        self.assertEqual(streamID in snk.streamIDs(),True, "Expected Stream Not Present")
+        streamdata = snk.read(timeout=1,streamID=streamID)
+        
+        self.assertTrue(streamdata.streamID == streamID)
+        self.assertTrue(streamdata.sri.mode == 0) # 0=Real
 
         comp.outputType = 2 # 2=Complex
-        self.assertTrue(snk.sri().streamID == streamID)
-        self.assertTrue(snk.sri().mode == 1) # 1=Complex
+        time.sleep(.1)
+        src.write(data,interleaved=False)
+
+        streamdata2 = snk.read(timeout=2,streamID=streamID)
+        self.assertEqual(streamID in snk.streamIDs(),True, "Expected Stream Not Present")
+        
+        if not streamdata2:
+            self.assertFalse(True, "Did not receive data")
+        
+        self.assertTrue(streamdata2.streamID == streamID)
+        self.assertTrue(streamdata2.sri.mode == 1) # 1=Complex
+
+        sb.stop()
+        comp.releaseObject()
     
     def testModeChangeC2RUpdatesSRI(self):
         print(sys._getframe().f_code.co_name)
+        LOG_LEVEL = CF.LogLevels.TRACE
         comp = sb.launch('../DataConverter.spd.xml')
-        src=sb.DataSource()
-        snk=sb.DataSink()
+        #comp.log_level(LOG_LEVEL)
+        streamID = "someSRI"
+        src=sb.StreamSource(format="double",streamID= streamID)
+        snk=sb.StreamSink()
         
-        src.connect(comp,'dataDouble')
+        src.connect(comp,'dataDouble_in')
         comp.connect(snk,'ushortIn')
+        
+        comp.transformProperties.fftSize = 512
+        
+        sb.start()
+        data = range(1024)*2
+
+        src.xdelta = 1.0 
+        src.complex = 1
+        src.write(data,interleaved=True)
+        count = 0
+        while (count < 100):
+            if streamID in snk.streamIDs():
+                break;
+            count+=1
+            time.sleep(0.05)
+
+        self.assertEqual(streamID in snk.streamIDs(),True, "Expected Stream Not Present")
+        streamdata = snk.read(timeout=1,streamID=streamID)    
+        #print 'len out 1', len(streamdata.data)
+        self.assertTrue(streamdata.streamID == streamID)
+        #Defaults to pass through and input data is Complex
+        self.assertTrue(streamdata.sri.mode == 1)
+        #Change output type to be real
+        comp.outputType = 1 # 1=Real       
+        time.sleep(.1)
+        src.write(data,interleaved=True)
+        streamdata2 = snk.read(timeout=2,streamID=streamID)
+        #print 'len out 2', len(streamdata2.data)
+        self.assertTrue(streamdata2.streamID == streamID)
+        self.assertTrue(streamdata2.sri.mode == 0)
+   
+        sb.stop()
+        comp.releaseObject()
+
+    def testTwoInstances(self):
+        print(sys._getframe().f_code.co_name)
+        LOG_LEVEL = CF.LogLevels.TRACE
+        
+        # first instance
+        comp = sb.launch('../DataConverter.spd.xml')
+        comp.log_level(LOG_LEVEL)
+        streamID = "someSRI1"
+        src=sb.StreamSource(format="short",streamID= streamID)
+        snk=sb.StreamSink(format="short")
+        src.connect(comp)
+        comp.connect(snk)#,'ushortIn')
+        comp.transformProperties.fftSize = 512
+        comp.outputType = 1 # 1=Real
+        
+        # second instance
+        comp2 = sb.launch('../DataConverter.spd.xml')
+        comp2.log_level(LOG_LEVEL)
+        streamID2 = "someSRI2"
+        src2=sb.StreamSource(format="short",streamID= streamID2)
+        snk2=sb.StreamSink(format="short")
+        src2.connect(comp2)
+        comp2.connect(snk2)#,'ushortIn')
+        comp2.transformProperties.fftSize = 512
+        comp2.outputType = 2 # 2=Complex
         
         sb.start()
         
-        streamID = "someSRI"
-        data = range(1024)
-        src.push(data,complexData=True, sampleRate=1.0, EOS=False, streamID=streamID)
+        data = range(1024)*4
 
-        # Wait for new SRI to take hold
+        src.xdelta = 1.0 
+        src.complex = 1
+        src.write(data,interleaved=True)
+        src.close()
+
+        src2.xdelta = 1.0 
+        src2.complex = 0
+        src2.write(data,interleaved=True)
+        src2.close()
+        
         count = 0
         while (count < 100):
-            if (snk.sri().streamID == streamID):
+            if streamID in snk.streamIDs():
                 break;
+            count+=1
+            time.sleep(0.05)
+        count = 0
+        while (count < 100):
+            if streamID2 in snk2.streamIDs():
+                break;
+            count+=1
             time.sleep(0.05)
 
-        self.assertTrue(snk.sri().streamID == streamID)
-        self.assertTrue(snk.sri().mode == 1)
+        sb.stop()
+        comp.releaseObject()
+        comp2.releaseObject()
 
-        comp.outputType = 1 # 1=Real
-        self.assertTrue(snk.sri().streamID == streamID)
-        self.assertTrue(snk.sri().mode == 0)
+    def testSRIandStreamBehavior(self):
+        print(sys._getframe().f_code.co_name)
+        comp = sb.launch('../DataConverter.spd.xml')
+
+        streamID = "myStream"
+        streamID2 = "DifferentStream"
+        src=sb.StreamSource(format="double",streamID= streamID)
+        src2=sb.StreamSource(format="double",streamID= streamID2)
+        snk=sb.StreamSink()
+        
+        src.connect(comp,'dataDouble_in')
+        src2.connect(comp,'dataDouble_in')
+        comp.connect(snk,'ushortIn')
+        
+        sb.start()
+
+        data = range(1024)
+
+        src.setKeyword('kw1',1000)
+        src.xdelta = 1
+        src.complex = 1
+        src.write(data,interleaved=True)
+        #src.push(data,complexData=True, sampleRate=1.0, EOS=False, streamID=streamID,SRIKeywords=kws)    
+        time.sleep(1)
+        
+        #Verify Output Data SRI
+        self.assertEqual(streamID in snk.streamIDs(),True, msg="Expected Stream Not Present")
+        streamdata = snk.read(timeout=1,streamID=streamID)
+        self.assertEqual(streamdata.streamID,streamID, msg="Output StreamID does not match")
+        self.assertEqual(streamdata.sri.mode, 1, msg="Output mode does not match, should be complex, mode=1")
+        self.assertEqual(streamdata.eos,False, msg="Stream sent an EOS")
+        self.assertAlmostEqual(streamdata.sri.xdelta, 1.0, msg="X-delta Does Not Match (%s)"%streamdata.sri.xdelta)
+        self.assertEqual(streamdata.sri.keywords[0].id, 'kw1', msg="Keyword id does not match expected")
+        self.assertEqual(any.from_any(streamdata.sri.keywords[0].value), 1000, msg="Keyword value does not match expected")
+
+
+        #Push more Data with same stream ID no EOS 
+        src.write(data,interleaved=True)
+        
+        # Push more data from a different stream ID no EOS
+        src2.setKeyword('kw1',1000)
+        src2.xdelta = 1 
+        src2.complex = 1
+        src2.write(data,interleaved=True)
+
+        time.sleep(1)
+         
+        #  Verify all good output data.
+        self.assertEqual(streamID in snk.streamIDs(),True, msg="Expected Stream Not Present")
+        streamdata = snk.read(timeout=1,streamID=streamID)
+        self.assertEqual(streamdata.streamID,streamID, msg="Output StreamID does not match")
+        self.assertEqual(streamdata.sri.mode, 1, msg="Output mode does not match, should be complex, mode=1")
+        self.assertEqual(streamdata.eos,False, msg="Stream sent an EOS")
+        self.assertAlmostEqual(streamdata.sri.xdelta, 1.0, msg="X-delta Does Not Match")
+        self.assertEqual(streamdata.sri.keywords[0].id, 'kw1', msg="Keyword id does not match expected")
+        self.assertEqual(any.from_any(streamdata.sri.keywords[0].value), 1000, msg="Keyword value does not match expected")
+ 
+        self.assertEqual(streamID2 in snk.streamIDs(),True, msg="Expected Stream Not Present")
+        streamdata = snk.read(timeout=1,streamID=streamID2)
+        self.assertEqual(streamdata.streamID,streamID2, msg="Output StreamID does not match")
+        self.assertEqual(streamdata.sri.mode, 1, msg="Output mode does not match, should be complex, mode=1")
+        self.assertEqual(streamdata.eos,False, msg="Stream sent an EOS")
+        self.assertAlmostEqual(streamdata.sri.xdelta, 1.0, msg="X-delta Does Not Match")
+        self.assertEqual(streamdata.sri.keywords[0].id, 'kw1', msg="Keyword id does not match expected")
+        self.assertEqual(any.from_any(streamdata.sri.keywords[0].value), 1000, msg="Keyword value does not match expected")
+         
+        # Stop Component
+        comp.stop()        
+         
+        # Update SRI and push more data        
+        src.eraseKeyword('kw1')
+        src.setKeyword('kw2',2000)
+        src.xdelta = 1/2.0
+        src.write(data,interleaved=True)
+
+ 
+        # Start component
+        comp.start() 
+        time.sleep(1)
+         
+        # Push more data same two streams
+        src.write(data,interleaved=True)
+        src.close()
+        src2.write(data,interleaved=True)
+        
+        time.sleep(1)        
+        # Verify Output Data and SRI, EOS   
+        self.assertEqual(streamID in snk.streamIDs(),True, msg="Expected Stream Not Present")
+        streamdata = snk.read(timeout=1,streamID=streamID)
+        self.assertEqual(streamdata.streamID,streamID, msg="Output StreamID does not match")
+        self.assertEqual(streamdata.sri.mode, 1, msg="Output mode does not match, should be complex, mode=1")
+        self.assertEqual(streamdata.eos,True, msg="Stream sent an EOS")
+        self.assertAlmostEqual(streamdata.sri.xdelta, 0.5, msg="X-delta Does Not Match")
+        self.assertEqual(streamdata.sri.keywords[0].id, 'kw2', msg="Keyword id does not match expected")
+        self.assertEqual(any.from_any(streamdata.sri.keywords[0].value), 2000, msg="Keyword value does not match expected")
+ 
+        self.assertEqual(streamID2 in snk.streamIDs(),True, msg="Expected Stream Not Present")
+        streamdata = snk.read(timeout=1,streamID=streamID2)
+        self.assertEqual(streamdata.streamID,streamID2, msg="Output StreamID does not match")
+        self.assertEqual(streamdata.sri.mode, 1, msg="Output mode does not match, should be complex, mode=1")
+        self.assertEqual(streamdata.eos,False, msg="Stream sent an EOS")
+        self.assertAlmostEqual(streamdata.sri.xdelta, 1.0, msg="X-delta Does Not Match")
+        self.assertEqual(streamdata.sri.keywords[0].id, 'kw1', msg="Keyword id does not match expected")
+        self.assertEqual(any.from_any(streamdata.sri.keywords[0].value), 1000, msg="Keyword value does not match expected")
+         
+        # Stop Component and push data without SRI updates. 
+        comp.stop()
+        
+        src2.write(data,interleaved=True)
+ 
+        comp.start()
+        time.sleep(1)
+ 
+        self.assertEqual(streamID2 in snk.streamIDs(),True, msg="Expected Stream Not Present")
+        streamdata = snk.read(timeout=1,streamID=streamID2)
+        self.assertEqual(streamdata.streamID,streamID2, msg="Output StreamID does not match")
+        self.assertEqual(streamdata.sri.mode, 1, msg="Output mode does not match, should be complex, mode=1")
+        self.assertEqual(streamdata.eos,False, msg="Stream sent an EOS")
+        self.assertAlmostEqual(streamdata.sri.xdelta, 1.0, msg="X-delta Does Not Match")
+        self.assertEqual(streamdata.sri.keywords[0].id, 'kw1', msg="Keyword id does not match expected")
+        self.assertEqual(any.from_any(streamdata.sri.keywords[0].value), 1000, msg="Keyword value does not match expected")
+         
+        sb.stop()
+        comp.releaseObject()
+         
 
     def testScaBasicBehavior(self):
         print(sys._getframe().f_code.co_name)
@@ -1485,13 +1850,8 @@ class ComponentTests(ossie.utils.testing.ScaComponentTestCase):
         #######################################################################
         # Simulate regular component shutdown
         self.comp.releaseObject()
-        
-    # TODO Add additional tests here
-    #
-    # See:
-    #   ossie.utils.bulkio.bulkio_helpers,
-    #   ossie.utils.bluefile.bluefile_helpers
-    # for modules that will assist with testing components with BULKIO ports
+     
+
     
 if __name__ == "__main__":
     ossie.utils.testing.main("../DataConverter.spd.xml") # By default tests all implementations

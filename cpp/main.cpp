@@ -22,10 +22,10 @@
 #include "ossie/ossieSupport.h"
 
 #include "DataConverter.h"
-int main(int argc, char* argv[])
-{
-    DataConverter_i* DataConverter_servant;
-    Resource_impl::start_component(DataConverter_servant, argc, argv);
-    return 0;
+extern "C" {
+    Resource_impl* make_component(const std::string& uuid, const std::string& identifier)
+    {
+        return new DataConverter_i(uuid.c_str(), identifier.c_str());
+    }
 }
 
