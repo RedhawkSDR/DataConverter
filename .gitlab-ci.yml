@@ -1,8 +1,8 @@
 variables:
   rh_22_release: '2-2-0'
   rh_23_release: '2-3-0'
-  dsp_version: '2.0.1'
-  fftlib_version: '2.1.0'
+  dsp_version: '2.0.0-5'
+  fftlib_version: '2.1.0-2'
   namespace: rh.
   test_suite: test_$CI_PROJECT_NAME.py
 
@@ -22,6 +22,8 @@ before_script:
         rpm_release="0.$CI_PIPELINE_ID.rh${safe_version}";
       else
         redhawk_version=${release_version}
+        dsp_version="`echo ${dsp_version} | sed -r 's/\./-/g'`";
+        fftlib_version="`echo ${fftlib_version} | sed -r 's/\./-/g'`";
         rpm_release="`rpm --query --queryformat "%{release}\n" --specfile ${namespace}$CI_PROJECT_NAME.spec | head -n 1 | awk -F"." "{print $1}"`.rh${safe_version}";
       fi
     - redhawk_repo=$s3_repo_url/redhawk/cf-and-deps/yum/$redhawk_version/$dist/$arch
