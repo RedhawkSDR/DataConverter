@@ -31,7 +31,7 @@ Prefix:         %{_prefix}
 
 Name:           rh.DataConverter
 Version:        4.0.4
-Release:        3%{?dist}
+Release:        4%{?dist}
 Summary:        Component %{name}
 
 Group:          REDHAWK/Components
