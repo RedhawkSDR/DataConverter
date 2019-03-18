@@ -40,7 +40,6 @@ Source0:        %{name}-%{version}.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires:  redhawk-devel >= 2.1
-BuildRequires:  redhawk-sdrroot-dom-mgr >= 2.1
 Requires:       redhawk >= 2.1
 Requires:       redhawk-sdrroot-dom-mgr >= 2.1
 

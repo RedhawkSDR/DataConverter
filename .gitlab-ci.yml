@@ -5,6 +5,7 @@ variables:
   fftlib_version: '2.1.0-2'
   namespace: rh.
   test_suite: test_$CI_PROJECT_NAME.py
+  install_sdr_cmd: ''
 
 stages:
   - build
@@ -75,6 +76,7 @@ before_script:
     - yum-config-manager --add-repo $dsp_repo
     - yum-config-manager --add-repo $fftlib_repo
     - touch /var/lib/rpm/* && yum-builddep --nogpgcheck -y ${namespace}$CI_PROJECT_NAME.spec
+    - ${install_sdr_cmd}
     - source /etc/profile.d/redhawk.sh
     - export SDRROOT=/var/redhawk/sdr
     - if [ -d cpp ] && [ "${dist}" == "el7" ]; then
@@ -143,6 +145,7 @@ test:el6:rh2.2:
     short_version: '2.2'
     dist: el6
     arch: x86_64
+    install_sdr_cmd: 'yum -y --nogpg install redhawk-sdrroot-dom-mgr'
   <<: *test
 
 test:el7:rh2.2:
@@ -152,6 +155,7 @@ test:el7:rh2.2:
     short_version: '2.2'
     dist: el7
     arch: x86_64
+    install_sdr_cmd: 'yum -y --nogpg install redhawk-sdrroot-dom-mgr'
   <<: *test
 
 test:el6:rh2.3:
@@ -161,6 +165,7 @@ test:el6:rh2.3:
     short_version: '2.3'
     dist: el6
     arch: x86_64
+    install_sdr_cmd: 'yum -y --nogpg install redhawk-sdrroot-dom-mgr'
   <<: *test
 
 test:el7:rh2.3:
@@ -170,6 +175,7 @@ test:el7:rh2.3:
     short_version: '2.3'
     dist: el7
     arch: x86_64
+    install_sdr_cmd: 'yum -y --nogpg install redhawk-sdrroot-dom-mgr'
   <<: *test
 
 deploy:
