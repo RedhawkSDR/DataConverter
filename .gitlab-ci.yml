@@ -1,6 +1,6 @@
 variables:
-  rh_22_release: '2-2-0'
-  rh_23_release: '2-3-0'
+  rh_22_release: '2-2-2'
+  rh_23_release: 'develop'
   dsp_version: '2.0.0-5'
   fftlib_version: '2.1.0-2'
   namespace: rh.
@@ -125,6 +125,8 @@ package:el6:rh2.3:
     latest_version: develop
     release_version: $rh_23_release
     short_version: '2.3'
+    dsp_version: 'develop'
+    fftlib_version: 'develop'
     dist: el6
     arch: x86_64
   <<: *package
@@ -134,6 +136,8 @@ package:el7:rh2.3:
     latest_version: develop
     release_version: $rh_23_release
     short_version: '2.3'
+    dsp_version: 'develop'
+    fftlib_version: 'develop'
     dist: el7
     arch: x86_64
   <<: *package
@@ -163,6 +167,8 @@ test:el6:rh2.3:
     latest_version: develop
     release_version: $rh_23_release
     short_version: '2.3'
+    dsp_version: 'develop'
+    fftlib_version: 'develop'
     dist: el6
     arch: x86_64
     install_sdr_cmd: 'yum -y --nogpg install redhawk-sdrroot-dom-mgr'
@@ -173,6 +179,8 @@ test:el7:rh2.3:
     latest_version: develop
     release_version: $rh_23_release
     short_version: '2.3'
+    dsp_version: 'develop'
+    fftlib_version: 'develop'
     dist: el7
     arch: x86_64
     install_sdr_cmd: 'yum -y --nogpg install redhawk-sdrroot-dom-mgr'
